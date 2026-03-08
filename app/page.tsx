@@ -1,9 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import AuthBar from "@/app/components/AuthBar";
+import NotificationBell from "@/app/components/NotificationBell";
+import {
+  Heart,
+  MessageCircle,
+  Search,
+  Flame,
+  LayoutGrid,
+  Users,
+  Building2,
+  Settings,
+  ChevronRight,
+  Plus,
+  FileText,
+} from "lucide-react";
+
+type Category = "info" | "question" | "daily" | "meet" | "general";
 
 type Post = {
   id: string;
@@ -11,150 +29,572 @@ type Post = {
   title: string;
   content: string;
   author_name: string | null;
+  like_count: number;
+  comment_count: number;
+  image_url: string | null;
+  category: Category | null;
+  is_hidden?: boolean | null;
+};
+
+function cx(...arr: Array<string | false | null | undefined>) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function formatRelative(iso: string) {
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const diff = Math.max(0, now - t);
+
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec}s ago`;
+
+  const min = Math.floor(diff / 60000);
+  if (min < 60) return `${min}m ago`;
+
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
+}
+
+const CAT_LABEL: Record<"all" | Category, string> = {
+  all: "All",
+  question: "Question",
+  info: "Info",
+  general: "General",
+  daily: "Daily",
+  meet: "Meet",
 };
 
 export default function HomePage() {
+  const pathname = usePathname();
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // ✅ 로그인 여부(버튼 표시용)
   const [isAuthed, setIsAuthed] = useState(false);
 
-  const load = async () => {
+  const [searchInput, setSearchInput] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [activeCat, setActiveCat] = useState<"all" | Category>("all");
+  const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
+
+  const load = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
 
     const { data, error } = await supabase
-      .from("posts")
-      .select("id,created_at,title,content,author_name")
-      .order("created_at", { ascending: false });
-
-    setLoading(false);
+      .from("v_posts_engagement")
+      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,category,is_hidden")
+      .eq("is_hidden", false)
+      .order("created_at", { ascending: false })
+      .limit(80);
 
     if (error) {
       setErrorMsg(error.message);
+      setLoading(false);
       return;
     }
 
     setPosts((data ?? []) as Post[]);
-  };
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     load();
 
-    // ✅ 최초 로그인 상태 확인
-    supabase.auth.getUser().then(({ data }) => {
-      setIsAuthed(!!data.user);
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthed(!!data.session);
     });
 
-    // ✅ 로그인/로그아웃 변화 감지
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session?.user);
+      setIsAuthed(!!session);
     });
 
     return () => {
       sub.subscription.unsubscribe();
     };
+  }, [load]);
+
+  const startedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+
+      if (cancelled) return;
+
+      const refetchSoon = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => load(), 250);
+      };
+
+      ch = supabase
+        .channel("home:realtime")
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, refetchSoon)
+        .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, refetchSoon)
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, refetchSoon)
+        .subscribe();
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      startedRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (ch) supabase.removeChannel(ch);
+    };
+  }, [load]);
+
+  const handleSearch = useCallback(() => {
+    setSearchText(searchInput.trim());
+  }, [searchInput]);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setSearchText("");
   }, []);
 
-  return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
-      {/* 상단 헤더 */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-        }}
+  const trendingTop3 = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now - 72 * 60 * 60 * 1000;
+
+    const cand = posts.filter((p) => {
+      const t = new Date(p.created_at).getTime();
+      return Number.isFinite(t) && t >= cutoff;
+    });
+
+    const score = (p: Post) => (p.like_count ?? 0) * 2 + (p.comment_count ?? 0);
+
+    return cand
+      .slice()
+      .sort((a, b) => {
+        const d = score(b) - score(a);
+        if (d !== 0) return d;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
+      .slice(0, 3);
+  }, [posts]);
+
+  const filteredPosts = useMemo(() => {
+    let arr = posts;
+
+    if (activeCat !== "all") {
+      arr = arr.filter((p) => (p.category ?? "general") === activeCat);
+    }
+
+    const s = searchText.trim().toLowerCase();
+    if (s) {
+      arr = arr.filter((p) => {
+        const title = (p.title ?? "").toLowerCase();
+        const content = (p.content ?? "").toLowerCase();
+        const author = (p.author_name ?? "").toLowerCase();
+        return title.includes(s) || content.includes(s) || author.includes(s);
+      });
+    }
+
+    arr = arr.slice().sort((a, b) => {
+      if (sortMode === "likes") {
+        const scoreA = (a.like_count ?? 0) + (a.comment_count ?? 0);
+        const scoreB = (b.like_count ?? 0) + (b.comment_count ?? 0);
+        const diff = scoreB - scoreA;
+        if (diff !== 0) return diff;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return arr;
+  }, [posts, searchText, activeCat, sortMode]);
+
+  const catCounts = useMemo(() => {
+    const base: Record<"all" | Category, number> = {
+      all: posts.length,
+      info: 0,
+      question: 0,
+      daily: 0,
+      meet: 0,
+      general: 0,
+    };
+
+    for (const p of posts) {
+      const k = (p.category ?? "general") as Category;
+      base[k] = (base[k] ?? 0) + 1;
+    }
+
+    return base;
+  }, [posts]);
+
+  const catTabs: Array<"all" | Category> = ["all", "question", "info", "general", "daily", "meet"];
+
+  const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
+  const iconButton =
+    "flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900";
+  const pillBase =
+    "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition whitespace-nowrap";
+
+  const SegTab = ({ k }: { k: "all" | Category }) => {
+    const active = activeCat === k;
+
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveCat(k)}
+        className={cx(
+          pillBase,
+          active ? "bg-black text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+        )}
       >
-        <h1 style={{ fontSize: 24, fontWeight: 800 }}>EICConnect MVP</h1>
+        {CAT_LABEL[k]}
+      </button>
+    );
+  };
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <AuthBar />
-
-          {/* ✅ 로그인 했을 때만 새 글 버튼 표시 */}
-       {isAuthed && (
-  <>
+  const NavItem = ({
+    href,
+    icon,
+    label,
+    active,
+  }: {
+    href: string;
+    icon: ReactNode;
+    label: string;
+    active: boolean;
+  }) => (
     <Link
-      href="/my"
-      style={{
-        padding: "10px 14px",
-        borderRadius: 10,
-        border: "1px solid #111",
-        textDecoration: "none",
-        color: "#111",
-      }}
-    >
-      내 글
-    </Link>
-
-    <Link
-      href="/create"
-      style={{
-        padding: "10px 14px",
-        borderRadius: 10,
-        border: "1px solid #111",
-        textDecoration: "none",
-        color: "#111",
-      }}
-    >
-      + 새 글
-    </Link>
-  </>
-)}
-
-        </div>
-      </div>
-
-      {!isAuthed && (
-        <div style={{ marginTop: 10, fontSize: 13, color: "#666" }}>
-          글을 작성하려면 로그인해줘.
-        </div>
+      href={href}
+      className={cx(
+        "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
+        active ? "bg-black text-white" : "text-gray-700 hover:bg-gray-50"
       )}
+    >
+      <div
+        className={cx(
+          "flex h-9 w-9 items-center justify-center rounded-xl",
+          active ? "bg-white/15" : "border border-gray-200 bg-white"
+        )}
+      >
+        {icon}
+      </div>
+      <span className="text-sm font-medium">{label}</span>
+    </Link>
+  );
 
-      <div style={{ marginTop: 16 }}>
-        {loading && <div>불러오는 중...</div>}
-        {errorMsg && <div style={{ color: "crimson" }}>{errorMsg}</div>}
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="mx-auto max-w-[1180px] px-4 pb-24 pt-4">
+        <header className="sticky top-0 z-40 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
+          <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 py-3">
+            <Link href="/" className="flex items-center gap-3 no-underline">
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white">
+                <Image
+                  src="/penguin.png"
+                  alt="Borderly"
+                  width={36}
+                  height={36}
+                  className="h-auto w-auto max-h-9 max-w-9 object-contain"
+                />
+              </div>
+              <div className="text-lg font-semibold tracking-tight">borderly</div>
+            </Link>
 
-        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-          {posts.map((p) => (
-            <Link
-              key={p.id}
-              href={`/posts/${p.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div
-                style={{
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 14,
-                  padding: 14,
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("home-search") as HTMLInputElement | null;
+                  el?.focus();
                 }}
+                className={iconButton}
+                aria-label="Focus search"
               >
-                <div style={{ fontSize: 18, fontWeight: 800 }}>{p.title}</div>
+                <Search className="h-5 w-5" />
+              </button>
 
-                {p.author_name && (
-                  <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
-                    by {p.author_name}
+              <Link href="/inbox" className={iconButton} aria-label="Messages">
+                <MessageCircle className="h-5 w-5" />
+              </Link>
+
+              <NotificationBell className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900" />
+
+              <Link href="/profile" className={iconButton} aria-label="Profile">
+                <div className="h-7 w-7 rounded-full border border-gray-200 bg-gray-200" />
+              </Link>
+
+              <div className="ml-1">
+                <AuthBar />
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[240px_1fr]">
+          <aside className={cx(card, "hidden h-fit p-3 lg:sticky lg:top-20 lg:block")}>
+            <div className="grid gap-1">
+              <NavItem
+                href="/"
+                label="Community"
+                active={pathname === "/"}
+                icon={<LayoutGrid className="h-5 w-5" />}
+              />
+              <NavItem
+                href="/meet"
+                label="Meet"
+                active={pathname === "/meet"}
+                icon={<Users className="h-5 w-5" />}
+              />
+              <NavItem
+                href="/ngo"
+                label="NGO"
+                active={pathname === "/ngo"}
+                icon={<Building2 className="h-5 w-5" />}
+              />
+              <NavItem
+                href="/settings"
+                label="Settings"
+                active={pathname === "/settings"}
+                icon={<Settings className="h-5 w-5" />}
+              />
+            </div>
+          </aside>
+
+          <main className="min-w-0 space-y-5">
+            <section className={cx(card, "p-4 sm:p-5")}>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                    <Search className="h-5 w-5 shrink-0 text-gray-400" />
+                    <input
+                      id="home-search"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSearch();
+                      }}
+                      placeholder="Search title, content, author..."
+                      className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                    />
                   </div>
-                )}
 
-                <div style={{ marginTop: 10, color: "#333", lineHeight: 1.55 }}>
-                  {p.content.length > 120 ? p.content.slice(0, 120) + "..." : p.content}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSearch}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Search
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Clear
+                    </button>
+
+                    <Link
+                      href={isAuthed ? "/create" : "/auth"}
+                      className="hidden h-11 items-center justify-center rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
+                    >
+                      Create Post
+                    </Link>
+                  </div>
                 </div>
 
-                <div style={{ marginTop: 10, fontSize: 12, color: "#777" }}>
-                  {new Date(p.created_at).toLocaleString()}
+                <div className="flex flex-wrap items-center gap-2">
+                  {catTabs.map((k) => (
+                    <SegTab key={k} k={k} />
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <button
+                    type="button"
+                    onClick={() => setSortMode("latest")}
+                    className={cx(
+                      "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
+                      sortMode === "latest"
+                        ? "bg-black text-white"
+                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    Latest
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSortMode("likes")}
+                    className={cx(
+                      "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
+                      sortMode === "likes"
+                        ? "bg-black text-white"
+                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    Top
+                  </button>
+
+                  <span className="ml-auto text-right">
+                    Results <b className="text-gray-900">{filteredPosts.length}</b>
+                    {searchText ? (
+                      <>
+                        {" "}
+                        · Search <b className="text-gray-900">{searchText}</b>
+                      </>
+                    ) : null}
+                    {activeCat !== "all" ? (
+                      <>
+                        {" "}
+                        · <b className="text-gray-900">{CAT_LABEL[activeCat]}</b> ({catCounts[activeCat] ?? 0})
+                      </>
+                    ) : (
+                      <>
+                        {" "}
+                        · <b className="text-gray-900">All</b> ({catCounts.all})
+                      </>
+                    )}
+                  </span>
                 </div>
               </div>
-            </Link>
-          ))}
+            </section>
 
-          {!loading && posts.length === 0 && (
-            <div style={{ color: "#666" }}>아직 글이 없어.</div>
-          )}
+            {!loading && !errorMsg && trendingTop3.length > 0 && (
+              <section className={cx(card, "p-4 sm:p-5")}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                    <Flame className="h-5 w-5 text-orange-500" />
+                    Trending
+                  </div>
+
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 transition hover:text-gray-900"
+                  >
+                    See all <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  {trendingTop3.map((p, idx) => (
+                    <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
+                      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3 transition hover:bg-white">
+                        <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-gray-900">{p.title}</div>
+                          <div className="mt-1 truncate text-xs text-gray-500">
+                            {p.author_name ?? "Anonymous"} · {formatRelative(p.created_at)}
+                          </div>
+                        </div>
+
+                        <div className="inline-flex items-center gap-1 text-gray-500">
+                          <Heart className="h-4 w-4" />
+                          <span className="text-xs font-medium">{p.like_count ?? 0}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="grid gap-3">
+              {loading && (
+                <div className={cx(card, "p-5 text-sm text-gray-500")}>
+                  Loading...
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errorMsg}
+                </div>
+              )}
+
+              {!loading &&
+                !errorMsg &&
+                filteredPosts.map((p) => (
+                  <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
+                    <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs text-gray-400">
+                            {p.author_name ?? "Anonymous"} · {formatRelative(p.created_at)}
+                          </div>
+
+                          <h2 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-gray-900 sm:text-base">
+                            {p.title}
+                          </h2>
+
+                          <div className="mt-2 inline-flex h-7 items-center rounded-full bg-gray-100 px-3 text-xs font-medium text-gray-600">
+                            {CAT_LABEL[(p.category ?? "general") as Category]}
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3 text-gray-500">
+                          <div className="inline-flex items-center gap-1">
+                            <Heart className="h-5 w-5" />
+                            <span className="text-xs font-medium">{p.like_count ?? 0}</span>
+                          </div>
+                          <div className="inline-flex items-center gap-1">
+                            <MessageCircle className="h-5 w-5" />
+                            <span className="text-xs font-medium">{p.comment_count ?? 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {p.image_url ? (
+                        <div className="mt-4">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={p.image_url}
+                            alt="Post thumbnail"
+                            className="h-44 w-full rounded-xl object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        </div>
+                      ) : null}
+
+                      <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                        {p.content.length > 180 ? `${p.content.slice(0, 180)}...` : p.content}
+                      </p>
+                    </article>
+                  </Link>
+                ))}
+
+              {!loading && !errorMsg && filteredPosts.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
+                  <FileText className="mb-3 h-10 w-10 text-gray-300" />
+                  <div className="text-sm font-semibold text-gray-800">No posts found</div>
+                  <div className="mt-1 text-sm text-gray-500">
+                    {searchText ? "Try another keyword." : "Be the first to share something."}
+                  </div>
+                </div>
+              )}
+            </section>
+          </main>
         </div>
+
+        <Link
+          href={isAuthed ? "/create" : "/auth"}
+          className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg transition hover:scale-[1.03]"
+          aria-label="Create post"
+        >
+          <Plus className="h-6 w-6" />
+        </Link>
       </div>
     </div>
   );
