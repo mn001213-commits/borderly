@@ -15,7 +15,7 @@ export default function MeetManagePage() {
   const params = useParams();
   const router = useRouter();
 
-  // ✅ id 안전 처리 (string | string[])
+  // Safe id handling (string | string[])
   const id = useMemo(() => {
     const raw = (params as any)?.id;
     return Array.isArray(raw) ? raw[0] : raw;
@@ -26,7 +26,7 @@ export default function MeetManagePage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // ✅ 버튼 연타 방지
+  // Prevent button spam
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const setBusyKey = (userId: string, v: boolean) => {
     setBusy((prev) => ({ ...prev, [userId]: v }));
@@ -42,11 +42,11 @@ export default function MeetManagePage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
-    // 1) 모임 정보 조회 (호스트 확인)
+    // 1) Fetch meetup info (verify host)
     const { data: meet, error: meetErr } = await supabase
       .from("meet_posts")
       .select("host_id")
@@ -62,7 +62,7 @@ export default function MeetManagePage() {
 
     setIsHost(true);
 
-    // 2) 단톡방 id
+    // 2) Group chat id
     const { data: gc, error: gcErr } = await supabase
       .from("group_conversations")
       .select("conversation_id")
@@ -72,7 +72,7 @@ export default function MeetManagePage() {
     if (gcErr) console.error(gcErr);
     setConversationId(gc?.conversation_id ?? null);
 
-    // 3) ✅ 참가자 조회 (profiles 조인 금지: 400 방지)
+    // 3) Fetch participants (no join with profiles to prevent 400)
     const mp = await supabase
       .from("meet_participants")
       .select("user_id,status")
@@ -92,12 +92,12 @@ export default function MeetManagePage() {
 
     const userIds = base.map((x) => x.user_id).filter(Boolean);
 
-    // 4) profiles 2쿼리로 매핑
+    // 4) Map profiles via 2nd query
     const nameMap = new Map<string, string | null>();
     if (userIds.length > 0) {
       const pr = await supabase
-        .from("profiles") // ✅ 너 프로젝트에서 테이블명이 다르면 여기만 교체
-        .select("id,display_name")
+        .from("profiles")
+        .select("id,display_name") // Change table name here if different in your project
         .in("id", userIds);
 
       if (!pr.error) {
@@ -115,7 +115,7 @@ export default function MeetManagePage() {
       display_name: nameMap.get(p.user_id) ?? null,
     }));
 
-    // pending 먼저 보이게 정렬 (approved, rejected는 아래)
+    // Sort: pending first, then approved, then rejected
     const weight = (s: Participant["status"]) => (s === "pending" ? 0 : s === "approved" ? 1 : 2);
     mapped.sort((a, b) => weight(a.status) - weight(b.status));
 
@@ -127,14 +127,14 @@ export default function MeetManagePage() {
     init();
   }, [init]);
 
-  // ✅ realtime: 참가자 변동 자동 반영 (dev 경고 최소화 버전)
+  // Realtime: auto-reflect participant changes (minimized dev warnings)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!id) return;
 
-    // 이미 구독 중이면 재구독 안 함 (StrictMode/HMR 방어)
+    // Skip if already subscribed (StrictMode/HMR guard)
     if (chRef.current) return;
 
     const refetchSoon = () => {
@@ -156,7 +156,7 @@ export default function MeetManagePage() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
 
-      // cleanup이 너무 빨리 실행되면 "closed before established"가 뜰 수 있어서 한 템포 늦춤
+      // Delay cleanup slightly to avoid "closed before established" warning
       const old = chRef.current;
       chRef.current = null;
 
@@ -218,7 +218,7 @@ export default function MeetManagePage() {
     init();
   }
 
-  if (loading) return <div className="p-6">불러오는 중...</div>;
+  if (loading) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Loading...</div>;
   if (!isHost) return null;
 
   const pending = participants.filter((p) => p.status === "pending");
@@ -226,82 +226,82 @@ export default function MeetManagePage() {
   const rejected = participants.filter((p) => p.status === "rejected");
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
-      <div className="flex items-center justify-between">
-        <Link href={`/meet/${id}`} className="text-sm text-gray-500 hover:underline">
-          ← 모임으로 돌아가기
-        </Link>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="flex items-center justify-between">
+          <Link href={`/meet/${id}`} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+            &larr; Back to Meetup
+          </Link>
 
-        <button onClick={() => init()} className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50">
-          새로고침
-        </button>
-      </div>
+          <button onClick={() => init()} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+            Refresh
+          </button>
+        </div>
 
-      <h1 className="mt-4 text-xl font-bold">참가자 관리</h1>
+        <h1 className="mt-4 text-xl font-bold">Manage Participants</h1>
 
-      {/* Pending */}
-      <div className="mt-6">
-        <h2 className="mb-2 font-semibold">승인 대기 ({pending.length})</h2>
+        {/* Pending */}
+        <div className="mt-6">
+          <h2 className="mb-2 font-semibold">Pending Approval ({pending.length})</h2>
 
-        {pending.length === 0 && <div className="text-sm text-gray-500">대기중인 요청 없음</div>}
+          {pending.length === 0 && <div className="text-sm text-gray-500">No pending requests</div>}
 
-        {pending.map((p) => (
-          <div key={p.user_id} className="mb-2 flex items-center justify-between rounded-xl border p-3">
-            <div className="text-sm">{p.display_name ?? p.user_id.slice(0, 6)}</div>
+          {pending.map((p) => (
+            <div key={p.user_id} className="mb-2 flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold">{p.display_name ?? p.user_id.slice(0, 6)}</div>
 
-            <div className="flex gap-2">
-              <button
-                disabled={!!busy[p.user_id]}
-                onClick={() => approve(p.user_id)}
-                className="rounded-lg bg-black px-3 py-1 text-xs text-white disabled:opacity-50"
-              >
-                {busy[p.user_id] ? "처리중" : "승인"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  disabled={!!busy[p.user_id]}
+                  onClick={() => approve(p.user_id)}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {busy[p.user_id] ? "Processing" : "Approve"}
+                </button>
 
-              <button
-                disabled={!!busy[p.user_id]}
-                onClick={() => reject(p.user_id)}
-                className="rounded-lg border px-3 py-1 text-xs disabled:opacity-50"
-              >
-                거절
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Approved */}
-      <div className="mt-8">
-        <h2 className="mb-2 font-semibold">참여자 ({approved.length})</h2>
-
-        {approved.length === 0 && <div className="text-sm text-gray-500">참여자 없음</div>}
-
-        {approved.map((p) => (
-          <div key={p.user_id} className="mb-2 flex items-center justify-between rounded-xl border p-3">
-            <div className="text-sm">{p.display_name ?? p.user_id.slice(0, 6)}</div>
-            <div className="text-xs opacity-60">승인됨</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Rejected (선택 표시) */}
-      {rejected.length > 0 && (
-        <div className="mt-8">
-          <h2 className="mb-2 font-semibold">거절됨 ({rejected.length})</h2>
-
-          <div className="mb-2 text-sm text-gray-500">필요 없으면 이 섹션 통째로 지워도 됨.</div>
-
-          {rejected.map((p) => (
-            <div
-              key={p.user_id}
-              className="mb-2 flex items-center justify-between rounded-xl border p-3 opacity-75"
-            >
-              <div className="text-sm">{p.display_name ?? p.user_id.slice(0, 6)}</div>
-              <div className="text-xs opacity-60">거절됨</div>
+                <button
+                  disabled={!!busy[p.user_id]}
+                  onClick={() => reject(p.user_id)}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:opacity-50"
+                >
+                  Reject
+                </button>
+              </div>
             </div>
           ))}
         </div>
-      )}
+
+        {/* Approved */}
+        <div className="mt-8">
+          <h2 className="mb-2 font-semibold">Participants ({approved.length})</h2>
+
+          {approved.length === 0 && <div className="text-sm text-gray-500">No participants</div>}
+
+          {approved.map((p) => (
+            <div key={p.user_id} className="mb-2 flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold">{p.display_name ?? p.user_id.slice(0, 6)}</div>
+              <div className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Approved</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Rejected (optional display) */}
+        {rejected.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-2 font-semibold">Rejected ({rejected.length})</h2>
+
+            {rejected.map((p) => (
+              <div
+                key={p.user_id}
+                className="mb-2 flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm opacity-75"
+              >
+                <div className="text-sm font-semibold">{p.display_name ?? p.user_id.slice(0, 6)}</div>
+                <div className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Rejected</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

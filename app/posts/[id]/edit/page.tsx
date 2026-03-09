@@ -5,17 +5,17 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-const BUCKET = "post-images"; // ✅ 너의 Supabase Storage 버킷명으로 맞춰줘
+const BUCKET = "post-images";
 
 type Category = "info" | "question" | "daily" | "jobs" | "meet" | "general";
 
 const CAT_LABEL: Record<Category, string> = {
-  info: "정보 공유",
-  question: "질문",
-  daily: "일상",
-  jobs: "일자리",
-  meet: "교류",
-  general: "자유",
+  info: "Info Sharing",
+  question: "Questions",
+  daily: "Daily Life",
+  jobs: "Jobs",
+  meet: "Meetups",
+  general: "General",
 };
 
 type Post = {
@@ -35,9 +35,7 @@ function isUuid(v: string) {
   );
 }
 
-// ✅ 이미지 리사이즈/압축 (최대 1600px, 품질 0.82)
-// - PNG/GIF도 업로드 전에 JPEG로 압축(용량 절감 목적)
-// - 투명 배경은 흰색으로 깔림 (투명 유지가 필요하면 말해줘)
+// Image resize/compress (max 1600px, quality 0.82)
 async function compressImage(
   file: File,
   opts?: { maxSize?: number; quality?: number; mime?: "image/jpeg" | "image/webp" }
@@ -49,14 +47,14 @@ async function compressImage(
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(new Error("이미지 읽기 실패"));
+    r.onerror = () => reject(new Error("Failed to read image"));
     r.readAsDataURL(file);
   });
 
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const im = new Image();
     im.onload = () => resolve(im);
-    im.onerror = () => reject(new Error("이미지 로드 실패"));
+    im.onerror = () => reject(new Error("Failed to load image"));
     im.src = dataUrl;
   });
 
@@ -72,9 +70,8 @@ async function compressImage(
   canvas.height = nh;
 
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas context 생성 실패");
+  if (!ctx) throw new Error("Failed to create canvas context");
 
-  // 투명 배경 흰색 처리(원하면 제거 가능)
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, nw, nh);
 
@@ -82,7 +79,7 @@ async function compressImage(
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("이미지 변환 실패"))),
+      (b) => (b ? resolve(b) : reject(new Error("Failed to convert image"))),
       mime,
       quality
     );
@@ -109,12 +106,12 @@ export default function EditPostPage() {
   const [authorName, setAuthorName] = useState("");
   const [category, setCategory] = useState<Category>("general");
 
-  // ✅ 이미지 교체용 상태
+  // State for image replacement
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newPreviewUrl, setNewPreviewUrl] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
 
-  // ✅ preview URL 누수 방지
+  // Prevent preview URL memory leak
   useEffect(() => {
     return () => {
       if (newPreviewUrl) URL.revokeObjectURL(newPreviewUrl);
@@ -125,23 +122,23 @@ export default function EditPostPage() {
     const load = async () => {
       if (!id || !isUuid(id)) {
         setLoading(false);
-        setErrorMsg("잘못된 게시글 주소야.");
+        setErrorMsg("Invalid post URL.");
         return;
       }
 
       setLoading(true);
       setErrorMsg(null);
 
-      // 1) 로그인 체크
+      // 1) Login check
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id ?? null;
       if (!uid) {
-        router.replace("/auth");
+        router.replace("/login");
         return;
       }
       setMyId(uid);
 
-      // 2) 글 불러오기
+      // 2) Load post
       const { data, error } = await supabase
         .from("posts")
         .select("id,title,content,author_name,user_id,created_at,image_url,category")
@@ -156,10 +153,10 @@ export default function EditPostPage() {
 
       const p = data as Post;
 
-      // 3) 소유자 체크
+      // 3) Owner check
       if (!p.user_id || p.user_id !== uid) {
         setLoading(false);
-        setErrorMsg("수정 권한이 없어. (작성자만 수정 가능)");
+        setErrorMsg("You don't have permission to edit. (Only the author can edit)");
         return;
       }
 
@@ -169,7 +166,7 @@ export default function EditPostPage() {
       setAuthorName(p.author_name ?? "");
       setCategory((p.category ?? "general") as Category);
 
-      // 이미지 상태 초기화
+      // Reset image state
       setNewFile(null);
       if (newPreviewUrl) URL.revokeObjectURL(newPreviewUrl);
       setNewPreviewUrl(null);
@@ -196,7 +193,7 @@ export default function EditPostPage() {
     if (!file.type.startsWith("image/")) {
       setNewFile(null);
       setNewPreviewUrl(null);
-      setErrorMsg("이미지 파일만 선택해줘.");
+      setErrorMsg("Please select an image file only.");
       return;
     }
 
@@ -206,7 +203,7 @@ export default function EditPostPage() {
   };
 
   const uploadToStorage = async (file: File, userId: string, postId: string) => {
-    // ✅ 업로드 전에 압축
+    // Compress before upload
     const { blob, contentType, ext } = await compressImage(file, {
       maxSize: 1600,
       quality: 0.82,
@@ -224,7 +221,7 @@ export default function EditPostPage() {
 
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     const publicUrl = data?.publicUrl ?? null;
-    if (!publicUrl) throw new Error("이미지 URL 생성 실패");
+    if (!publicUrl) throw new Error("Failed to generate image URL");
     return publicUrl;
   };
 
@@ -239,7 +236,7 @@ export default function EditPostPage() {
     const a = authorName.trim();
 
     if (!t || !c) {
-      setErrorMsg("제목/내용을 입력해줘.");
+      setErrorMsg("Please enter a title and content.");
       return;
     }
 
@@ -277,7 +274,7 @@ export default function EditPostPage() {
       }
 
       if (count === 0) {
-        setErrorMsg("수정 실패: 권한이 없어서 수정할 수 없어.");
+        setErrorMsg("Edit failed: You don't have permission to edit this post.");
         return;
       }
 
@@ -285,168 +282,148 @@ export default function EditPostPage() {
       router.refresh();
     } catch (err: any) {
       setSaving(false);
-      setErrorMsg(err?.message ?? "이미지 업로드 중 오류");
+      setErrorMsg(err?.message ?? "Error during image upload");
     }
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Link href={post ? `/posts/${post.id}` : "/"} style={{ textDecoration: "none" }}>
-          ← 돌아가기
-        </Link>
-      </div>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link
+            href={post ? `/posts/${post.id}` : "/"}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] no-underline"
+          >
+            ← Go Back
+          </Link>
+        </div>
 
-      <h1 style={{ fontSize: 24, fontWeight: 900 }}>글 수정</h1>
+        <h1 className="text-xl font-bold">Edit Post</h1>
 
-      {loading && <div style={{ marginTop: 12 }}>불러오는 중...</div>}
-      {errorMsg && <div style={{ marginTop: 12, color: "crimson" }}>{errorMsg}</div>}
-
-      {!loading && post && (
-        <form onSubmit={onSave} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목"
-            style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}
-          />
-
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.8 }}>카테고리</div>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as Category)}
-              style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10, background: "white" }}
-            >
-              {Object.keys(CAT_LABEL).map((k) => (
-                <option key={k} value={k}>
-                  {CAT_LABEL[k as Category]}
-                </option>
-              ))}
-            </select>
+        {loading && <div className="mt-3 text-sm text-gray-500">Loading...</div>}
+        {errorMsg && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
           </div>
+        )}
 
-          <input
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
-            placeholder="작성자(선택)"
-            style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}
-          />
+        {!loading && post && (
+          <form onSubmit={onSave} className="mt-4 space-y-4">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
+            />
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="내용"
-            rows={10}
-            style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}
-          />
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none"
+              >
+                {Object.keys(CAT_LABEL).map((k) => (
+                  <option key={k} value={k}>
+                    {CAT_LABEL[k as Category]}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* ✅ 이미지 교체/삭제 */}
-          <div style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
-            <div style={{ fontWeight: 900, marginBottom: 8 }}>이미지 (업로드 전 자동 압축됨)</div>
+            <input
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Author (optional)"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
+            />
 
-            {post.image_url && !removeImage && !newPreviewUrl ? (
-              <div style={{ display: "grid", gap: 8 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.image_url}
-                  alt="current"
-                  style={{
-                    width: "100%",
-                    maxHeight: 360,
-                    objectFit: "cover",
-                    borderRadius: 10,
-                    border: "1px solid #eee",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRemoveImage(true);
-                      setNewFile(null);
-                      if (newPreviewUrl) URL.revokeObjectURL(newPreviewUrl);
-                      setNewPreviewUrl(null);
-                    }}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      border: "1px solid #111",
-                      background: "white",
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
-                    현재 이미지 삭제
-                  </button>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Content"
+              rows={10}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400 min-h-[150px]"
+            />
+
+            {/* Image replace/delete */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="mb-2 text-sm font-semibold text-gray-700">Image (auto-compressed before upload)</div>
+
+              {post.image_url && !removeImage && !newPreviewUrl ? (
+                <div className="space-y-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={post.image_url}
+                    alt="current"
+                    className="w-full max-h-[400px] object-cover rounded-xl border border-gray-100"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRemoveImage(true);
+                        setNewFile(null);
+                        if (newPreviewUrl) URL.revokeObjectURL(newPreviewUrl);
+                        setNewPreviewUrl(null);
+                      }}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+                    >
+                      Delete Current Image
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {removeImage ? (
-              <div style={{ marginTop: 8, color: "#b91c1c", fontWeight: 900 }}>
-                저장하면 이미지가 삭제돼.
-              </div>
-            ) : null}
-
-            {newPreviewUrl ? (
-              <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={newPreviewUrl}
-                  alt="preview"
-                  style={{
-                    width: "100%",
-                    maxHeight: 360,
-                    objectFit: "cover",
-                    borderRadius: 10,
-                    border: "1px solid #eee",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => pickFile(null)}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      border: "1px solid #111",
-                      background: "white",
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
-                    선택 취소
-                  </button>
+              {removeImage ? (
+                <div className="mt-2 text-sm font-semibold text-red-700">
+                  The image will be deleted when you save.
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            <div style={{ marginTop: 10 }}>
-              <input type="file" accept="image/*" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
-              <div style={{ marginTop: 6, fontSize: 12, color: "#6b7280" }}>
-                최대 1600px로 리사이즈 + 압축 후 업로드돼.
+              {newPreviewUrl ? (
+                <div className="mt-3 space-y-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={newPreviewUrl}
+                    alt="preview"
+                    className="w-full max-h-[400px] object-cover rounded-xl border border-gray-100"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => pickFile(null)}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+                    >
+                      Cancel Selection
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm"
+                />
+                <div className="mt-1 text-xs text-gray-500">
+                  Resized to max 1600px and compressed before upload.
+                </div>
               </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            style={{
-              padding: 12,
-              borderRadius: 10,
-              border: "1px solid #111",
-              background: saving ? "#ddd" : "#111",
-              color: "#fff",
-              cursor: saving ? "not-allowed" : "pointer",
-              fontWeight: 900,
-            }}
-          >
-            {saving ? "저장 중..." : "저장하기"}
-          </button>
-        </form>
-      )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

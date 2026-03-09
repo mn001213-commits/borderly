@@ -35,46 +35,52 @@ export default function UsersPage() {
   };
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-      <h1>사용자 찾기</h1>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <h1 className="text-xl font-bold">Find Users</h1>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        <input
-          placeholder="국가 코드 (KR, JP...)"
-          value={country}
-          onChange={(e) => setCountry(e.target.value.toUpperCase())}
-        />
+        <div className="mt-4 flex gap-3">
+          <input
+            placeholder="Country code (KR, JP...)"
+            value={country}
+            onChange={(e) => setCountry(e.target.value.toUpperCase())}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
+          />
 
-        <select value={social} onChange={(e) => setSocial(e.target.value)}>
-          <option value="">전체</option>
-          <option value="worker">사회인</option>
-          <option value="job_seeker">구직자</option>
-          <option value="student">학생</option>
-          <option value="homemaker">주부</option>
-          <option value="freelancer">프리랜서</option>
-        </select>
-      </div>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        {users.map((u) => (
-          <Link
-            key={u.id}
-            href={`/u/${u.id}`}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: 12,
-              padding: 12,
-              textDecoration: "none",
-              color: "inherit",
-            }}
+          <select
+            value={social}
+            onChange={(e) => setSocial(e.target.value)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
           >
-            <div style={{ fontWeight: 800 }}>{u.display_name}</div>
-            <div style={{ opacity: 0.7 }}>
-              {countryName(u.country_code, "ko")} · {u.social_status}
-            </div>
-          </Link>
-        ))}
+            <option value="">All</option>
+            <option value="worker">Employee</option>
+            <option value="job_seeker">Job seeker</option>
+            <option value="student">Student</option>
+            <option value="homemaker">Homemaker</option>
+            <option value="freelancer">Freelancer</option>
+          </select>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {users.map((u) => (
+            <Link
+              key={u.id}
+              href={`/u/${u.id}`}
+              className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm no-underline text-inherit flex items-center gap-4"
+            >
+              <div className="h-12 w-12 flex-shrink-0 rounded-full bg-gray-200 grid place-items-center text-lg font-bold">
+                {(u.display_name?.[0] ?? "?").toUpperCase()}
+              </div>
+              <div>
+                <div className="font-bold">{u.display_name}</div>
+                <div className="text-sm text-gray-500">
+                  {countryName(u.country_code, "ko")} · {u.social_status}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

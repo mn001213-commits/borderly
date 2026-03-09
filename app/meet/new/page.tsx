@@ -7,14 +7,11 @@ import { supabase } from "@/lib/supabaseClient";
 type MeetType =
   | "hangout"
   | "study"
-  | "skill"
   | "language"
   | "meal"
-  | "party"
-  | "project"
   | "sports";
 
-// ✅ 지금 Storage에 있는 버킷으로 맞춤 (스샷 기준)
+// Storage bucket name (matches current setup)
 const BUCKET = "post-images";
 
 export default function NewMeetPage() {
@@ -31,7 +28,7 @@ export default function NewMeetPage() {
   const [startAt, setStartAt] = useState("");
   const [maxPeople, setMaxPeople] = useState("");
 
-  // ✅ 커버 이미지
+  // Cover image
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
@@ -45,7 +42,7 @@ export default function NewMeetPage() {
     e.preventDefault();
 
     if (!title.trim() || !description.trim()) {
-      alert("제목과 설명은 필수입니다.");
+      alert("Title and description are required.");
       return;
     }
 
@@ -57,11 +54,11 @@ export default function NewMeetPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        alert("로그인이 필요합니다.");
+        alert("Please log in first.");
         return;
       }
 
-      // ✅ 커버 이미지 업로드 (선택)
+      // Upload cover image (optional)
       let image_url: string | null = null;
 
       if (coverFile) {
@@ -80,12 +77,12 @@ export default function NewMeetPage() {
           return;
         }
 
-        // ✅ public 버킷이면 publicUrl 사용 가능
+        // Use publicUrl for public buckets
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         image_url = data?.publicUrl ?? null;
       }
 
-      // 1) meet_posts 생성 (id 받아오기)
+      // 1) Create meet_posts (get id back)
       const { data: createdMeet, error: e1 } = await supabase
         .from("meet_posts")
         .insert({
@@ -104,30 +101,32 @@ export default function NewMeetPage() {
         .single();
 
       if (e1 || !createdMeet) {
-        alert(e1?.message || "모임 생성 실패");
+        alert(e1?.message || "Failed to create meetup");
         return;
       }
 
       const meetId = createdMeet.id as string;
 
-      // 2) conversations 생성 (FK 깨지는 문제 방지용)
-      // ⚠️ 만약 conversations 테이블 컬럼이 다르면, 여기 insert 컬럼만 너 스키마에 맞게 바꾸면 됨
+      // 2) Create conversation (prevents FK issues)
+      // If your conversations table columns differ, adjust the insert columns here
       const { data: conv, error: eConv } = await supabase
         .from("conversations")
         .insert({
-          type: "group", // ✅ 스키마에 맞게 (예: kind, conversation_type 등) 필요하면 변경
+          type: "group",
+          name: title.trim(),
+          created_by: user.id,
         })
         .select("id")
         .single();
 
       if (eConv || !conv) {
-        alert(eConv?.message || "대화방 생성 실패 (conversations)");
+        alert(eConv?.message || "Failed to create conversation");
         return;
       }
 
       const conversationId = conv.id as string;
 
-      // 3) group_conversations upsert (409 Conflict 방지)
+      // 3) group_conversations upsert (prevent 409 Conflict)
       const { error: e2 } = await supabase
         .from("group_conversations")
         .upsert(
@@ -136,11 +135,11 @@ export default function NewMeetPage() {
         );
 
       if (e2) {
-        alert(e2.message || "단톡방 매핑 실패");
+        alert(e2.message || "Failed to map group chat");
         return;
       }
 
-      // 4) host를 conversation_members에 추가
+      // 4) Add host to conversation_members
       const { error: e3 } = await supabase.from("conversation_members").upsert(
         [{ conversation_id: conversationId, user_id: user.id }],
         { onConflict: "conversation_id,user_id" }
@@ -160,41 +159,38 @@ export default function NewMeetPage() {
 
   return (
     <div className="mx-auto max-w-xl p-4">
-      <h1 className="text-xl font-bold mb-4">모임 만들기</h1>
+      <h1 className="text-xl font-bold mb-4">Create a Meetup</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">모임 종류</label>
+          <label className="block text-sm font-medium mb-1">Meetup Type</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as MeetType)}
             className="w-full border rounded-lg px-3 py-2"
           >
-            <option value="hangout">번개</option>
-            <option value="study">스터디</option>
-            <option value="language">언어교환</option>
-            <option value="meal">밥친구</option>
-            <option value="sports">스포츠</option>
-            <option value="skill">재능교환</option>
-            <option value="project">팀원모집</option>
-            <option value="party">파티</option>
+            <option value="hangout">Hangout</option>
+            <option value="study">Study</option>
+            <option value="language">Language Exchange</option>
+            <option value="meal">Meal Buddy</option>
+            <option value="sports">Sports</option>
           </select>
         </div>
 
         {type === "sports" && (
           <div>
-            <label className="block text-sm font-medium mb-1">종목</label>
+            <label className="block text-sm font-medium mb-1">Sport</label>
             <input
               value={sport}
               onChange={(e) => setSport(e.target.value)}
-              placeholder="예: 축구, 농구, 러닝"
+              placeholder="e.g. Soccer, Basketball, Running"
               className="w-full border rounded-lg px-3 py-2"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-1">제목</label>
+          <label className="block text-sm font-medium mb-1">Title</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -204,7 +200,7 @@ export default function NewMeetPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">설명</label>
+          <label className="block text-sm font-medium mb-1">Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -214,28 +210,28 @@ export default function NewMeetPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">도시 (선택)</label>
+          <label className="block text-sm font-medium mb-1">City (optional)</label>
           <input
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="예: 서울, 교토"
+            placeholder="e.g. Seoul, Tokyo"
             className="w-full border rounded-lg px-3 py-2"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">장소 힌트 (선택)</label>
+          <label className="block text-sm font-medium mb-1">Place Hint (optional)</label>
           <input
             value={placeHint}
             onChange={(e) => setPlaceHint(e.target.value)}
-            placeholder="예: 홍대 근처"
+            placeholder="e.g. Near Hongdae"
             className="w-full border rounded-lg px-3 py-2"
           />
         </div>
 
-        {/* ✅ 커버 이미지 */}
+        {/* Cover image */}
         <div>
-          <label className="block text-sm font-medium mb-1">커버 이미지 (선택)</label>
+          <label className="block text-sm font-medium mb-1">Cover Image (optional)</label>
           <input
             type="file"
             accept="image/*"
@@ -265,7 +261,7 @@ export default function NewMeetPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">날짜/시간 (선택)</label>
+          <label className="block text-sm font-medium mb-1">Date/Time (optional)</label>
           <input
             type="datetime-local"
             value={startAt}
@@ -275,7 +271,7 @@ export default function NewMeetPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">최대 인원 (선택)</label>
+          <label className="block text-sm font-medium mb-1">Max People (optional)</label>
           <input
             type="number"
             value={maxPeople}
@@ -288,9 +284,9 @@ export default function NewMeetPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-white py-2 rounded-lg font-semibold hover:opacity-90"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:opacity-90"
         >
-          {loading ? "생성 중..." : "생성하기"}
+          {loading ? "Creating..." : "Create"}
         </button>
       </form>
     </div>

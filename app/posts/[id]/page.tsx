@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import { createReport } from "@/lib/reportService";
 import NotificationBell from "@/app/components/NotificationBell";
+
 import {
   ArrowLeft,
   Edit3,
@@ -357,7 +358,7 @@ export default function PostDetailPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
@@ -412,7 +413,7 @@ export default function PostDetailPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
@@ -513,7 +514,7 @@ export default function PostDetailPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
@@ -549,7 +550,7 @@ export default function PostDetailPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
@@ -585,7 +586,7 @@ export default function PostDetailPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/auth");
+      router.push("/login");
       return;
     }
 
@@ -725,7 +726,7 @@ export default function PostDetailPage() {
                 <span className="font-medium text-gray-800">{comment.author_name ?? "Anonymous"}</span>
 
                 {isMine ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-black px-2 text-[10px] font-medium text-white">
+                  <span className="inline-flex h-6 items-center rounded-full bg-blue-600 px-2 text-[10px] font-medium text-white">
                     You
                   </span>
                 ) : null}
@@ -796,7 +797,7 @@ export default function PostDetailPage() {
           </div>
 
           {isReplyOpen ? (
-            <div className="mt-3 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+            <div className="mt-3 rounded-2xl border border-gray-100 bg-[#F0F7FF] p-3">
               <div className="mb-2 text-xs font-medium text-gray-500">
                 Reply to @{comment.author_name ?? "Anonymous"}
               </div>
@@ -831,7 +832,7 @@ export default function PostDetailPage() {
                       [comment.id]: false,
                     }))
                   }
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
                 >
                   Cancel
                 </button>
@@ -840,7 +841,7 @@ export default function PostDetailPage() {
                   type="button"
                   onClick={() => addReply(comment.id)}
                   disabled={replySavingId === comment.id || !(replyBodyById[comment.id] ?? "").trim()}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {replySavingId === comment.id ? "Posting..." : "Post Reply"}
                 </button>
@@ -860,7 +861,7 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
         <div className="mx-auto max-w-[980px] px-4 pb-20 pt-4">
           <div className={cx(card, "p-5 text-sm text-gray-500")}>Loading...</div>
         </div>
@@ -870,11 +871,11 @@ export default function PostDetailPage() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
         <div className="mx-auto max-w-[980px] px-4 pb-20 pt-4">
           <Link
             href="/"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
           >
             <ArrowLeft className="h-5 w-5" />
             Back
@@ -887,13 +888,13 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
       <div className="mx-auto max-w-[980px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b border-gray-100 bg-[#F0F7FF]/90 backdrop-blur">
           <div className="flex items-center justify-between gap-3 py-3">
             <Link
               href="/"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
             >
               <ArrowLeft className="h-5 w-5" />
               Back
@@ -904,7 +905,7 @@ export default function PostDetailPage() {
 
               <Link
                 href="/create"
-                className="hidden h-11 items-center gap-2 rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
+                className="hidden h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
               >
                 <Plus className="h-5 w-5" />
                 Create Post
@@ -942,8 +943,8 @@ export default function PostDetailPage() {
                 className={cx(
                   "inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
                   likedByMe
-                    ? "border-black bg-black text-white"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-gray-200 bg-white text-gray-700 hover:bg-[#F0F7FF]"
                 )}
               >
                 <Heart className={cx("h-4 w-4", likedByMe && "fill-white")} />
@@ -955,7 +956,7 @@ export default function PostDetailPage() {
                   type="button"
                   onClick={reportPost}
                   disabled={reportingPost}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ShieldAlert className="h-4 w-4" />
                   {reportingPost ? "Reporting..." : "Report"}
@@ -967,7 +968,7 @@ export default function PostDetailPage() {
                   <button
                     type="button"
                     onClick={goEdit}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
                   >
                     <Edit3 className="h-4 w-4" />
                     Edit
@@ -977,7 +978,7 @@ export default function PostDetailPage() {
                     type="button"
                     onClick={deletePost}
                     disabled={deletingPost}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
                     {deletingPost ? "Deleting..." : "Delete"}
@@ -1014,7 +1015,7 @@ export default function PostDetailPage() {
 
           <div className="mt-4 grid gap-3">
             {rootComments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-[#F0F7FF] px-6 py-10 text-center">
                 <FileText className="mb-3 h-10 w-10 text-gray-300" />
                 <div className="text-sm font-semibold text-gray-800">No comments yet</div>
                 <div className="mt-1 text-sm text-gray-500">Be the first to join the conversation.</div>
@@ -1024,7 +1025,7 @@ export default function PostDetailPage() {
             )}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+          <div className="mt-5 rounded-2xl border border-gray-100 bg-[#F0F7FF] p-4">
             <div className="mb-2 text-sm font-medium text-gray-800">Write a comment</div>
 
             <textarea
@@ -1046,7 +1047,7 @@ export default function PostDetailPage() {
                 type="button"
                 onClick={addComment}
                 disabled={saving || !commentBody.trim()}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <MessageCircle className="h-5 w-5" />
                 {saving ? "Posting..." : "Post Comment"}

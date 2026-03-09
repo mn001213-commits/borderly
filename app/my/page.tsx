@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -20,13 +20,13 @@ function formatRelative(iso: string) {
   const diff = Math.max(0, now - t);
 
   const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}초 전`;
+  if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분 전`;
+  if (min < 60) return `${min}m ago`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
+  if (hr < 24) return `${hr}h ago`;
   const day = Math.floor(hr / 24);
-  return `${day}일 전`;
+  return `${day}d ago`;
 }
 
 export default function MyPostsPage() {
@@ -37,17 +37,6 @@ export default function MyPostsPage() {
 
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
-
-  const S = useMemo(() => {
-    const bg = "#081723";
-    const card = "rgba(255,255,255,0.06)";
-    const line = "rgba(255,255,255,0.10)";
-    const text = "rgba(255,255,255,0.92)";
-    const sub = "rgba(255,255,255,0.70)";
-    const muted = "rgba(255,255,255,0.55)";
-    const mint = "#49D6B5";
-    return { bg, card, line, text, sub, muted, mint };
-  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -67,13 +56,13 @@ export default function MyPostsPage() {
         return;
       }
 
-      // 팔로워/팔로잉 카운트
+      // Follower/following counts
       const fc = await getFollowerCount(myId);
       const fg = await getFollowingCount(myId);
       setFollowers(fc);
       setFollowing(fg);
 
-      // 내 글
+      // My posts
       const { data, error } = await supabase
         .from("posts")
         .select("id,created_at,title,content,author_name")
@@ -95,167 +84,75 @@ export default function MyPostsPage() {
   }, [router]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: `
-          radial-gradient(900px 600px at 20% 0%, rgba(73,214,181,0.10), transparent 55%),
-          radial-gradient(900px 600px at 80% 0%, rgba(80,140,255,0.10), transparent 55%),
-          ${S.bg}
-        `,
-        color: S.text,
-      }}
-    >
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "18px 14px 60px" }}>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
         {/* Header */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div className="flex items-center gap-3">
           <Link
             href="/"
-            style={{
-              textDecoration: "none",
-              color: S.text,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: `1px solid ${S.line}`,
-              background: "rgba(255,255,255,0.04)",
-            }}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            ← 홈
+            ← Home
           </Link>
 
-          <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>내 글</h1>
+          <h1 className="text-xl font-bold">My Posts</h1>
         </div>
 
         {/* Tabs */}
-        <div
-          style={{
-            marginTop: 14,
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Link
             href="/my/followers"
-            style={{
-              textDecoration: "none",
-              color: S.text,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: `1px solid ${S.line}`,
-              background: "rgba(255,255,255,0.04)",
-            }}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            팔로워
+            Followers
           </Link>
           <Link
             href="/my/following"
-            style={{
-              textDecoration: "none",
-              color: S.text,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: `1px solid ${S.line}`,
-              background: "rgba(255,255,255,0.04)",
-            }}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            팔로잉
+            Following
           </Link>
           <Link
-            href="/my/notifications"
-            style={{
-              textDecoration: "none",
-              color: S.text,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: `1px solid ${S.line}`,
-              background: "rgba(255,255,255,0.04)",
-            }}
+            href="/notifications"
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            알림
+            Notifications
           </Link>
         </div>
 
         {/* Counts */}
-        <div
-          style={{
-            marginTop: 12,
-            borderRadius: 16,
-            border: `1px solid ${S.line}`,
-            background: S.card,
-            padding: 14,
-            display: "flex",
-            gap: 14,
-            alignItems: "center",
-            color: S.sub,
-          }}
-        >
+        <div className="mt-3 flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
           <div>
-            팔로워 <b style={{ color: S.text }}>{followers}</b>
+            Followers <b className="text-gray-900">{followers}</b>
           </div>
           <div>
-            팔로잉 <b style={{ color: S.text }}>{following}</b>
+            Following <b className="text-gray-900">{following}</b>
           </div>
         </div>
 
         {loading && (
-          <div
-            style={{
-              marginTop: 12,
-              borderRadius: 16,
-              border: `1px solid ${S.line}`,
-              background: S.card,
-              padding: 14,
-              color: S.sub,
-            }}
-          >
-            불러오는 중...
+          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
+            Loading...
           </div>
         )}
 
         {msg && (
-          <div
-            style={{
-              marginTop: 12,
-              borderRadius: 16,
-              border: "1px solid rgba(255,80,80,0.35)",
-              background: "rgba(255,80,80,0.10)",
-              padding: 14,
-              color: "rgba(255,230,230,0.95)",
-            }}
-          >
+          <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
             {msg}
           </div>
         )}
 
         {/* List */}
-        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+        <div className="mt-3 grid gap-3">
           {!loading && posts.length === 0 && (
-            <div
-              style={{
-                borderRadius: 16,
-                border: `1px solid ${S.line}`,
-                background: S.card,
-                padding: 16,
-                color: S.sub,
-              }}
-            >
-              아직 내 글이 없어.
-              <div style={{ marginTop: 10 }}>
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
+              You have no posts yet.
+              <div className="mt-3">
                 <Link
                   href="/create"
-                  style={{
-                    display: "inline-block",
-                    padding: "10px 12px",
-                    borderRadius: 14,
-                    textDecoration: "none",
-                    color: "#062018",
-                    background: S.mint,
-                    fontWeight: 900,
-                  }}
+                  className="inline-block rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
                 >
-                  첫 글 쓰기
+                  Write your first post
                 </Link>
               </div>
             </div>
@@ -265,24 +162,17 @@ export default function MyPostsPage() {
             <Link
               key={p.id}
               href={`/posts/${p.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
+              className="no-underline text-inherit"
             >
-              <div
-                style={{
-                  borderRadius: 16,
-                  border: `1px solid ${S.line}`,
-                  background: S.card,
-                  padding: 14,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ fontSize: 16, fontWeight: 900 }}>{p.title}</div>
-                  <div style={{ fontSize: 12, color: S.muted, whiteSpace: "nowrap" }}>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex justify-between gap-3">
+                  <div className="text-base font-bold">{p.title}</div>
+                  <div className="whitespace-nowrap text-xs text-gray-400">
                     {formatRelative(p.created_at)}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 10, color: S.sub, lineHeight: 1.6 }}>
+                <div className="mt-2.5 leading-relaxed text-gray-500">
                   {p.content.length > 160 ? p.content.slice(0, 160) + "..." : p.content}
                 </div>
               </div>

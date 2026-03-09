@@ -39,12 +39,6 @@ export default function ChatDetailPage() {
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const bg = "#E0F2FE";
-  const card = "rgba(255,255,255,0.94)";
-  const line = "rgba(0,0,0,0.12)";
-  const textColor = "#111827";
-  const sub = "rgba(17,24,39,0.72)";
-
   const userIds = useMemo(() => {
     return Array.from(new Set(messages.map((m) => m.user_id).filter(Boolean)));
   }, [messages]);
@@ -182,66 +176,32 @@ export default function ChatDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: textColor }}>
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "18px 14px 90px" }}>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
         <Link
           href="/ngo"
-          style={{
-            display: "inline-block",
-            marginBottom: 16,
-            color: "#2563EB",
-            fontWeight: 800,
-            textDecoration: "none",
-          }}
+          className="mb-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
         >
           ← Back
         </Link>
 
-        <div
-          style={{
-            borderRadius: 18,
-            border: `1px solid ${line}`,
-            background: card,
-            padding: 16,
-            boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-          }}
-        >
-          <div style={{ fontSize: 22, fontWeight: 900 }}>Chat</div>
-          <div style={{ marginTop: 6, fontSize: 13, color: sub }}>
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="text-xl font-bold">Chat</div>
+          <div className="mt-1.5 text-xs text-gray-500">
             Conversation ID: {conversationId}
           </div>
 
           {!!errorMsg && (
-            <div
-              style={{
-                marginTop: 14,
-                borderRadius: 12,
-                padding: "12px 14px",
-                background: "#FEE2E2",
-                color: "#991B1B",
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
+            <div className="mt-3.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
 
-          <div
-            style={{
-              marginTop: 16,
-              minHeight: 320,
-              maxHeight: 520,
-              overflowY: "auto",
-              display: "grid",
-              gap: 10,
-              padding: "6px 2px",
-            }}
-          >
+          <div className="mt-4 grid min-h-[320px] max-h-[520px] gap-2.5 overflow-y-auto p-1.5">
             {loading ? (
-              <div style={{ color: sub, fontSize: 14 }}>Loading chat...</div>
+              <div className="text-sm text-gray-500">Loading chat...</div>
             ) : messages.length === 0 ? (
-              <div style={{ color: sub, fontSize: 14 }}>No messages yet.</div>
+              <div className="text-sm text-gray-500">No messages yet.</div>
             ) : (
               messages.map((msg) => {
                 const mine = msg.user_id === me;
@@ -251,43 +211,26 @@ export default function ChatDetailPage() {
                 return (
                   <div
                     key={msg.id}
-                    style={{
-                      justifySelf: mine ? "end" : "start",
-                      maxWidth: "82%",
-                    }}
+                    className={`max-w-[82%] ${mine ? "justify-self-end" : "justify-self-start"}`}
                   >
                     <div
-                      style={{
-                        fontSize: 12,
-                        color: sub,
-                        marginBottom: 4,
-                        textAlign: mine ? "right" : "left",
-                      }}
+                      className={`mb-1 text-xs text-gray-500 ${mine ? "text-right" : "text-left"}`}
                     >
                       {name}
                     </div>
 
                     <div
-                      style={{
-                        borderRadius: 14,
-                        padding: "12px 14px",
-                        background: mine ? "#2563EB" : "#F3F4F6",
-                        color: mine ? "#FFFFFF" : textColor,
-                        whiteSpace: "pre-wrap",
-                        lineHeight: 1.5,
-                        fontSize: 14,
-                      }}
+                      className={`rounded-xl px-3.5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                        mine
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-900"
+                      }`}
                     >
                       {msg.body || ""}
                     </div>
 
                     <div
-                      style={{
-                        marginTop: 4,
-                        fontSize: 11,
-                        color: sub,
-                        textAlign: mine ? "right" : "left",
-                      }}
+                      className={`mt-1 text-[11px] text-gray-500 ${mine ? "text-right" : "text-left"}`}
                     >
                       {formatTime(msg.created_at)}
                     </div>
@@ -297,14 +240,7 @@ export default function ChatDetailPage() {
             )}
           </div>
 
-          <div
-            style={{
-              marginTop: 16,
-              display: "flex",
-              gap: 10,
-              alignItems: "center",
-            }}
-          >
+          <div className="mt-4 flex items-center gap-2.5">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -315,34 +251,14 @@ export default function ChatDetailPage() {
                 }
               }}
               placeholder="Write a message..."
-              style={{
-                flex: 1,
-                height: 46,
-                borderRadius: 12,
-                border: `1px solid ${line}`,
-                padding: "0 14px",
-                fontSize: 14,
-                outline: "none",
-                background: "#FFFFFF",
-                color: textColor,
-              }}
+              className="flex-1 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
             />
 
             <button
               type="button"
               onClick={handleSend}
               disabled={sending}
-              style={{
-                height: 46,
-                padding: "0 16px",
-                borderRadius: 12,
-                border: "none",
-                background: sending ? "#93C5FD" : "#2563EB",
-                color: "#FFFFFF",
-                fontWeight: 900,
-                fontSize: 14,
-                cursor: sending ? "default" : "pointer",
-              }}
+              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
             >
               {sending ? "Sending..." : "Send"}
             </button>

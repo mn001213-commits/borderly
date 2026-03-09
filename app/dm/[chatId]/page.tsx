@@ -13,5 +13,5 @@ export default function DmRedirectPage() {
     router.replace(`/chats/${chatId}`);
   }, [chatId, router]);
 
-  return <div style={{ padding: 16 }}>이동중…</div>;
+  return <div style={{ padding: 16 }}>Redirecting...</div>;
 }

@@ -47,24 +47,32 @@ export default function FollowersPage() {
   }, []);
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>팔로워</h2>
-      {loading ? (
-        <div>로딩중...</div>
-      ) : items.length === 0 ? (
-        <div>아직 팔로워가 없습니다.</div>
-      ) : (
-        <div style={{ display: "grid", gap: 10 }}>
-          {items.map((p) => (
-            <Link key={p.id} href={`/u/${p.id}`} style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 12, padding: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 999, background: "#f3f4f6", overflow: "hidden" }}>
-                {p.avatar_url ? <img src={p.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
-              </div>
-              <div style={{ fontWeight: 600 }}>{p.display_name ?? "이름 없음"}</div>
-            </Link>
-          ))}
-        </div>
-      )}
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <h2 className="text-xl font-bold mb-3">Followers</h2>
+        {loading ? (
+          <div className="text-gray-500">Loading...</div>
+        ) : items.length === 0 ? (
+          <div className="text-gray-500">No followers yet.</div>
+        ) : (
+          <div className="grid gap-3">
+            {items.map((p) => (
+              <Link
+                key={p.id}
+                href={`/u/${p.id}`}
+                className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm no-underline text-inherit"
+              >
+                <div className="h-12 w-12 flex-shrink-0 rounded-full bg-gray-200 overflow-hidden">
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
+                <div className="font-semibold">{p.display_name ?? "No name"}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

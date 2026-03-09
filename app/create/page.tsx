@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 const BUCKET = "post-images";
 
-// ✅ 이미지 리사이즈/압축 (최대 1600px, 품질 0.82)
+// Image resize/compress (max 1600px, quality 0.82)
 async function compressImage(
   file: File,
   opts?: { maxSize?: number; quality?: number; mime?: "image/jpeg" | "image/webp" }
@@ -18,14 +18,14 @@ async function compressImage(
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(new Error("이미지 읽기 실패"));
+    r.onerror = () => reject(new Error("Failed to read image"));
     r.readAsDataURL(file);
   });
 
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const im = new Image();
     im.onload = () => resolve(im);
-    im.onerror = () => reject(new Error("이미지 로드 실패"));
+    im.onerror = () => reject(new Error("Failed to load image"));
     im.src = dataUrl;
   });
 
@@ -41,16 +41,16 @@ async function compressImage(
   canvas.height = nh;
 
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas context 생성 실패");
+  if (!ctx) throw new Error("Failed to create canvas context");
 
-  // 투명 배경 흰색 처리(투명 유지 필요하면 말해줘)
+  // Fill transparent background with white
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, nw, nh);
 
   ctx.drawImage(img, 0, 0, nw, nh);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("이미지 변환 실패"))), mime, quality);
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Failed to convert image"))), mime, quality);
   });
 
   const ext = mime === "image/webp" ? "webp" : "jpg";
@@ -60,12 +60,12 @@ async function compressImage(
 type Category = "info" | "question" | "daily" | "jobs" | "meet" | "general";
 
 const CATEGORY_OPTIONS: Array<{ value: Category; label: string }> = [
-  { value: "info", label: "정보 공유" },
-  { value: "question", label: "질문" },
-  { value: "daily", label: "일상" },
-  { value: "jobs", label: "일자리" },
-  { value: "meet", label: "교류" },
-  { value: "general", label: "자유" },
+  { value: "info", label: "Info Sharing" },
+  { value: "question", label: "Questions" },
+  { value: "daily", label: "Daily Life" },
+  { value: "jobs", label: "Jobs" },
+  { value: "meet", label: "Meetups" },
+  { value: "general", label: "General" },
 ];
 
 export default function CreatePage() {
@@ -74,7 +74,7 @@ export default function CreatePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  // ✅ 카테고리: 기본값 없음(강제 선택)
+  // Category: no default (force selection)
   const [category, setCategory] = useState<Category | "">("");
 
   const [file, setFile] = useState<File | null>(null);
@@ -83,7 +83,7 @@ export default function CreatePage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 이미지 미리보기
+  // Image preview
   useEffect(() => {
     if (!file) {
       setPreviewUrl(null);
@@ -94,16 +94,7 @@ export default function CreatePage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const S = useMemo(() => {
-    const bg = "#E0F2FE";
-    const text = "#111827";
-    const line = "rgba(0,0,0,0.12)";
-    const card = "rgba(255,255,255,0.92)";
-    const mint = "#49D6B5";
-    return { bg, text, line, card, mint };
-  }, []);
-
-  // ✅ 파일 경로 생성(확장자 포함)
+  // Generate file path (with extension)
   const makeSafePath = (userId: string, ext: string) => {
     const rand = Math.random().toString(16).slice(2);
     return `${userId}/${Date.now()}-${rand}.${ext}`;
@@ -112,7 +103,7 @@ export default function CreatePage() {
   const uploadImageIfAny = async (userId: string) => {
     if (!file) return null;
 
-    // ✅ 업로드 전에 압축
+    // Compress before upload
     const { blob, contentType, ext } = await compressImage(file, {
       maxSize: 1600,
       quality: 0.82,
@@ -137,7 +128,7 @@ export default function CreatePage() {
     setLoading(true);
     setErrorMsg(null);
 
-    // ✅ 로그인 유저 확인
+    // Check logged-in user
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user ?? null;
 
@@ -151,13 +142,13 @@ export default function CreatePage() {
     const c = content.trim();
 
     if (!category) {
-      setErrorMsg("카테고리를 선택해줘");
+      setErrorMsg("Please select a category");
       setLoading(false);
       return;
     }
 
     if (!t || !c) {
-      setErrorMsg("제목/내용을 입력해줘");
+      setErrorMsg("Please enter a title and content");
       setLoading(false);
       return;
     }
@@ -165,7 +156,7 @@ export default function CreatePage() {
     try {
       const authorName = null;
 
-      // ✅ 이미지 업로드(있으면, 압축 후 업로드)
+      // Upload image (if present, compress then upload)
       const imageUrl = await uploadImageIfAny(user.id);
 
       const { data, error } = await supabase
@@ -173,7 +164,7 @@ export default function CreatePage() {
         .insert({
           title: t,
           content: c,
-          category, // ✅ 선택값 저장
+          category,
           user_id: user.id,
           author_name: authorName,
           image_url: imageUrl,
@@ -189,127 +180,94 @@ export default function CreatePage() {
 
       router.push(`/posts/${data.id}`);
     } catch (e: any) {
-      setErrorMsg(e?.message || "업로드/저장 중 오류");
+      setErrorMsg(e?.message || "Error during upload/save");
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: S.bg, color: S.text }}>
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: 20 }}>
-        <button onClick={() => router.back()}>← 뒤로</button>
-        <h2>새 게시물 작성</h2>
-
-        {errorMsg && <div style={{ color: "red", marginBottom: 10 }}>{errorMsg}</div>}
-
-        {/* ✅ 카테고리 선택 */}
-        <div
-          style={{
-            marginTop: 10,
-            borderRadius: 12,
-            border: `1px solid ${S.line}`,
-            background: S.card,
-            padding: 12,
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(17,24,39,0.72)", marginBottom: 6 }}>
-            카테고리
-          </div>
-
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as any)}
-            style={{
-              width: "100%",
-              padding: "12px 12px",
-              borderRadius: 10,
-              border: `1px solid ${S.line}`,
-              background: "rgba(255,255,255,0.85)",
-              fontSize: 13,
-              fontWeight: 900,
-              outline: "none",
-            }}
-          >
-            <option value="" disabled>
-              선택해줘
-            </option>
-            {CATEGORY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* 이미지 */}
-        <div style={{ marginTop: 10 }}>
-          <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        </div>
-
-        {previewUrl && (
-          <img
-            src={previewUrl}
-            alt="preview"
-            style={{
-              width: "100%",
-              maxHeight: 400,
-              objectFit: "cover",
-              marginTop: 10,
-              borderRadius: 12,
-              border: `1px solid ${S.line}`,
-              background: "white",
-            }}
-          />
-        )}
-
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="제목"
-          style={{
-            display: "block",
-            marginTop: 10,
-            width: "100%",
-            padding: 12,
-            borderRadius: 10,
-            border: `1px solid ${S.line}`,
-          }}
-        />
-
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="내용"
-          style={{
-            display: "block",
-            marginTop: 10,
-            width: "100%",
-            minHeight: 150,
-            padding: 12,
-            borderRadius: 10,
-            border: `1px solid ${S.line}`,
-          }}
-        />
-
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
         <button
-          onClick={onSubmit}
-          disabled={loading}
-          style={{
-            marginTop: 12,
-            padding: 12,
-            borderRadius: 10,
-            border: "none",
-            background: loading ? "rgba(73,214,181,0.35)" : S.mint,
-            color: "#062018",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontWeight: 900,
-          }}
+          onClick={() => router.back()}
+          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
         >
-          {loading ? "등록 중..." : "등록"}
+          ← Back
         </button>
 
-        <div style={{ marginTop: 10, fontSize: 12, color: "rgba(17,24,39,0.6)" }}>
-          이미지가 있다면 업로드 전에 자동으로 리사이즈/압축돼.
+        <h2 className="mt-4 text-xl font-bold">Create New Post</h2>
+
+        {errorMsg && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-4">
+          {/* Category selection */}
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as any)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none"
+            >
+              <option value="" disabled>
+                Select
+              </option>
+              {CATEGORY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Image */}
+          <div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm"
+            />
+          </div>
+
+          {previewUrl && (
+            <img
+              src={previewUrl}
+              alt="preview"
+              className="w-full max-h-[400px] object-cover rounded-xl border border-gray-100"
+            />
+          )}
+
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
+          />
+
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Content"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400 min-h-[150px]"
+          />
+
+          <button
+            onClick={onSubmit}
+            disabled={loading}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Submitting..." : "Submit"}
+          </button>
+
+          <div className="text-xs text-gray-500">
+            Images are automatically resized and compressed before upload.
+          </div>
         </div>
       </div>
     </div>

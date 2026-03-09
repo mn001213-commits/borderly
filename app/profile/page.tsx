@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
-import { ArrowLeft, User, Users, Bell, FileText, Mail } from "lucide-react";
+import { ArrowLeft, User, Users, Bell, FileText, Mail, LogOut, Settings, Trash2 } from "lucide-react";
 
 type Post = {
   id: string;
@@ -48,6 +49,10 @@ export default function ProfilePage() {
 
   const [posts, setPosts] = useState<Post[]>([]);
 
+  const [bio, setBio] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -73,11 +78,13 @@ export default function ProfilePage() {
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, avatar_url, bio")
         .eq("id", myId)
         .maybeSingle();
 
       setDisplayName(prof?.display_name ?? user?.email ?? "Unnamed User");
+      setAvatarUrl(prof?.avatar_url ?? null);
+      setBio(prof?.bio ?? null);
 
       const fc = await getFollowerCount(myId);
       const fg = await getFollowingCount(myId);
@@ -105,30 +112,57 @@ export default function ProfilePage() {
     load();
   }, [router]);
 
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!meId) return;
+
+    const ok = confirm("Are you sure you want to delete this post?");
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId)
+      .eq("user_id", meId);
+
+    if (error) {
+      alert("Failed to delete post: " + error.message);
+      return;
+    }
+
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  };
+
   const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="mx-auto max-w-[980px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
-          <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm ring-1 ring-gray-100">
-                <User className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-base font-semibold tracking-tight">Profile</div>
-                <div className="text-xs text-gray-500">Your account and activity</div>
-              </div>
-            </div>
-
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        <header className="flex items-center justify-between gap-3 py-3">
+          <h1 className="text-xl font-bold">Profile</h1>
+          <div className="flex items-center gap-2">
             <Link
-              href="/"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              href="/settings"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              <Settings className="h-4 w-4" />
+              Settings
             </Link>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <LogOut className="h-4 w-4" />
+              {loggingOut ? "..." : "Log Out"}
+            </button>
           </div>
         </header>
 
@@ -143,9 +177,19 @@ export default function ProfilePage() {
             ) : (
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200">
-                    <User className="h-7 w-7 text-gray-400" />
-                  </div>
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt="Avatar"
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-full object-cover ring-1 ring-gray-200"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200">
+                      <User className="h-7 w-7 text-gray-400" />
+                    </div>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="text-lg font-semibold text-gray-900">{displayName}</div>
@@ -154,6 +198,10 @@ export default function ProfilePage() {
                       <Mail className="h-4 w-4 text-gray-400" />
                       <span className="truncate">{email ?? "No email"}</span>
                     </div>
+
+                    {bio && (
+                      <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">{bio}</div>
+                    )}
 
                     <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
                       <div>
@@ -175,7 +223,7 @@ export default function ProfilePage() {
           <section className="flex flex-wrap gap-2">
             <Link
               href="/profile/followers"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
             >
               <Users className="h-4 w-4" />
               Followers
@@ -183,15 +231,15 @@ export default function ProfilePage() {
 
             <Link
               href="/profile/following"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
             >
               <Users className="h-4 w-4" />
               Following
             </Link>
 
             <Link
-              href="/profile/notifications"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              href="/notifications"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
             >
               <Bell className="h-4 w-4" />
               Notifications
@@ -210,7 +258,7 @@ export default function ProfilePage() {
 
             <div className="p-5">
               {!loading && !msg && posts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-[#F0F7FF] px-6 py-12 text-center">
                   <FileText className="mb-3 h-10 w-10 text-gray-300" />
                   <div className="text-sm font-semibold text-gray-800">No posts yet</div>
                   <div className="mt-1 text-sm text-gray-500">
@@ -218,7 +266,7 @@ export default function ProfilePage() {
                   </div>
                   <Link
                     href="/create"
-                    className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90"
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90"
                   >
                     Create Post
                   </Link>
@@ -237,8 +285,23 @@ export default function ProfilePage() {
                             {p.title}
                           </h2>
 
-                          <div className="shrink-0 whitespace-nowrap text-xs text-gray-400">
-                            {formatRelative(p.created_at)}
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="whitespace-nowrap text-xs text-gray-400">
+                              {formatRelative(p.created_at)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeletePost(p.id);
+                              }}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                              aria-label="Delete post"
+                              title="Delete post"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
 

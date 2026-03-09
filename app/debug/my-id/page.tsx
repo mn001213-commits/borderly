@@ -31,36 +31,19 @@ export default function MyIdPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", padding: 24, background: "#F8FAFC", color: "#0F172A" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ fontSize: 28, fontWeight: 900 }}>My Account Info</div>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="text-xl font-bold">My Account Info</div>
 
         {loading ? (
-          <div style={{ marginTop: 16 }}>Loading...</div>
+          <div className="mt-4 text-gray-500">Loading...</div>
         ) : (
-          <div
-            style={{
-              marginTop: 20,
-              border: "1px solid rgba(0,0,0,0.1)",
-              borderRadius: 16,
-              background: "#FFFFFF",
-              padding: 20,
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 800 }}>Email</div>
-            <div style={{ marginTop: 6, fontSize: 14 }}>{email || "-"}</div>
+          <div className="mt-5 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-semibold text-gray-800">Email</div>
+            <div className="mt-1.5 text-sm">{email || "-"}</div>
 
-            <div style={{ marginTop: 18, fontSize: 14, fontWeight: 800 }}>User ID</div>
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 14,
-                wordBreak: "break-all",
-                padding: 12,
-                borderRadius: 12,
-                background: "#F1F5F9",
-              }}
-            >
+            <div className="mt-4 text-sm font-semibold text-gray-800">User ID</div>
+            <div className="mt-1.5 break-all rounded-xl bg-[#F0F7FF] p-3 text-sm">
               {userId || "Not logged in"}
             </div>
           </div>

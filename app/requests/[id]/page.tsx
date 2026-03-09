@@ -18,32 +18,9 @@ type Post = {
 function PurposeBadge({ purpose }: { purpose?: string | null }) {
   if (!purpose) return null;
 
-  const chip: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(17,17,17,0.12)",
-    background: "rgba(59,130,246,0.08)",
-    color: "#111111",
-    fontSize: 12,
-    fontWeight: 800,
-    lineHeight: 1,
-    whiteSpace: "nowrap",
-  };
-
-  const dot: React.CSSProperties = {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    background: "#16EB33",
-    boxShadow: "0 6px 14px rgba(22,235,51,0.22)",
-  };
-
   return (
-    <span style={chip}>
-      <span style={dot} />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-gray-900 whitespace-nowrap">
+      <span className="h-2 w-2 rounded-full bg-green-500 shadow-sm" />
       {purpose}
     </span>
   );
@@ -92,7 +69,7 @@ export default function RequestDetailPage() {
     load();
   }, [postId]);
 
-  // ✅ 핵심: 기존 대화방 있으면 이동 / 없으면 생성 후 이동
+  // Navigate to existing conversation or create one
   const startChatWithAuthor = async () => {
     setChatErr(null);
 
@@ -104,11 +81,11 @@ export default function RequestDetailPage() {
       return;
     }
     if (!post?.author_id) {
-      setChatErr("작성자 정보를 불러오지 못했어.");
+      setChatErr("Could not load author information.");
       return;
     }
     if (uid === post.author_id) {
-      setChatErr("본인 글에는 연락할 수 없어.");
+      setChatErr("You cannot message yourself.");
       return;
     }
 
@@ -118,12 +95,12 @@ export default function RequestDetailPage() {
     const user_low = uid < otherId ? uid : otherId;
     const user_high = uid < otherId ? otherId : uid;
 
-    // 1) direct_conversations upsert로 "있으면 가져오고 없으면 만들기"
+    // 1) Upsert direct_conversations
     const { data: dcRow, error: dcErr } = await supabase
       .from("direct_conversations")
       .upsert(
         { user_low, user_high },
-        { onConflict: "user_low,user_high" } // ✅ 테이블에 unique(user_low,user_high) 있어야 함
+        { onConflict: "user_low,user_high" }
       )
       .select("conversation_id")
       .single();
@@ -137,11 +114,11 @@ export default function RequestDetailPage() {
     const conversationId = (dcRow as any)?.conversation_id as string | undefined;
     if (!conversationId) {
       setChatLoading(false);
-      setChatErr("대화방 ID를 얻지 못했어.");
+      setChatErr("Could not get conversation ID.");
       return;
     }
 
-    // 2) conversation_members 두 명 등록 (중복이면 upsert)
+    // 2) Upsert conversation members
     const { error: memErr } = await supabase
       .from("conversation_members")
       .upsert(
@@ -149,7 +126,7 @@ export default function RequestDetailPage() {
           { conversation_id: conversationId, user_id: uid, last_read_at: new Date().toISOString() },
           { conversation_id: conversationId, user_id: otherId, last_read_at: null },
         ],
-        { onConflict: "conversation_id,user_id" } // ✅ unique(conversation_id,user_id) 있어야 함
+        { onConflict: "conversation_id,user_id" }
       );
 
     if (memErr) {
@@ -160,82 +137,69 @@ export default function RequestDetailPage() {
 
     setChatLoading(false);
 
-    // ✅ 여기 중요:
-    // 너 채팅 리스트가 /chats 이고, 리스트 링크도 /chats/{id} 로 되어 있으니까
+    // Navigate to chat
     router.push(`/chats/${conversationId}`);
   };
 
-  if (loading) return <div style={{ padding: 20 }}>불러오는 중...</div>;
-  if (errorMsg) return <div style={{ padding: 20, color: "crimson" }}>{errorMsg}</div>;
-  if (!post) return <div style={{ padding: 20 }}>글이 존재하지 않아.</div>;
+  if (loading) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Loading...</div>;
+  if (errorMsg) return (
+    <div className="min-h-screen bg-[#F0F7FF] p-6">
+      <div className="mx-auto max-w-2xl">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMsg}</div>
+      </div>
+    </div>
+  );
+  if (!post) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Post not found.</div>;
 
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto", padding: 20 }}>
-      <div style={{ marginBottom: 20 }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          ← 홈으로
-        </Link>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link href="/" className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+            &larr; Home
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          {/* Title + purpose badge */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <h1 className="text-xl font-bold">{post.title}</h1>
+            <PurposeBadge purpose={post.purpose} />
+          </div>
+
+          <div className="text-sm text-gray-500 mb-4">
+            Author: {post.author_name ?? "Unknown"}
+            <br />
+            Posted: {new Date(post.created_at).toLocaleString()}
+          </div>
+
+          <div className="text-base leading-relaxed whitespace-pre-wrap mb-4">
+            {post.content}
+          </div>
+
+          {/* Contact section */}
+          {chatErr ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-3">{chatErr}</div>
+          ) : null}
+
+          {me && me !== post.author_id ? (
+            <button
+              onClick={startChatWithAuthor}
+              disabled={chatLoading}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {chatLoading ? "Opening chat..." : "Contact Author"}
+            </button>
+          ) : !me ? (
+            <button
+              onClick={() => router.push("/login")}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Log in to contact
+            </button>
+          ) : null}
+        </div>
       </div>
-
-      {/* 제목 + 목적 뱃지 */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900 }}>{post.title}</h1>
-        <PurposeBadge purpose={post.purpose} />
-      </div>
-
-      <div style={{ fontSize: 13, color: "rgba(17,17,17,0.6)", marginBottom: 20 }}>
-        작성자: {post.author_name ?? "알 수 없음"}
-        <br />
-        작성일: {new Date(post.created_at).toLocaleString()}
-      </div>
-
-      <div style={{ lineHeight: 1.7, fontSize: 16, whiteSpace: "pre-wrap", marginBottom: 18 }}>
-        {post.content}
-      </div>
-
-      {/* 연락하기 */}
-      {chatErr ? <div style={{ color: "crimson", marginBottom: 10 }}>{chatErr}</div> : null}
-
-      {me && me !== post.author_id ? (
-        <button
-          onClick={startChatWithAuthor}
-          disabled={chatLoading}
-          style={{
-            padding: "12px 18px",
-            borderRadius: 12,
-            border: "1px solid #111",
-            background: chatLoading ? "#ddd" : "#111",
-            color: "#fff",
-            fontWeight: 800,
-            cursor: chatLoading ? "not-allowed" : "pointer",
-          }}
-        >
-          {chatLoading ? "대화방 여는 중..." : "작성자에게 연락하기"}
-        </button>
-      ) : !me ? (
-        <button
-          onClick={() => router.push("/login")}
-          style={{
-            padding: "12px 18px",
-            borderRadius: 12,
-            border: "1px solid #111",
-            background: "#111",
-            color: "#fff",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
-          로그인하고 연락하기
-        </button>
-      ) : null}
     </div>
   );
 }

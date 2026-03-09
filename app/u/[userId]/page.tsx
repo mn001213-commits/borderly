@@ -21,17 +21,18 @@ type Profile = {
   languages: string[] | null;
   social_status: string | null;
   website: string | null;
+  bio: string | null;
 };
 
 const SOCIAL = [
-  { key: "worker", label: "직장인" },
-  { key: "job_seeker", label: "구직중" },
-  { key: "student", label: "학생" },
-  { key: "homemaker", label: "주부" },
-  { key: "freelancer", label: "프리랜서" },
-  { key: "self_employed", label: "자영업" },
-  { key: "retired", label: "은퇴" },
-  { key: "other", label: "기타" },
+  { key: "worker", label: "Employee" },
+  { key: "job_seeker", label: "Job seeker" },
+  { key: "student", label: "Student" },
+  { key: "homemaker", label: "Homemaker" },
+  { key: "freelancer", label: "Freelancer" },
+  { key: "self_employed", label: "Self-employed" },
+  { key: "retired", label: "Retired" },
+  { key: "other", label: "Other" },
 ] as const;
 
 function socialLabel(key: string | null | undefined) {
@@ -63,19 +64,19 @@ export default function UserProfilePage() {
   const loadFollowData = async () => {
     if (!profileId) return;
 
-    // ✅ 팔로워/팔로잉은 로그인 없어도 보여줄 수 있음
+    // Follower/following counts are visible without login
     const followerCount = await getFollowerCount(profileId);
     const followingCount = await getFollowingCount(profileId);
     setFollowers(followerCount);
     setFollowing(followingCount);
 
-    // ✅ 팔로우 여부는 로그인 필요
+    // Follow status requires login
     if (!myId) {
       setIsFollowed(false);
       return;
     }
 
-    // ✅ 내 프로필이면 팔로우 상태는 false로 고정
+    // Cannot follow your own profile
     if (myId === profileId) {
       setIsFollowed(false);
       return;
@@ -97,7 +98,7 @@ export default function UserProfilePage() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url, country_code, languages, social_status, website")
+        .select("id, display_name, avatar_url, country_code, languages, social_status, website, bio")
         .eq("id", userId)
         .maybeSingle();
 
@@ -120,13 +121,13 @@ export default function UserProfilePage() {
   const handleFollowToggle = async () => {
     if (!profileId) return;
 
-    // ✅ 로그인 유도
+    // Redirect to login
     if (!myId) {
       router.push("/login");
       return;
     }
 
-    // ✅ 내 자신은 팔로우 불가
+    // Cannot follow yourself
     if (myId === profileId) return;
 
     setErrorMsg(null);
@@ -142,132 +143,125 @@ export default function UserProfilePage() {
 
       await loadFollowData();
     } catch (e: any) {
-      setErrorMsg(e?.message ?? "처리 중 오류가 발생했습니다.");
+      setErrorMsg(e?.message ?? "An error occurred.");
     }
   };
 
-  if (loading) return <div style={{ padding: 20 }}>로딩중...</div>;
-  if (errorMsg) return <div style={{ padding: 20 }}>{errorMsg}</div>;
-  if (!p) return <div style={{ padding: 20 }}>사용자를 찾을 수 없습니다.</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6 pb-24">Loading...</div>
+      </div>
+    );
+  if (errorMsg)
+    return (
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6 pb-24">{errorMsg}</div>
+      </div>
+    );
+  if (!p)
+    return (
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6 pb-24">User not found.</div>
+      </div>
+    );
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: 16 }}>
-      <button onClick={() => router.back()} style={{ marginBottom: 16 }}>
-        뒤로
-      </button>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <button
+          onClick={() => router.back()}
+          className="mb-4 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+        >
+          ← Back
+        </button>
 
-      <div
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: 16,
-          padding: 20,
-          background: "white",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <div
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: 20,
-              overflow: "hidden",
-              background: "rgba(0,0,0,0.05)",
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 900,
-              fontSize: 28,
-            }}
-          >
-            {p.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.avatar_url}
-                alt={p.display_name ?? "user"}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <span>{(p.display_name?.[0] ?? "?").toUpperCase()}</span>
-            )}
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 20 }}>{p.display_name ?? "이름 없음"}</div>
-
-            <div style={{ opacity: 0.75, marginTop: 4 }}>
-              {displayCountry ? `${displayCountry}` : ""}
-              {p.social_status ? ` · ${socialLabel(p.social_status)}` : ""}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-gray-200 grid place-items-center text-2xl font-bold">
+              {p.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.avatar_url}
+                  alt={p.display_name ?? "user"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{(p.display_name?.[0] ?? "?").toUpperCase()}</span>
+              )}
             </div>
 
-            <div style={{ opacity: 0.75, marginTop: 6 }}>
-              <div>팔로워 {followers}</div>
-              <div>팔로잉 {following}</div>
+            <div>
+              <div className="text-xl font-bold">{p.display_name ?? "No name"}</div>
+
+              <div className="mt-1 text-sm text-gray-500">
+                {displayCountry ? `${displayCountry}` : ""}
+                {p.social_status ? ` · ${socialLabel(p.social_status)}` : ""}
+              </div>
+
+              {p.bio && (
+                <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{p.bio}</div>
+              )}
+
+              <div className="mt-1.5 text-sm text-gray-500">
+                <div>Followers {followers}</div>
+                <div>Following {following}</div>
+              </div>
             </div>
           </div>
+
+          {myId !== profileId && (
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                onClick={handleFollowToggle}
+                className={
+                  isFollowed
+                    ? "rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] cursor-pointer"
+                    : "rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 cursor-pointer"
+                }
+              >
+                {isFollowed ? "Unfollow" : "Follow"}
+              </button>
+
+              <Link
+                href={`/chats?user=${p.id}`}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
+              >
+                Send message
+              </Link>
+            </div>
+          )}
+
+          {p.languages && p.languages.length > 0 && (
+            <div className="mt-5">
+              <div className="text-xs text-gray-400">Languages</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {p.languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {p.website && (
+            <div className="mt-5">
+              <div className="text-xs text-gray-400">Website</div>
+              <a
+                href={p.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1.5 block text-sm font-medium text-gray-900 hover:underline"
+              >
+                {p.website}
+              </a>
+            </div>
+          )}
         </div>
-
-        {myId !== profileId && (
-          <div style={{ marginTop: 20, display: "flex", gap: 10, alignItems: "center" }}>
-            <button
-              onClick={handleFollowToggle}
-              style={{
-                display: "inline-block",
-                padding: "10px 16px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.15)",
-                fontWeight: 700,
-                background: "white",
-                cursor: "pointer",
-              }}
-            >
-              {isFollowed ? "언팔로우" : "팔로우"}
-            </button>
-
-            <Link
-              href={`/chats?user=${p.id}`}
-              style={{
-                display: "inline-block",
-                padding: "10px 16px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.15)",
-                fontWeight: 700,
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              채팅 보내기
-            </Link>
-          </div>
-        )}
-
-        {p.languages && p.languages.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 13, opacity: 0.6 }}>사용 언어</div>
-            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {p.languages.map((lang) => (
-                <span
-                  key={lang}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    background: "rgba(0,0,0,0.08)",
-                    fontSize: 13,
-                  }}
-                >
-                  {lang}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {p.website && (
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 13, opacity: 0.6 }}>웹사이트</div>
-            <a href={p.website} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 6 }}>
-              {p.website}
-            </a>
-          </div>
-        )}
       </div>
     </div>
   );

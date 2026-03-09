@@ -31,11 +31,22 @@ function sortByCreatedAt(arr: Msg[]) {
     );
 }
 
+export type GroupMember = {
+  user_id: string;
+  role: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 export function useChat(conversationId?: string) {
   const [me, setMe] = useState<string | null>(null);
 
   const [otherId, setOtherId] = useState<string | null>(null);
   const [other, setOther] = useState<Profile | null>(null);
+
+  const [isGroup, setIsGroup] = useState(false);
+  const [groupName, setGroupName] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,17 +57,20 @@ export function useChat(conversationId?: string) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
 
-  // 대화 변경 시 초기화
+  // Reset on conversation change
   useEffect(() => {
     seenIdsRef.current = new Set();
     setMessages([]);
     setOtherId(null);
     setOther(null);
+    setIsGroup(false);
+    setGroupName(null);
+    setGroupMembers([]);
     setIBlocked(false);
     setBlockedEither(false);
   }, [conversationId]);
 
-  // 내 ID 세팅
+  // Set my ID
   useEffect(() => {
     let alive = true;
 
@@ -78,34 +92,86 @@ export function useChat(conversationId?: string) {
     };
   }, []);
 
-  // 상대 ID 추출 (messages 기반)
+  // Detect conversation type + load other/group members
   useEffect(() => {
     if (!conversationId || !me) return;
 
     let alive = true;
 
     (async () => {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("user_id")
-        .eq("conversation_id", conversationId)
-        .neq("user_id", me)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true })
-        .limit(1);
+      // Fetch conversation info
+      const { data: convInfo } = await supabase
+        .from("conversations")
+        .select("type, name")
+        .eq("id", conversationId)
+        .maybeSingle();
 
       if (!alive) return;
-      if (error) return;
 
-      const oid = data?.[0]?.user_id ?? null;
-      setOtherId(oid);
+      const convType = convInfo?.type ?? "direct";
 
-      if (oid) {
-        setOther({
-          id: oid,
-          display_name: null,
-          avatar_url: null,
-        });
+      if (convType === "group") {
+        setIsGroup(true);
+        setGroupName(convInfo?.name ?? null);
+
+        // Load group members
+        const { data: members } = await supabase
+          .from("conversation_members")
+          .select("user_id, role")
+          .eq("conversation_id", conversationId);
+
+        if (!alive) return;
+
+        const userIds = (members ?? []).map((m: any) => m.user_id);
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, display_name, avatar_url")
+            .in("id", userIds);
+
+          if (!alive) return;
+
+          const profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+          for (const p of profiles ?? []) {
+            profileMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url });
+          }
+
+          setGroupMembers(
+            (members ?? []).map((m: any) => ({
+              user_id: m.user_id,
+              role: m.role ?? "member",
+              display_name: profileMap.get(m.user_id)?.display_name ?? null,
+              avatar_url: profileMap.get(m.user_id)?.avatar_url ?? null,
+            }))
+          );
+        }
+      } else {
+        // 1:1 DM logic
+        setIsGroup(false);
+
+        const { data, error } = await supabase
+          .from("messages")
+          .select("user_id")
+          .eq("conversation_id", conversationId)
+          .neq("user_id", me)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: true })
+          .limit(1);
+
+        if (!alive) return;
+        if (error) return;
+
+        const oid = data?.[0]?.user_id ?? null;
+        setOtherId(oid);
+
+        if (oid) {
+          setOther({
+            id: oid,
+            display_name: null,
+            avatar_url: null,
+          });
+        }
       }
     })();
 
@@ -114,7 +180,7 @@ export function useChat(conversationId?: string) {
     };
   }, [conversationId, me]);
 
-  // 차단 상태 체크
+  // Check block status
   useEffect(() => {
     if (!me || !otherId) {
       setIBlocked(false);
@@ -125,7 +191,7 @@ export function useChat(conversationId?: string) {
     let alive = true;
 
     (async () => {
-      // 내가 차단했는지
+      // Check if I blocked
       const { data: mine } = await supabase
         .from("blocks")
         .select("id")
@@ -137,7 +203,7 @@ export function useChat(conversationId?: string) {
 
       setIBlocked(!!mine);
 
-      // 양방향 체크 (RPC 없으면 mine 기준)
+      // Bidirectional check
       const { data: both, error } = await supabase.rpc("is_blocked", {
         user_a: me,
         user_b: otherId,
@@ -157,7 +223,7 @@ export function useChat(conversationId?: string) {
     };
   }, [me, otherId]);
 
-  // 메시지 로드 + realtime
+  // Load messages + realtime
   useEffect(() => {
     if (!conversationId) return;
 
@@ -247,7 +313,7 @@ export function useChat(conversationId?: string) {
     };
   }, [conversationId, blockedEither]);
 
-  // 보내기
+  // Send message
   const sendText = useCallback(
     async (text: string) => {
       if (!conversationId) return;
@@ -289,6 +355,9 @@ export function useChat(conversationId?: string) {
       me,
       other,
       otherId,
+      isGroup,
+      groupName,
+      groupMembers,
       messages,
       loading,
       sendText,
@@ -302,6 +371,9 @@ export function useChat(conversationId?: string) {
       me,
       other,
       otherId,
+      isGroup,
+      groupName,
+      groupMembers,
       messages,
       loading,
       sendText,

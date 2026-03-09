@@ -1,27 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import AuthBar from "@/app/components/AuthBar";
-import NotificationBell from "@/app/components/NotificationBell";
 import {
   Heart,
   MessageCircle,
   Search,
   Flame,
-  LayoutGrid,
-  Users,
-  Building2,
-  Settings,
   ChevronRight,
   Plus,
   FileText,
 } from "lucide-react";
 
-type Category = "info" | "question" | "daily" | "meet" | "general";
+type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
 type Post = {
   id: string;
@@ -60,15 +53,16 @@ function formatRelative(iso: string) {
 
 const CAT_LABEL: Record<"all" | Category, string> = {
   all: "All",
-  question: "Question",
-  info: "Info",
   general: "General",
+  info: "Info",
+  question: "Question",
   daily: "Daily",
-  meet: "Meet",
+  jobs: "Jobs",
+  other: "Other",
 };
 
 export default function HomePage() {
-  const pathname = usePathname();
+  const router = useRouter();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,6 +160,15 @@ export default function HomePage() {
     setSearchText("");
   }, []);
 
+  const goBrowseWithSearch = useCallback(() => {
+    const q = searchInput.trim();
+    if (q) {
+      router.push(`/browse?q=${encodeURIComponent(q)}`);
+      return;
+    }
+    router.push("/browse");
+  }, [router, searchInput]);
+
   const trendingTop3 = useMemo(() => {
     const now = Date.now();
     const cutoff = now - 72 * 60 * 60 * 1000;
@@ -220,26 +223,29 @@ export default function HomePage() {
   const catCounts = useMemo(() => {
     const base: Record<"all" | Category, number> = {
       all: posts.length,
+      general: 0,
       info: 0,
       question: 0,
       daily: 0,
-      meet: 0,
-      general: 0,
+      jobs: 0,
+      other: 0,
     };
 
     for (const p of posts) {
       const k = (p.category ?? "general") as Category;
-      base[k] = (base[k] ?? 0) + 1;
+      if (k in base) {
+        base[k] = (base[k] ?? 0) + 1;
+      } else {
+        base.other = (base.other ?? 0) + 1;
+      }
     }
 
     return base;
   }, [posts]);
 
-  const catTabs: Array<"all" | Category> = ["all", "question", "info", "general", "daily", "meet"];
+  const catTabs: Array<"all" | Category> = ["all", "general", "info", "question", "daily", "jobs", "other"];
 
   const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
-  const iconButton =
-    "flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900";
   const pillBase =
     "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition whitespace-nowrap";
 
@@ -252,7 +258,7 @@ export default function HomePage() {
         onClick={() => setActiveCat(k)}
         className={cx(
           pillBase,
-          active ? "bg-black text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          active ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
         )}
       >
         {CAT_LABEL[k]}
@@ -260,159 +266,43 @@ export default function HomePage() {
     );
   };
 
-  const NavItem = ({
-    href,
-    icon,
-    label,
-    active,
-  }: {
-    href: string;
-    icon: ReactNode;
-    label: string;
-    active: boolean;
-  }) => (
-    <Link
-      href={href}
-      className={cx(
-        "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
-        active ? "bg-black text-white" : "text-gray-700 hover:bg-gray-50"
-      )}
-    >
-      <div
-        className={cx(
-          "flex h-9 w-9 items-center justify-center rounded-xl",
-          active ? "bg-white/15" : "border border-gray-200 bg-white"
-        )}
-      >
-        {icon}
-      </div>
-      <span className="text-sm font-medium">{label}</span>
-    </Link>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="mx-auto max-w-[1180px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
-          <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 py-3">
-            <Link href="/" className="flex items-center gap-3 no-underline">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white">
-                <Image
-                  src="/penguin.png"
-                  alt="Borderly"
-                  width={36}
-                  height={36}
-                  className="h-auto w-auto max-h-9 max-w-9 object-contain"
-                />
-              </div>
-              <div className="text-lg font-semibold tracking-tight">borderly</div>
-            </Link>
-
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const el = document.getElementById("home-search") as HTMLInputElement | null;
-                  el?.focus();
-                }}
-                className={iconButton}
-                aria-label="Focus search"
-              >
-                <Search className="h-5 w-5" />
-              </button>
-
-              <Link href="/inbox" className={iconButton} aria-label="Messages">
-                <MessageCircle className="h-5 w-5" />
-              </Link>
-
-              <NotificationBell className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900" />
-
-              <Link href="/profile" className={iconButton} aria-label="Profile">
-                <div className="h-7 w-7 rounded-full border border-gray-200 bg-gray-200" />
-              </Link>
-
-              <div className="ml-1">
-                <AuthBar />
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        <header className="flex items-center justify-between gap-3 py-3">
+          <h1 className="text-xl font-bold">Community</h1>
+          <Link
+            href={isAuthed ? "/create" : "/login"}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Post
+          </Link>
         </header>
 
-        <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[240px_1fr]">
-          <aside className={cx(card, "hidden h-fit p-3 lg:sticky lg:top-20 lg:block")}>
-            <div className="grid gap-1">
-              <NavItem
-                href="/"
-                label="Community"
-                active={pathname === "/"}
-                icon={<LayoutGrid className="h-5 w-5" />}
-              />
-              <NavItem
-                href="/meet"
-                label="Meet"
-                active={pathname === "/meet"}
-                icon={<Users className="h-5 w-5" />}
-              />
-              <NavItem
-                href="/ngo"
-                label="NGO"
-                active={pathname === "/ngo"}
-                icon={<Building2 className="h-5 w-5" />}
-              />
-              <NavItem
-                href="/settings"
-                label="Settings"
-                active={pathname === "/settings"}
-                icon={<Settings className="h-5 w-5" />}
-              />
-            </div>
-          </aside>
-
-          <main className="min-w-0 space-y-5">
-            <section className={cx(card, "p-4 sm:p-5")}>
+        <div className="space-y-4">
+            <section className={cx(card, "p-4")}>
               <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
-                    <Search className="h-5 w-5 shrink-0 text-gray-400" />
-                    <input
-                      id="home-search"
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSearch();
-                      }}
-                      placeholder="Search title, content, author..."
-                      className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSearch}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                    >
-                      Search
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={clearSearch}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                    >
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+                  <Search className="h-4 w-4 shrink-0 text-gray-400" />
+                  <input
+                    id="home-search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSearch();
+                    }}
+                    placeholder="Search..."
+                    className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                  />
+                  {searchInput && (
+                    <button type="button" onClick={clearSearch} className="text-xs font-medium text-gray-400 hover:text-gray-600">
                       Clear
                     </button>
-
-                    <Link
-                      href={isAuthed ? "/create" : "/auth"}
-                      className="hidden h-11 items-center justify-center rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
-                    >
-                      Create Post
-                    </Link>
-                  </div>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                   {catTabs.map((k) => (
                     <SegTab key={k} k={k} />
                   ))}
@@ -425,8 +315,8 @@ export default function HomePage() {
                     className={cx(
                       "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
                       sortMode === "latest"
-                        ? "bg-black text-white"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
                     )}
                   >
                     Latest
@@ -438,11 +328,11 @@ export default function HomePage() {
                     className={cx(
                       "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
                       sortMode === "likes"
-                        ? "bg-black text-white"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
                     )}
                   >
-                    Top
+                    Popular
                   </button>
 
                   <span className="ml-auto text-right">
@@ -478,7 +368,7 @@ export default function HomePage() {
                   </div>
 
                   <Link
-                    href="/"
+                    href="/browse"
                     className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 transition hover:text-gray-900"
                   >
                     See all <ChevronRight className="h-4 w-4" />
@@ -488,7 +378,7 @@ export default function HomePage() {
                 <div className="mt-3 grid gap-2">
                   {trendingTop3.map((p, idx) => (
                     <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
-                      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3 transition hover:bg-white">
+                      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-[#F0F7FF] px-3 py-3 transition hover:bg-white">
                         <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
 
                         <div className="min-w-0 flex-1">
@@ -585,16 +475,7 @@ export default function HomePage() {
                 </div>
               )}
             </section>
-          </main>
         </div>
-
-        <Link
-          href={isAuthed ? "/create" : "/auth"}
-          className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg transition hover:scale-[1.03]"
-          aria-label="Create post"
-        >
-          <Plus className="h-6 w-6" />
-        </Link>
       </div>
     </div>
   );

@@ -10,5 +10,5 @@ export default function DmPage() {
     router.replace("/chats");
   }, [router]);
 
-  return <div style={{ padding: 16 }}>이동중…</div>;
+  return <div style={{ padding: 16 }}>Redirecting...</div>;
 }

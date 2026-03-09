@@ -20,12 +20,6 @@ export default function NGOPage() {
   const [loading, setLoading] = useState(true);
   const [isNGOUser, setIsNGOUser] = useState(false);
 
-  const bg = "#E0F2FE";
-  const card = "rgba(255,255,255,0.92)";
-  const line = "rgba(0,0,0,0.12)";
-  const text = "#111827";
-  const sub = "rgba(17,24,39,0.72)";
-
   useEffect(() => {
     let alive = true;
 
@@ -69,55 +63,30 @@ export default function NGOPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: text }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "18px 14px 60px" }}>
-        <div
-          style={{
-            marginBottom: 18,
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 900 }}>Support Organizations</div>
+            <div className="text-xl font-bold">Support Organizations</div>
 
-            <div style={{ marginTop: 8, fontSize: 14, color: sub }}>
+            <div className="mt-2 text-sm text-gray-500">
               Find trusted organizations that provide help with jobs, housing,
               daily life, education, and other support.
             </div>
           </div>
 
           {isNGOUser && (
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-2.5">
               <Link
                 href="/ngo/applications"
-                style={{
-                  textDecoration: "none",
-                  background: "#0F172A",
-                  color: "#FFFFFF",
-                  fontWeight: 900,
-                  fontSize: 14,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                }}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
               >
                 View Applications
               </Link>
 
               <Link
                 href="/ngo/new"
-                style={{
-                  textDecoration: "none",
-                  background: "#2563EB",
-                  color: "#FFFFFF",
-                  fontWeight: 900,
-                  fontSize: 14,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                }}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
               >
                 Create NGO Post
               </Link>
@@ -126,49 +95,35 @@ export default function NGOPage() {
         </div>
 
         {loading ? (
-          <div>Loading...</div>
+          <div className="text-sm text-gray-500">Loading...</div>
         ) : posts.length === 0 ? (
-          <div
-            style={{
-              borderRadius: 16,
-              border: `1px solid ${line}`,
-              background: card,
-              padding: 22,
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 900 }}>
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="text-lg font-bold">
               No NGO posts yet
             </div>
 
-            <div style={{ marginTop: 8, fontSize: 14, color: sub }}>
+            <div className="mt-2 text-sm text-gray-500">
               Once an NGO account creates a post, it will appear here.
             </div>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 14 }}>
+          <div className="grid gap-3.5">
             {posts.map((post) => (
               <Link
                 key={post.id}
                 href={`/ngo/${post.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
+                className="no-underline text-inherit"
               >
-                <div
-                  style={{
-                    borderRadius: 16,
-                    border: `1px solid ${line}`,
-                    background: card,
-                    padding: 18,
-                  }}
-                >
-                  <div style={{ fontSize: 18, fontWeight: 900 }}>
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="text-lg font-bold">
                     {post.title}
                   </div>
 
-                  <div style={{ marginTop: 6, fontSize: 14, color: sub }}>
+                  <div className="mt-1.5 text-sm text-gray-500">
                     {post.one_line}
                   </div>
 
-                  <div style={{ marginTop: 10, fontSize: 12, color: sub }}>
+                  <div className="mt-2.5 text-xs text-gray-500">
                     📍 {post.location}
                   </div>
                 </div>

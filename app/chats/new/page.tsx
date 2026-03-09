@@ -25,7 +25,7 @@ export default function NewChatPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 1) 로그인 확인 + 초기 유저 목록 로드
+  // 1) Check auth + load initial user list
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -41,7 +41,7 @@ export default function NewChatPage() {
 
       setMe(uid);
 
-      // 초기엔 최근 유저 20명 정도
+      // Load recent 20 users
       const { data, error } = await supabase
         .from("profiles")
         .select("id, display_name")
@@ -72,7 +72,7 @@ export default function NewChatPage() {
     setLoading(true);
     setErrorMsg(null);
 
-    // display_name 검색 (ilike)
+    // Search by display_name (ilike)
     const term = q.trim();
     if (!term) {
       const { data, error } = await supabase
@@ -108,7 +108,7 @@ export default function NewChatPage() {
     const userLow = me < otherId ? me : otherId;
     const userHigh = me < otherId ? otherId : me;
 
-    // 1) direct_conversations에서 기존 방 찾기 (1:1)
+    // 1) Find existing 1:1 conversation
     const { data: existing, error: findErr } = await supabase
       .from("direct_conversations")
       .select("conversation_id, user_low, user_high, created_at")
@@ -123,7 +123,7 @@ export default function NewChatPage() {
 
     let conversationId = (existing as DirectConversation | null)?.conversation_id ?? null;
 
-    // 2) 없으면 새로 생성
+    // 2) Create new if not found
     if (!conversationId) {
       conversationId = crypto.randomUUID();
 
@@ -139,8 +139,7 @@ export default function NewChatPage() {
       }
     }
 
-    // 3) conversation_members upsert (있어도 괜찮게)
-    //    - 테이블에 unique(conversation_id, user_id) 제약이 있으면 upsert가 잘 먹음
+    // 3) Upsert conversation_members
     const { error: memErr } = await supabase.from("conversation_members").upsert(
       [
         { conversation_id: conversationId, user_id: me, last_read_at: new Date().toISOString() },
@@ -150,136 +149,83 @@ export default function NewChatPage() {
     );
 
     if (memErr) {
-      // upsert가 안 먹는 환경이면 insert 중복 에러가 날 수 있음.
-      // 그래도 conversation은 만들어졌으니 이동은 시켜줌.
-      // 필요하면 여기서 insert-only fallback도 추가 가능.
+      // Duplicate insert may fail but conversation is already created
       console.warn(memErr);
     }
 
-    // 4) 채팅방으로 이동
+    // 4) Navigate to chat room
     router.push(`/chats/${conversationId}`);
   };
 
-  if (!me) return <div style={{ padding: 16 }}>로딩중…</div>;
+  if (!me) return <div className="p-4 text-sm text-gray-500">Loading...</div>;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/chats")}
-            style={{
-              border: "1px solid #ddd",
-              background: "white",
-              borderRadius: 999,
-              padding: "8px 12px",
-              cursor: "pointer",
-            }}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
           >
-            ← 채팅 목록
+            ← Back
           </button>
-
-          <h2 style={{ margin: 0 }}>새 채팅 시작</h2>
+          <h2 className="text-xl font-bold">New Chat</h2>
         </div>
-      </div>
 
-      <div
-        style={{
-          marginTop: 14,
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-        }}
-      >
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="상대 이름 검색 (display_name)"
-          style={{
-            flex: 1,
-            padding: "12px 16px",
-            borderRadius: 999,
-            border: "1px solid #ddd",
-            outline: "none",
-            background: "white",
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") refreshSearch();
-          }}
-        />
-        <button
-          onClick={refreshSearch}
-          style={{
-            padding: "0 18px",
-            height: 44,
-            borderRadius: 999,
-            background: "#4da6ff",
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: 800,
-          }}
-        >
-          검색
-        </button>
-      </div>
-
-      {errorMsg && (
-        <div style={{ marginTop: 12, color: "#c70000", fontWeight: 700 }}>
-          {errorMsg}
+        <div className="mt-4 flex items-center gap-3">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by name"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") refreshSearch();
+            }}
+          />
+          <button
+            onClick={refreshSearch}
+            className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          >
+            Search
+          </button>
         </div>
-      )}
 
-      <div style={{ marginTop: 14 }}>
-        {loading ? (
-          <div style={{ color: "#666" }}>불러오는 중…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ color: "#666" }}>검색 결과가 없어.</div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {filtered.map((p) => (
+        {errorMsg && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-sm text-gray-500">No results found.</div>
+          ) : (
+            filtered.map((p) => (
               <div
                 key={p.id}
-                style={{
-                  border: "1px solid rgba(0,0,0,0.10)",
-                  borderRadius: 18,
-                  background: "white",
-                  padding: 14,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
               >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 900, fontSize: 16 }}>
-                    {p.display_name ?? "이름없음"}
+                <div className="min-w-0">
+                  <div className="text-sm font-bold">
+                    {p.display_name ?? "Unnamed"}
                   </div>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                    @{p.id.slice(0, 8)}…
+                  <div className="mt-1 text-xs text-gray-500">
+                    @{p.id.slice(0, 8)}...
                   </div>
                 </div>
 
                 <button
                   onClick={() => getOrCreateConversation(p.id)}
-                  style={{
-                    border: "none",
-                    background: "#4da6ff",
-                    color: "white",
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    fontWeight: 900,
-                    flexShrink: 0,
-                  }}
+                  className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
                 >
-                  채팅하기 →
+                  Chat
                 </button>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { Edit3, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 type MeetType =
@@ -48,21 +49,21 @@ function cx(...arr: Array<string | false | null | undefined>) {
 function typeLabel(t: MeetType) {
   switch (t) {
     case "hangout":
-      return "번개";
+      return "Hangout";
     case "study":
-      return "스터디";
+      return "Study";
     case "skill":
-      return "재능교환";
+      return "Skill Exchange";
     case "language":
-      return "언어교환";
+      return "Language Exchange";
     case "meal":
-      return "밥친구";
+      return "Meal Buddy";
     case "party":
-      return "파티";
+      return "Party";
     case "project":
-      return "팀원모집";
+      return "Team Recruit";
     case "sports":
-      return "스포츠";
+      return "Sports";
     default:
       return "MEET";
   }
@@ -77,7 +78,7 @@ export default function MeetDetailPage() {
   const params = useParams();
   const router = useRouter();
 
-  // ✅ 승인되면 자동 단톡방 이동: 원치 않으면 false
+  // Auto-redirect to group chat on approval: set false to disable
   const AUTO_GO_CHAT = false;
 
   const meetId = useMemo(() => {
@@ -95,7 +96,7 @@ export default function MeetDetailPage() {
   const [myStatus, setMyStatus] = useState<MyStatus>("none");
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  // ✅ 승인 순간 감지 + 배너
+  // Detect approval transition + banner
   const prevStatusRef = useRef<MyStatus>("none");
   const [approvedJustNow, setApprovedJustNow] = useState(false);
 
@@ -135,7 +136,7 @@ export default function MeetDetailPage() {
     if (gcErr) console.error(gcErr);
     setGroupConversationId(gc?.conversation_id ?? null);
 
-    // 3) 내 상태 조회 (status 없으면 fallback)
+    // 3) Check my status (fallback if status column missing)
     if (uid) {
       const r1 = await supabase
         .from("meet_participants")
@@ -161,7 +162,7 @@ export default function MeetDetailPage() {
       setMyStatus("none");
     }
 
-    // 4) ✅ 참가자 로드: 조인 금지(400 제거) → 2번 쿼리로 profiles 매핑
+    // 4) Load participants: avoid join (prevents 400) -> map profiles via 2nd query
     const mp = await supabase
       .from("meet_participants")
       .select("user_id,status")
@@ -211,7 +212,7 @@ export default function MeetDetailPage() {
       };
     });
 
-    // approved → pending → rejected
+    // approved -> pending -> rejected
     const w = (s: MyStatus) => (s === "approved" ? 0 : s === "pending" ? 1 : 2);
     merged.sort((a, b) => w(a.status) - w(b.status));
 
@@ -223,7 +224,7 @@ export default function MeetDetailPage() {
     loadAll();
   }, [loadAll]);
 
-  // ✅ 승인 전환 감지 (pending -> approved)
+  // Detect approval transition (pending -> approved)
   useEffect(() => {
     const prev = prevStatusRef.current;
 
@@ -242,7 +243,7 @@ export default function MeetDetailPage() {
     prevStatusRef.current = myStatus;
   }, [myStatus, groupConversationId, router]);
 
-  // ✅ realtime
+  // Realtime subscription
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!meetId) return;
@@ -283,13 +284,13 @@ export default function MeetDetailPage() {
 
   const capText =
     meet?.max_people == null
-      ? `👥 ${meet?.participant_count ?? 0}명`
-      : `👥 ${meet?.participant_count ?? 0}/${meet?.max_people}명`;
+      ? `${meet?.participant_count ?? 0} joined`
+      : `${meet?.participant_count ?? 0}/${meet?.max_people} joined`;
 
   const remainText =
     meet?.max_people == null
-      ? "정원 제한 없음"
-      : `남은 자리 ${Math.max(0, (meet.max_people ?? 0) - (meet.participant_count ?? 0))}명`;
+      ? "No capacity limit"
+      : `${Math.max(0, (meet.max_people ?? 0) - (meet.participant_count ?? 0))} spots left`;
 
   async function joinOrRequest() {
     if (!meet || !meId) return;
@@ -303,8 +304,8 @@ export default function MeetDetailPage() {
     } as any);
 
     if (ins.error) {
-      // ✅ 즉시형(구버전) fallback: status 없이 insert
-      // 단톡방 멤버 추가/제거는 DB 트리거가 담당
+      // Immediate (legacy) fallback: insert without status
+      // Group chat member add/remove is handled by DB trigger
       await supabase.from("meet_participants").insert({
         meet_id: meet.id,
         user_id: meId,
@@ -336,12 +337,12 @@ export default function MeetDetailPage() {
   }
 
   function primaryButtonText() {
-    if (!meId) return "로그인 필요";
+    if (!meId) return "Login Required";
     if (isHost) return "";
-    if (myStatus === "approved") return "참여 취소";
-    if (myStatus === "pending") return "대기중 · 요청 취소";
-    if (myStatus === "rejected") return "거절됨";
-    return "참여 요청";
+    if (myStatus === "approved") return "Leave";
+    if (myStatus === "pending") return "Pending - Cancel Request";
+    if (myStatus === "rejected") return "Rejected";
+    return "Request to Join";
   }
 
   function primaryDisabled() {
@@ -361,130 +362,125 @@ export default function MeetDetailPage() {
     await joinOrRequest();
   }
 
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!meet || !meId) return;
+    if (!confirm("Are you sure you want to delete this meetup? This action cannot be undone.")) return;
+
+    setDeleting(true);
+    const { error } = await supabase.from("meet_posts").delete().eq("id", meet.id);
+    if (error) {
+      alert(error.message);
+      setDeleting(false);
+      return;
+    }
+    router.push("/meet");
+  }
+
   const approvedList = useMemo(() => participants.filter((p) => p.status === "approved"), [participants]);
   const pendingList = useMemo(() => participants.filter((p) => p.status === "pending"), [participants]);
 
-  if (loading) return <div className="p-6">불러오는 중...</div>;
-  if (!meet) return <div className="p-6">모임을 찾을 수 없습니다.</div>;
+  if (loading) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Loading...</div>;
+  if (!meet) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Meetup not found.</div>;
 
   const pendingBtn = myStatus === "pending";
 
   const primaryClass = (() => {
     if (primaryDisabled()) return "bg-gray-300 text-white";
-    if (pendingBtn) return "bg-white text-black border hover:bg-gray-50";
-    return "bg-black text-white";
+    if (pendingBtn) return "bg-white text-gray-700 border border-gray-200 hover:bg-[#F0F7FF]";
+    return "bg-blue-600 text-white hover:opacity-90";
   })();
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
-      <div className="flex items-center justify-between">
-        <Link href="/meet" className="text-sm text-gray-500 hover:underline">
-          ← 목록
-        </Link>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="flex items-center justify-between">
+          <Link href="/meet" className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+            &larr; List
+          </Link>
 
-        <button onClick={() => loadAll()} className="text-sm rounded-lg border px-3 py-1 hover:bg-gray-50">
-          새로고침
-        </button>
-      </div>
-
-      <div className="mt-4 rounded-2xl border p-5">
-        {meet.image_url && (
-          <div className="mb-4 overflow-hidden rounded-2xl border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={meet.image_url} alt="cover" className="h-56 w-full object-cover" />
-          </div>
-        )}
-
-        <div className="text-xs font-semibold opacity-70">
-          {typeLabel(meet.type)}
-          {meet.type === "sports" && meet.sport ? ` · ${meet.sport}` : ""}
+          <button onClick={() => loadAll()} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+            Refresh
+          </button>
         </div>
 
-        <h1 className="mt-2 text-xl font-bold">{meet.title}</h1>
-
-        {/* ✅ 승인 직후 배너 + 바로가기 */}
-        {approvedJustNow && (
-          <div className="mt-3 rounded-xl border bg-white px-4 py-3 text-sm flex items-center justify-between gap-3">
-            <div>✅ 호스트가 승인했어. 단톡방에 입장할 수 있어!</div>
-            {groupConversationId && (
-              <button onClick={goChat} className="rounded-lg bg-black px-3 py-1 text-xs text-white">
-                지금 들어가기
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {ended ? (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold opacity-70">종료</span>
-          ) : meet.is_closed ? (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold">마감</span>
-          ) : isFull ? (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold">정원 마감</span>
-          ) : (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold opacity-80">모집중</span>
-          )}
-
-          {meet.max_people != null && (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold opacity-70">{remainText}</span>
-          )}
-
-          {myStatus !== "none" && !isHost && (
-            <span className="rounded-full border px-3 py-1 text-xs font-semibold opacity-70">
-              내 상태: {myStatus}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-3 text-sm whitespace-pre-wrap">{meet.description}</div>
-
-        <div className="mt-4 text-sm opacity-70 space-y-1">
-          <div>🕒 {meet.start_at ? new Date(meet.start_at).toLocaleString() : "시간 미정"}</div>
-          <div>📍 {[meet.city, meet.place_hint].filter(Boolean).join(" · ") || "장소 미정"}</div>
-          <div>{capText}</div>
-        </div>
-
-        {/* 참가자 리스트 */}
-        <div className="mt-6 rounded-2xl border p-4">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold">참가자</div>
-            <div className="text-sm opacity-70">{approvedList.length}명</div>
-          </div>
-
-          {approvedList.length === 0 ? (
-            <div className="mt-2 text-sm opacity-60">아직 참가자가 없어.</div>
-          ) : (
-            <div className="mt-3 grid gap-2">
-              {approvedList.map((p) => (
-                <div key={p.user_id} className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full border overflow-hidden bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {p.avatar_url ? (
-                      <img src={p.avatar_url} alt="avatar" className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">
-                      {p.display_name ?? p.user_id.slice(0, 8)}
-                    </div>
-                    <div className="text-xs opacity-60">approved</div>
-                  </div>
-                </div>
-              ))}
+        <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          {meet.image_url && (
+            <div className="mb-4 overflow-hidden rounded-2xl border border-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={meet.image_url} alt="cover" className="h-56 w-full object-cover" />
             </div>
           )}
 
-          {pendingList.length > 0 && (
-            <div className="mt-5">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">대기</div>
-                <div className="text-sm opacity-70">{pendingList.length}명</div>
-              </div>
+          <div className="text-xs font-semibold text-gray-500">
+            {typeLabel(meet.type)}
+            {meet.type === "sports" && meet.sport ? ` · ${meet.sport}` : ""}
+          </div>
 
+          <h1 className="mt-2 text-xl font-bold">{meet.title}</h1>
+
+          {/* Approval banner + shortcut */}
+          {approvedJustNow && (
+            <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm flex items-center justify-between gap-3">
+              <div>The host approved you. You can now enter the group chat!</div>
+              {groupConversationId && (
+                <button onClick={goChat} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+                  Enter Now
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ended ? (
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Ended</span>
+            ) : meet.is_closed ? (
+              <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">Closed</span>
+            ) : isFull ? (
+              <span className="rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">Full</span>
+            ) : (
+              <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Open</span>
+            )}
+
+            {meet.max_people != null && (
+              <span className="rounded-full border border-gray-200 bg-[#F0F7FF] px-3 py-1 text-xs font-semibold text-gray-600">{remainText}</span>
+            )}
+
+            {myStatus !== "none" && !isHost && (
+              <span className={cx(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                myStatus === "approved" ? "border-green-200 bg-green-50 text-green-700" :
+                myStatus === "pending" ? "border-yellow-200 bg-yellow-50 text-yellow-700" :
+                "border-red-200 bg-red-50 text-red-700"
+              )}>
+                My status: {myStatus}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-3 text-sm whitespace-pre-wrap">{meet.description}</div>
+
+          <div className="mt-4 space-y-1 text-sm text-gray-500">
+            <div>Time: {meet.start_at ? new Date(meet.start_at).toLocaleString() : "TBD"}</div>
+            <div>Place: {[meet.city, meet.place_hint].filter(Boolean).join(" · ") || "TBD"}</div>
+            <div>{capText}</div>
+          </div>
+
+          {/* Participant list */}
+          <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">Participants</div>
+              <div className="text-sm text-gray-500">{approvedList.length}</div>
+            </div>
+
+            {approvedList.length === 0 ? (
+              <div className="mt-2 text-sm text-gray-400">No participants yet.</div>
+            ) : (
               <div className="mt-3 grid gap-2">
-                {pendingList.map((p) => (
-                  <div key={p.user_id} className="flex items-center gap-3 opacity-80">
-                    <div className="h-8 w-8 rounded-full border overflow-hidden bg-white">
+                {approvedList.map((p) => (
+                  <div key={p.user_id} className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full border border-gray-100 overflow-hidden bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {p.avatar_url ? (
                         <img src={p.avatar_url} alt="avatar" className="h-full w-full object-cover" />
@@ -494,58 +490,102 @@ export default function MeetDetailPage() {
                       <div className="text-sm font-semibold truncate">
                         {p.display_name ?? p.user_id.slice(0, 8)}
                       </div>
-                      <div className="text-xs opacity-60">pending</div>
+                      <div className="text-xs text-green-600">approved</div>
                     </div>
                   </div>
                 ))}
               </div>
+            )}
 
-              {!isHost && myStatus === "pending" && (
-                <div className="mt-3 text-xs opacity-60">승인되면 단톡방이 열려.</div>
-              )}
-            </div>
-          )}
-        </div>
+            {pendingList.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">Pending</div>
+                  <div className="text-sm text-gray-500">{pendingList.length}</div>
+                </div>
 
-        <div className="mt-5 flex gap-2 flex-wrap">
-          {groupConversationId && myStatus === "approved" && (
-            <button
-              onClick={goChat}
-              className={cx(
-                "rounded-xl px-4 py-2 text-sm font-semibold",
-                approvedJustNow ? "bg-black text-white" : "border hover:bg-gray-50"
-              )}
-            >
-              모임 단톡방
-            </button>
-          )}
+                <div className="mt-3 grid gap-2">
+                  {pendingList.map((p) => (
+                    <div key={p.user_id} className="flex items-center gap-3 opacity-80">
+                      <div className="h-8 w-8 rounded-full border border-gray-100 overflow-hidden bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">
+                          {p.display_name ?? p.user_id.slice(0, 8)}
+                        </div>
+                        <div className="text-xs text-yellow-600">pending</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-          {isHost && (
-            <Link href={`/meet/${meet.id}/manage`} className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50">
-              참가자 관리
-            </Link>
-          )}
+                {!isHost && myStatus === "pending" && (
+                  <div className="mt-3 text-xs text-gray-400">The group chat will open once approved.</div>
+                )}
+              </div>
+            )}
+          </div>
 
-          {!isHost && (
-            <button
-              disabled={joining || primaryDisabled()}
-              onClick={onPrimary}
-              className={cx("rounded-xl px-4 py-2 text-sm font-semibold", primaryClass)}
-            >
-              {joining ? (
-                "처리중..."
-              ) : pendingBtn ? (
-                <>
-                  <span className="mr-2" aria-hidden>
-                    ⏳
-                  </span>
-                  {primaryButtonText()}
-                </>
-              ) : (
-                primaryButtonText()
-              )}
-            </button>
-          )}
+          <div className="mt-5 flex gap-2 flex-wrap">
+            {groupConversationId && myStatus === "approved" && (
+              <button
+                onClick={goChat}
+                className={cx(
+                  "rounded-xl px-4 py-2 text-sm font-semibold",
+                  approvedJustNow ? "bg-blue-600 text-white hover:opacity-90" : "border border-gray-200 bg-white text-gray-700 hover:bg-[#F0F7FF]"
+                )}
+              >
+                Group Chat
+              </button>
+            )}
+
+            {isHost && (
+              <Link href={`/meet/${meet.id}/manage`} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
+                Manage Participants
+              </Link>
+            )}
+
+            {isHost && (
+              <Link
+                href={`/meet/${meet.id}/edit`}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] inline-flex items-center gap-1.5"
+              >
+                <Edit3 size={14} />
+                Edit
+              </Link>
+            )}
+
+            {isHost && (
+              <button
+                disabled={deleting}
+                onClick={handleDelete}
+                className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            )}
+
+            {!isHost && (
+              <button
+                disabled={joining || primaryDisabled()}
+                onClick={onPrimary}
+                className={cx("rounded-xl px-4 py-2 text-sm font-semibold", primaryClass)}
+              >
+                {joining ? (
+                  "Processing..."
+                ) : pendingBtn ? (
+                  primaryButtonText()
+                ) : (
+                  primaryButtonText()
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

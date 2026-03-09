@@ -115,12 +115,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-indigo-50 text-slate-900">
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-3xl border border-slate-200/70 bg-white/80 px-4 py-4 shadow-sm backdrop-blur">
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4 shadow-sm">
           <div>
-            <div className="text-xl font-black">Notifications</div>
-            <div className="mt-1 text-sm text-slate-500">
+            <div className="text-xl font-bold">Notifications</div>
+            <div className="mt-1 text-sm text-gray-500">
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
             </div>
           </div>
@@ -128,13 +128,13 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/"
-              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
             >
               Home
             </Link>
 
             <button
-              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:opacity-50"
               onClick={onMarkAll}
               disabled={markingAll || rows.length === 0 || unreadCount === 0}
             >
@@ -148,12 +148,12 @@ export default function NotificationsPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-20 rounded-3xl border border-slate-200/70 bg-white shadow-sm"
+                className="h-20 rounded-2xl border border-gray-100 bg-white shadow-sm"
               />
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200/70 bg-white px-5 py-8 text-center text-sm text-slate-500 shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-white px-5 py-8 text-center text-sm text-gray-500 shadow-sm">
             No notifications yet.
           </div>
         ) : (
@@ -162,16 +162,16 @@ export default function NotificationsPage() {
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
-                className={`rounded-3xl border p-4 text-left shadow-sm transition ${
+                className={`rounded-2xl border p-4 text-left shadow-sm transition ${
                   n.is_read
-                    ? "border-slate-200/70 bg-white"
-                    : "border-indigo-200 bg-indigo-50/70"
+                    ? "border-gray-100 bg-white"
+                    : "border-blue-200 bg-blue-50"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-black text-slate-900">
+                      <div className="truncate text-sm font-bold text-gray-900">
                         {n.title}
                       </div>
 
@@ -183,13 +183,13 @@ export default function NotificationsPage() {
                     </div>
 
                     {n.body ? (
-                      <div className="mt-1 text-sm text-slate-600">
+                      <div className="mt-1 text-sm text-gray-600">
                         {n.body}
                       </div>
                     ) : null}
 
-                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 font-semibold text-slate-600">
+                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                      <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 font-semibold text-gray-600">
                         {typeLabel(n.type)}
                       </span>
                       <span>{formatRelative(n.created_at)}</span>

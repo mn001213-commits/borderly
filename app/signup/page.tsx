@@ -5,38 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getCountryList, countryName } from "@/lib/countries";
-
-function Chip({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        border: "1px solid rgba(0,0,0,0.15)",
-        background: active ? "rgba(0,0,0,0.08)" : "white",
-        borderRadius: 999,
-        padding: "8px 12px",
-        fontSize: 13,
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+import { ArrowLeft, UserPlus } from "lucide-react";
 
 function CountrySelect({
   value,
   onChange,
-  lang = "ko",
+  lang = "en",
 }: {
   value: string;
   onChange: (code: string) => void;
@@ -55,9 +29,8 @@ function CountrySelect({
   const selectedName = countryName(value, lang);
 
   return (
-    <div style={{ position: "relative" }}>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>국가</div>
-
+    <div className="relative">
+      <label className="block text-xs font-medium text-gray-500 mb-1.5">Country</label>
       <input
         value={open ? q : selectedName}
         onChange={(e) => {
@@ -69,35 +42,14 @@ function CountrySelect({
           setOpen(true);
         }}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
-        placeholder="국가 검색 (예: 한국, Japan, Indonesia...)"
-        style={{
-          width: "100%",
-          border: "1px solid rgba(0,0,0,0.15)",
-          borderRadius: 12,
-          padding: "10px 12px",
-          outline: "none",
-        }}
+        placeholder="Search country..."
+        className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400"
       />
 
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 50,
-            top: "100%",
-            left: 0,
-            right: 0,
-            marginTop: 6,
-            maxHeight: 260,
-            overflow: "auto",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 12,
-            background: "white",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
-          }}
-        >
+        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 max-h-60 overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg">
           {filtered.length === 0 ? (
-            <div style={{ padding: 12, fontSize: 13, opacity: 0.7 }}>검색 결과 없음</div>
+            <div className="px-4 py-3 text-sm text-gray-400">No results</div>
           ) : (
             filtered.map((c) => (
               <button
@@ -108,17 +60,11 @@ function CountrySelect({
                   onChange(c.code);
                   setOpen(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  border: "none",
-                  background: c.code === value ? "rgba(0,0,0,0.06)" : "white",
-                  cursor: "pointer",
-                  fontSize: 14,
-                }}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-[#F0F7FF] ${
+                  c.code === value ? "bg-gray-100 font-medium" : ""
+                }`}
               >
-                {c.name} <span style={{ opacity: 0.5 }}>({c.code})</span>
+                {c.name} <span className="text-gray-400">({c.code})</span>
               </button>
             ))
           )}
@@ -129,26 +75,25 @@ function CountrySelect({
 }
 
 const LANGS = [
-  { key: "ko", label: "한국어 (ko)" },
-  { key: "ja", label: "日本語 (ja)" },
-  { key: "en", label: "English (en)" },
-  { key: "id", label: "Bahasa Indonesia (id)" },
-  { key: "zh", label: "中文 (zh)" },
-  { key: "es", label: "Español (es)" },
-  { key: "ar", label: "العربية (ar)" },
-  { key: "fr", label: "Français (fr)" },
+  { key: "ko", label: "Korean" },
+  { key: "ja", label: "Japanese" },
+  { key: "en", label: "English" },
+  { key: "id", label: "Indonesian" },
+  { key: "zh", label: "Chinese" },
+  { key: "es", label: "Spanish" },
+  { key: "ar", label: "Arabic" },
+  { key: "fr", label: "French" },
 ] as const;
 
-// ✅ 사회 속성(역할) - 단일 선택 추천
 const SOCIAL = [
-  { key: "worker", label: "사회인" },
-  { key: "job_seeker", label: "구직자" },
-  { key: "student", label: "학생" },
-  { key: "homemaker", label: "주부" },
-  { key: "freelancer", label: "프리랜서" },
-  { key: "self_employed", label: "자영업" },
-  { key: "retired", label: "은퇴" },
-  { key: "other", label: "기타" },
+  { key: "worker", label: "Worker" },
+  { key: "job_seeker", label: "Job Seeker" },
+  { key: "student", label: "Student" },
+  { key: "homemaker", label: "Homemaker" },
+  { key: "freelancer", label: "Freelancer" },
+  { key: "self_employed", label: "Self-employed" },
+  { key: "retired", label: "Retired" },
+  { key: "other", label: "Other" },
 ] as const;
 
 export default function SignupPage() {
@@ -158,7 +103,6 @@ export default function SignupPage() {
   const [pw, setPw] = useState("");
   const [displayName, setDisplayName] = useState("");
 
-  // ✅ 선택형 프로필(가입 때)
   const [countryCode, setCountryCode] = useState("KR");
   const [languages, setLanguages] = useState<string[]>(["ko"]);
   const [socialStatus, setSocialStatus] = useState<(typeof SOCIAL)[number]["key"]>("worker");
@@ -188,7 +132,6 @@ export default function SignupPage() {
     setErrorMsg(null);
     setOkMsg(null);
 
-    // 1) auth 가입
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: pw,
@@ -206,11 +149,10 @@ export default function SignupPage() {
     const uid = data.user?.id;
     if (!uid) {
       setBusy(false);
-      setErrorMsg("회원가입은 되었지만 사용자 정보를 가져오지 못했어요.");
+      setErrorMsg("Sign up succeeded but could not retrieve user info.");
       return;
     }
 
-    // 2) profiles 저장 (선택형: country_code/languages/social_status)
     const { error: pErr } = await supabase.from("profiles").upsert(
       {
         id: uid,
@@ -229,154 +171,178 @@ export default function SignupPage() {
     }
 
     setBusy(false);
-    setOkMsg("가입 완료! 이동 중...");
-
-    // 필요하면 원하는 경로로 바꿔도 됨
+    setOkMsg("Account created! Redirecting...");
     router.push("/");
   };
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: 16 }}>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>회원가입</h1>
-        <Link href="/" style={{ fontSize: 14, opacity: 0.8 }}>
-          홈
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto w-full max-w-md px-4 pb-24 pt-8">
+        <Link
+          href="/"
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Home
         </Link>
-      </header>
 
-      {errorMsg && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            borderRadius: 10,
-            border: "1px solid rgba(255,0,0,0.25)",
-            background: "rgba(255,0,0,0.05)",
-            fontSize: 13,
-          }}
-        >
-          {errorMsg}
-        </div>
-      )}
+        <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+              <UserPlus className="h-5 w-5 text-gray-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Sign Up</h1>
+              <p className="text-xs text-gray-500">Create your Borderly account</p>
+            </div>
+          </div>
 
-      {okMsg && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.10)",
-            background: "rgba(0,0,0,0.03)",
-            fontSize: 13,
-          }}
-        >
-          {okMsg}
-        </div>
-      )}
+          {errorMsg && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMsg}
+            </div>
+          )}
 
-      <section style={{ marginTop: 16, display: "grid", gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>이메일</div>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@example.com"
-            disabled={busy}
-            style={{
-              width: "100%",
-              border: "1px solid rgba(0,0,0,0.15)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              outline: "none",
+          {okMsg && (
+            <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              {okMsg}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: window.location.origin },
+              });
             }}
-          />
-        </div>
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white py-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l3.56-2.77z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            Continue with Google
+          </button>
 
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>비밀번호</div>
-          <input
-            type="password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="6자 이상"
-            disabled={busy}
-            style={{
-              width: "100%",
-              border: "1px solid rgba(0,0,0,0.15)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              outline: "none",
-            }}
-          />
-        </div>
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
 
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>표시 이름</div>
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="예: borderly_user"
-            disabled={busy}
-            style={{
-              width: "100%",
-              border: "1px solid rgba(0,0,0,0.15)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              outline: "none",
-            }}
-          />
-        </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                disabled={busy}
+                className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+              />
+            </div>
 
-        <CountrySelect value={countryCode} onChange={setCountryCode} lang="ko" />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Password</label>
+              <input
+                type="password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                placeholder="At least 6 characters"
+                disabled={busy}
+                className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+              />
+            </div>
 
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>사용 언어 (1개 이상)</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {LANGS.map((l) => (
-              <Chip
-                key={l.key}
-                active={languages.includes(l.key)}
-                onClick={() => setLanguages((prev) => toggle(prev, l.key))}
-              >
-                {l.label}
-              </Chip>
-            ))}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Display Name</label>
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. borderly_user"
+                disabled={busy}
+                className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+              />
+            </div>
+
+            <CountrySelect value={countryCode} onChange={setCountryCode} lang="en" />
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                Languages (select at least 1)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    onClick={() => setLanguages((prev) => toggle(prev, l.key))}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                      languages.includes(l.key)
+                        ? "border-blue-600 bg-blue-600 text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Status</label>
+              <div className="flex flex-wrap gap-2">
+                {SOCIAL.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setSocialStatus(s.key)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                      socialStatus === s.key
+                        ? "border-blue-600 bg-blue-600 text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!canSubmit || busy}
+              onClick={onSignup}
+              className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? "Creating account..." : "Create Account"}
+            </button>
+
+            <div className="text-center text-sm text-gray-500">
+              Already have an account?{" "}
+              <Link href="/login" className="text-gray-900 font-medium hover:underline">
+                Log in
+              </Link>
+            </div>
           </div>
         </div>
-
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>사회 속성</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {SOCIAL.map((s) => (
-              <Chip key={s.key} active={socialStatus === s.key} onClick={() => setSocialStatus(s.key)}>
-                {s.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          disabled={!canSubmit || busy}
-          onClick={onSignup}
-          style={{
-            marginTop: 6,
-            width: "100%",
-            padding: "12px 14px",
-            borderRadius: 14,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: busy ? "rgba(0,0,0,0.06)" : "white",
-            fontWeight: 900,
-            cursor: !canSubmit || busy ? "not-allowed" : "pointer",
-          }}
-        >
-          가입하기
-        </button>
-
-        <div style={{ fontSize: 13, opacity: 0.75 }}>
-          이미 계정이 있으면 <Link href="/login">로그인</Link>
-        </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

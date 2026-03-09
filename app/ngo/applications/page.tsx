@@ -46,12 +46,6 @@ export default function NGOApplicationsPage() {
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const bg = "#E0F2FE";
-  const card = "rgba(255,255,255,0.94)";
-  const line = "rgba(0,0,0,0.12)";
-  const text = "#111827";
-  const sub = "rgba(17,24,39,0.72)";
-
   const applicantIds = useMemo(() => {
     return Array.from(new Set(items.map((item) => item.user_id).filter(Boolean)));
   }, [items]);
@@ -105,8 +99,11 @@ export default function NGOApplicationsPage() {
         if (!alive) return;
 
         const rows = (data ?? []).filter(
-          (row: NGOApplicationRow) => row.ngo_posts?.owner_user_id === user.id
-        );
+          (row: any) => {
+            const ngo = Array.isArray(row.ngo_posts) ? row.ngo_posts[0] : row.ngo_posts;
+            return ngo?.owner_user_id === user.id;
+          }
+        ) as unknown as NGOApplicationRow[];
 
         setItems(rows);
       } catch (err: any) {
@@ -188,50 +185,28 @@ export default function NGOApplicationsPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: bg, color: text, padding: 20 }}>
-        <div style={{ maxWidth: 980, margin: "0 auto" }}>
-          <div
-            style={{
-              borderRadius: 18,
-              border: `1px solid ${line}`,
-              background: card,
-              padding: 22,
-            }}
-          >
-            Loading applications...
-          </div>
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6">
+          <div className="text-sm text-gray-500">Loading...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: text }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "18px 14px 60px" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <Link
               href="/ngo"
-              style={{
-                display: "inline-block",
-                marginBottom: 12,
-                color: "#2563EB",
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
+              className="mb-3 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
             >
               ← Back
             </Link>
 
-            <div style={{ fontSize: 28, fontWeight: 900 }}>NGO Applications</div>
-            <div style={{ marginTop: 8, fontSize: 14, color: sub, lineHeight: 1.6 }}>
+            <div className="text-xl font-bold">NGO Applications</div>
+            <div className="mt-2 text-sm leading-relaxed text-gray-500">
               Review applications submitted to your NGO posts.
             </div>
           </div>
@@ -239,16 +214,7 @@ export default function NGOApplicationsPage() {
           {!!me && (
             <Link
               href="/ngo/new"
-              style={{
-                alignSelf: "flex-start",
-                textDecoration: "none",
-                background: "#2563EB",
-                color: "#FFFFFF",
-                fontWeight: 900,
-                fontSize: 14,
-                padding: "12px 16px",
-                borderRadius: 12,
-              }}
+              className="self-start rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
             >
               Create NGO Post
             </Link>
@@ -256,38 +222,20 @@ export default function NGOApplicationsPage() {
         </div>
 
         {!!errorMsg && (
-          <div
-            style={{
-              marginTop: 16,
-              borderRadius: 12,
-              padding: "12px 14px",
-              background: "#FEE2E2",
-              color: "#991B1B",
-              fontSize: 14,
-              fontWeight: 700,
-            }}
-          >
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMsg}
           </div>
         )}
 
         {items.length === 0 ? (
-          <div
-            style={{
-              marginTop: 18,
-              borderRadius: 18,
-              border: `1px solid ${line}`,
-              background: card,
-              padding: 22,
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 900 }}>No applications yet</div>
-            <div style={{ marginTop: 8, fontSize: 14, color: sub, lineHeight: 1.6 }}>
+          <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="text-lg font-bold">No applications yet</div>
+            <div className="mt-2 text-sm leading-relaxed text-gray-500">
               Applications submitted to your NGO posts will appear here.
             </div>
           </div>
         ) : (
-          <div style={{ marginTop: 18, display: "grid", gap: 14 }}>
+          <div className="mt-4 grid gap-3.5">
             {items.map((item) => {
               const profile = profiles[item.user_id];
               const displayName = profile?.display_name?.trim() || "Unknown user";
@@ -295,111 +243,69 @@ export default function NGOApplicationsPage() {
               return (
                 <div
                   key={item.id}
-                  style={{
-                    borderRadius: 18,
-                    border: `1px solid ${line}`,
-                    background: card,
-                    padding: 20,
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-                  }}
+                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "flex-start",
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 900 }}>
+                      <div className="text-lg font-bold">
                         {item.ngo_posts?.title || "Untitled NGO Post"}
                       </div>
-                      <div style={{ marginTop: 6, fontSize: 13, color: sub }}>
+                      <div className="mt-1.5 text-xs text-gray-500">
                         Applicant: {displayName}
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 12, color: sub }}>
+                      <div className="mt-1 text-xs text-gray-500">
                         Submitted: {formatDateTime(item.created_at)}
                       </div>
                     </div>
 
                     <div
-                      style={{
-                        padding: "8px 12px",
-                        borderRadius: 999,
-                        background:
-                          item.status === "accepted"
-                            ? "#DCFCE7"
-                            : item.status === "rejected"
-                            ? "#FEE2E2"
-                            : "#DBEAFE",
-                        color:
-                          item.status === "accepted"
-                            ? "#166534"
-                            : item.status === "rejected"
-                            ? "#991B1B"
-                            : "#1D4ED8",
-                        fontSize: 13,
-                        fontWeight: 900,
-                        textTransform: "capitalize",
-                      }}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold capitalize ${
+                        item.status === "accepted"
+                          ? "bg-green-100 text-green-800"
+                          : item.status === "rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
                     >
                       {item.status}
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+                  <div className="mt-4 grid gap-3">
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 900 }}>Current situation</div>
-                      <div style={{ marginTop: 6, fontSize: 14, color: sub, lineHeight: 1.7 }}>
+                      <div className="text-sm font-medium text-gray-700">Current situation</div>
+                      <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
                         {item.situation}
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 900 }}>Help needed</div>
-                      <div style={{ marginTop: 6, fontSize: 14, color: sub, lineHeight: 1.7 }}>
+                      <div className="text-sm font-medium text-gray-700">Help needed</div>
+                      <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
                         {item.help_needed}
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                      <div style={{ fontSize: 13, color: sub }}>
-                        <span style={{ fontWeight: 900, color: text }}>Country:</span> {item.country}
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div>
+                        <span className="font-bold text-gray-900">Country:</span> {item.country}
                       </div>
-                      <div style={{ fontSize: 13, color: sub }}>
-                        <span style={{ fontWeight: 900, color: text }}>Language:</span> {item.language}
+                      <div>
+                        <span className="font-bold text-gray-900">Language:</span> {item.language}
                       </div>
-                      <div style={{ fontSize: 13, color: sub }}>
-                        <span style={{ fontWeight: 900, color: text }}>Location:</span>{" "}
+                      <div>
+                        <span className="font-bold text-gray-900">Location:</span>{" "}
                         {item.ngo_posts?.location || "-"}
                       </div>
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      marginTop: 18,
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
                       type="button"
                       onClick={() => updateStatus(item.id, "accepted")}
                       disabled={updatingId === item.id}
-                      style={{
-                        border: "none",
-                        background: "#16A34A",
-                        color: "#FFFFFF",
-                        fontWeight: 900,
-                        fontSize: 13,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        cursor: updatingId === item.id ? "default" : "pointer",
-                      }}
+                      className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
                     >
                       Accept
                     </button>
@@ -408,16 +314,7 @@ export default function NGOApplicationsPage() {
                       type="button"
                       onClick={() => updateStatus(item.id, "rejected")}
                       disabled={updatingId === item.id}
-                      style={{
-                        border: "none",
-                        background: "#DC2626",
-                        color: "#FFFFFF",
-                        fontWeight: 900,
-                        fontSize: 13,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        cursor: updatingId === item.id ? "default" : "pointer",
-                      }}
+                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
                     >
                       Reject
                     </button>
@@ -426,16 +323,7 @@ export default function NGOApplicationsPage() {
                       type="button"
                       onClick={() => updateStatus(item.id, "pending")}
                       disabled={updatingId === item.id}
-                      style={{
-                        border: `1px solid ${line}`,
-                        background: "#FFFFFF",
-                        color: text,
-                        fontWeight: 900,
-                        fontSize: 13,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        cursor: updatingId === item.id ? "default" : "pointer",
-                      }}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:opacity-50 disabled:cursor-default"
                     >
                       Reset to Pending
                     </button>
@@ -443,15 +331,7 @@ export default function NGOApplicationsPage() {
                     {item.conversation_id && (
                       <Link
                         href={`/chat/${item.conversation_id}`}
-                        style={{
-                          textDecoration: "none",
-                          background: "#2563EB",
-                          color: "#FFFFFF",
-                          fontWeight: 900,
-                          fontSize: 13,
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                        }}
+                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
                       >
                         Open Chat
                       </Link>

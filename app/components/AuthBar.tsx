@@ -50,7 +50,7 @@ export default function AuthBar() {
               cursor: "pointer",
             }}
           >
-            로그아웃
+            Log Out
           </button>
         </>
       ) : (
@@ -64,7 +64,7 @@ export default function AuthBar() {
             color: "#111",
           }}
         >
-          로그인
+          Log In
         </Link>
       )}
     </div>

@@ -2,18 +2,10 @@
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import AuthBar from "@/app/components/AuthBar";
-import { getUnreadCount } from "@/lib/notificationService";
 import {
-  LayoutGrid,
   Users,
-  Building2,
   Search,
-  MessageCircle,
-  Bell,
-  User,
   Plus,
   MapPin,
   Calendar,
@@ -25,11 +17,8 @@ import {
 type MeetType =
   | "hangout"
   | "study"
-  | "skill"
   | "language"
   | "meal"
-  | "party"
-  | "project"
   | "sports";
 
 type MeetRow = {
@@ -59,16 +48,10 @@ function typeLabel(t: MeetType) {
       return "Hangout";
     case "study":
       return "Study";
-    case "skill":
-      return "Skill";
     case "language":
       return "Language";
     case "meal":
       return "Meal";
-    case "party":
-      return "Party";
-    case "project":
-      return "Project";
     case "sports":
       return "Sports";
     default:
@@ -130,8 +113,6 @@ function scoreMeet(meet: MeetRow, prefs: { topTypes: string[]; topCities: string
 }
 
 export default function MeetPage() {
-  const pathname = usePathname();
-
   const [meets, setMeets] = useState<MeetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -150,7 +131,6 @@ export default function MeetPage() {
   const [sortMode, setSortMode] = useState<"recommend" | "latest" | "popular">("recommend");
 
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -206,17 +186,6 @@ export default function MeetPage() {
       setPrefs({ topTypes: [], topCities: [] });
     }
 
-    if (uid) {
-      try {
-        const c = await getUnreadCount();
-        setUnread(c);
-      } catch {
-        setUnread(0);
-      }
-    } else {
-      setUnread(0);
-    }
-
     setLoading(false);
   }, []);
 
@@ -267,9 +236,6 @@ export default function MeetPage() {
     "language",
     "meal",
     "sports",
-    "skill",
-    "project",
-    "party",
   ];
 
   const typeLabelForTab = (t: "all" | MeetType) => {
@@ -382,8 +348,6 @@ export default function MeetPage() {
   };
 
   const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
-  const iconButton =
-    "flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900";
   const tabBase =
     "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition whitespace-nowrap";
 
@@ -401,7 +365,7 @@ export default function MeetPage() {
         onClick={() => setSortMode(mode)}
         className={cx(
           tabBase,
-          active ? "bg-black text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          active ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
         )}
       >
         {label}
@@ -409,116 +373,31 @@ export default function MeetPage() {
     );
   };
 
-  const NavItem = ({
-    href,
-    icon,
-    label,
-    active,
-  }: {
-    href: string;
-    icon: React.ReactNode;
-    label: string;
-    active: boolean;
-  }) => (
-    <Link
-      href={href}
-      className={cx(
-        "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
-        active ? "bg-black text-white" : "text-gray-700 hover:bg-gray-50"
-      )}
-    >
-      <div
-        className={cx(
-          "flex h-9 w-9 items-center justify-center rounded-xl",
-          active ? "bg-white/15" : "border border-gray-200 bg-white"
-        )}
-      >
-        {icon}
-      </div>
-      <span className="text-sm font-medium">{label}</span>
-    </Link>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="mx-auto max-w-[1180px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
-          <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="text-lg font-semibold tracking-tight">borderly</div>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Link href="/inbox" className={iconButton} aria-label="Messages">
-                <MessageCircle className="h-5 w-5" />
-              </Link>
-
-              <Link href="/notifications" className={cx(iconButton, "relative")} aria-label="Notifications">
-                <Bell className="h-5 w-5" />
-                {unread > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
-                    {unread}
-                  </span>
-                ) : null}
-              </Link>
-
-              <Link href="/profile" className={iconButton} aria-label="Profile">
-                <User className="h-5 w-5" />
-              </Link>
-
-              <div className="ml-1">
-                <AuthBar />
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        <header className="flex items-center justify-between gap-3 py-3">
+          <h1 className="text-xl font-bold">Meet</h1>
+          <Link
+            href={isAuthed ? "/meet/new" : "/login"}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Create
+          </Link>
         </header>
 
-        <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[240px_1fr]">
-          <aside className={cx(card, "hidden h-fit p-3 lg:sticky lg:top-20 lg:block")}>
-            <div className="grid gap-1">
-              <NavItem
-                href="/"
-                label="Community"
-                active={pathname === "/"}
-                icon={<LayoutGrid className="h-5 w-5" />}
-              />
-              <NavItem
-                href="/meet"
-                label="Meet"
-                active={pathname === "/meet"}
-                icon={<Users className="h-5 w-5" />}
-              />
-              <NavItem
-                href="/ngo"
-                label="NGO"
-                active={pathname === "/ngo"}
-                icon={<Building2 className="h-5 w-5" />}
-              />
-            </div>
-          </aside>
-
-          <main className="min-w-0 space-y-5">
-            <section className={cx(card, "p-4 sm:p-5")}>
+        <div className="space-y-4">
+            <section className={cx(card, "p-4")}>
               <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
-                    <Search className="h-5 w-5 shrink-0 text-gray-400" />
-                    <input
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      placeholder="Search meets by title, description, city..."
-                      className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={isAuthed ? "/meet/new" : "/auth"}
-                      className="hidden h-11 items-center justify-center rounded-xl bg-black px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
-                    >
-                      Create Meet
-                    </Link>
-                  </div>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+                  <Search className="h-4 w-4 shrink-0 text-gray-400" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search..."
+                    className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                  />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -532,8 +411,8 @@ export default function MeetPage() {
                         className={cx(
                           tabBase,
                           active
-                            ? "bg-black text-white"
-                            : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                            ? "bg-blue-600 text-white"
+                            : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
                         )}
                       >
                         {typeLabelForTab(t)}
@@ -614,7 +493,7 @@ export default function MeetPage() {
                                 className={cx(
                                   "inline-flex h-7 items-center rounded-full px-3 font-medium",
                                   joined
-                                    ? "bg-black text-white"
+                                    ? "bg-blue-600 text-white"
                                     : ended || m.is_closed || isFull
                                     ? "bg-gray-100 text-gray-500"
                                     : "bg-gray-100 text-gray-700"
@@ -676,7 +555,7 @@ export default function MeetPage() {
                                 leaveMeet(m.id);
                               }}
                               disabled={busy[m.id]}
-                              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <UserMinus className="h-4 w-4" />
                               Leave
@@ -694,7 +573,7 @@ export default function MeetPage() {
                                 "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
                                 joinDisabled
                                   ? "border border-gray-200 bg-white text-gray-500"
-                                  : "bg-black text-white hover:opacity-90"
+                                  : "bg-blue-600 text-white hover:opacity-90"
                               )}
                             >
                               <UserPlus className="h-4 w-4" />
@@ -715,16 +594,7 @@ export default function MeetPage() {
                 </div>
               )}
             </section>
-          </main>
         </div>
-
-        <Link
-          href={isAuthed ? "/meet/new" : "/auth"}
-          className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg transition hover:scale-[1.03]"
-          aria-label="Create meet"
-        >
-          <Plus className="h-6 w-6" />
-        </Link>
       </div>
     </div>
   );

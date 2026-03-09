@@ -32,12 +32,6 @@ export default function EditNGOPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const bg = "#E0F2FE";
-  const card = "rgba(255,255,255,0.94)";
-  const line = "rgba(0,0,0,0.12)";
-  const text = "#111827";
-  const sub = "rgba(17,24,39,0.72)";
-
   useEffect(() => {
     let alive = true;
 
@@ -144,18 +138,9 @@ export default function EditNGOPage() {
 
   if (loading || checking) {
     return (
-      <div style={{ minHeight: "100vh", background: bg, color: text, padding: 20 }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <div
-            style={{
-              borderRadius: 18,
-              border: `1px solid ${line}`,
-              background: card,
-              padding: 22,
-            }}
-          >
-            Loading edit page...
-          </div>
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6">
+          <div className="text-sm text-gray-500">Loading...</div>
         </div>
       </div>
     );
@@ -163,30 +148,17 @@ export default function EditNGOPage() {
 
   if (!allowed) {
     return (
-      <div style={{ minHeight: "100vh", background: bg, color: text, padding: 20 }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <div
-            style={{
-              borderRadius: 18,
-              background: card,
-              border: `1px solid ${line}`,
-              padding: 22,
-            }}
-          >
-            <div style={{ fontSize: 24, fontWeight: 900 }}>Access denied</div>
-            <div style={{ marginTop: 8, fontSize: 14, color: sub, lineHeight: 1.6 }}>
+      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+        <div className="mx-auto max-w-2xl px-4 py-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="text-xl font-bold">Access denied</div>
+            <div className="mt-2 text-sm leading-relaxed text-gray-500">
               Only the owner can edit this NGO post.
             </div>
 
             <Link
               href={`/ngo/${id}`}
-              style={{
-                display: "inline-block",
-                marginTop: 18,
-                textDecoration: "none",
-                color: "#2563EB",
-                fontWeight: 800,
-              }}
+              className="mt-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
             >
               ← Back to post
             </Link>
@@ -197,139 +169,75 @@ export default function EditNGOPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: text }}>
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "18px 14px 60px" }}>
+    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
         <Link
           href={`/ngo/${id}`}
-          style={{
-            display: "inline-block",
-            marginBottom: 16,
-            textDecoration: "none",
-            color: "#2563EB",
-            fontWeight: 800,
-          }}
+          className="mb-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
         >
           ← Back
         </Link>
 
-        <div
-          style={{
-            borderRadius: 18,
-            border: `1px solid ${line}`,
-            background: card,
-            padding: 22,
-            boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-          }}
-        >
-          <div style={{ fontSize: 28, fontWeight: 900 }}>Edit NGO Post</div>
-          <div style={{ marginTop: 8, fontSize: 14, color: sub, lineHeight: 1.6 }}>
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="text-xl font-bold">Edit NGO Post</div>
+          <div className="mt-2 text-sm leading-relaxed text-gray-500">
             Update your support post information.
           </div>
 
           {!!errorMsg && (
-            <div
-              style={{
-                marginTop: 16,
-                borderRadius: 12,
-                padding: "12px 14px",
-                background: "#FEE2E2",
-                color: "#991B1B",
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ marginTop: 18 }}>
-            <div style={{ display: "grid", gap: 14 }}>
+          <form onSubmit={handleSubmit} className="mt-4">
+            <div className="grid gap-3.5">
               <div>
-                <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 800 }}>Title</div>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">Title</div>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Job support for residents in Kyoto"
-                  style={{
-                    width: "100%",
-                    height: 44,
-                    borderRadius: 12,
-                    border: `1px solid ${line}`,
-                    padding: "0 12px",
-                    fontSize: 14,
-                    background: "#FFFFFF",
-                    color: text,
-                    outline: "none",
-                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
                 />
               </div>
 
               <div>
-                <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 800 }}>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">
                   One-line summary
                 </div>
                 <input
                   value={oneLine}
                   onChange={(e) => setOneLine(e.target.value)}
                   placeholder="Consultation, daily life support, and job guidance"
-                  style={{
-                    width: "100%",
-                    height: 44,
-                    borderRadius: 12,
-                    border: `1px solid ${line}`,
-                    padding: "0 12px",
-                    fontSize: 14,
-                    background: "#FFFFFF",
-                    color: text,
-                    outline: "none",
-                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
                 />
               </div>
 
               <div>
-                <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 800 }}>Location</div>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">Location</div>
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Kyoto"
-                  style={{
-                    width: "100%",
-                    height: 44,
-                    borderRadius: 12,
-                    border: `1px solid ${line}`,
-                    padding: "0 12px",
-                    fontSize: 14,
-                    background: "#FFFFFF",
-                    color: text,
-                    outline: "none",
-                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
                 />
               </div>
 
               <div>
-                <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 800 }}>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">
                   Website
                 </div>
                 <input
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="https://example.org"
-                  style={{
-                    width: "100%",
-                    height: 44,
-                    borderRadius: 12,
-                    border: `1px solid ${line}`,
-                    padding: "0 12px",
-                    fontSize: 14,
-                    background: "#FFFFFF",
-                    color: text,
-                    outline: "none",
-                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
                 />
               </div>
 
               <div>
-                <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 800 }}>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">
                   Description
                 </div>
                 <textarea
@@ -337,17 +245,7 @@ export default function EditNGOPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Explain what kind of support your organization can provide."
                   rows={6}
-                  style={{
-                    width: "100%",
-                    borderRadius: 12,
-                    border: `1px solid ${line}`,
-                    padding: 12,
-                    fontSize: 14,
-                    background: "#FFFFFF",
-                    color: text,
-                    outline: "none",
-                    resize: "vertical",
-                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none resize-y focus:border-gray-400 min-h-[120px]"
                 />
               </div>
             </div>
@@ -355,18 +253,7 @@ export default function EditNGOPage() {
             <button
               type="submit"
               disabled={submitting}
-              style={{
-                marginTop: 18,
-                width: "100%",
-                height: 48,
-                borderRadius: 12,
-                border: "none",
-                background: submitting ? "#93C5FD" : "#2563EB",
-                color: "#FFFFFF",
-                fontWeight: 900,
-                fontSize: 14,
-                cursor: submitting ? "default" : "pointer",
-              }}
+              className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
             >
               {submitting ? "Saving..." : "Save Changes"}
             </button>
