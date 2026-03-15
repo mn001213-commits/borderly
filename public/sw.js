@@ -1,4 +1,4 @@
-const CACHE_NAME = "borderly-v1";
+const CACHE_NAME = "borderly-v2";
 const APP_SHELL = ["/", "/manifest.json"];
 
 // Install: cache app shell
@@ -31,13 +31,13 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET and cross-origin requests
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Network-first for API routes and Next.js internals
+  // Network-first for API routes and Next.js bundles (always fresh)
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) {
     return;
   }
 
-  // Cache-first for static assets (images, fonts, etc.)
-  if (url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf|css|js)$/)) {
+  // Cache-first for static assets (images, fonts) — NOT js/css (Next.js hashes those)
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf)$/)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
