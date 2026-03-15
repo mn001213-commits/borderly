@@ -87,17 +87,34 @@ export default function HomePage() {
   const [activeCat, setActiveCat] = useState<"all" | Category>("all");
   const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
 
-  const fetchProfiles = useCallback(async (userIds: string[]) => {
-    const ids = userIds.filter(Boolean);
-    if (ids.length === 0) return;
-    const { data } = await supabase
+  const fetchAuthors = useCallback(async (postIds: string[]) => {
+    if (postIds.length === 0) return;
+    // Get user_ids from posts table
+    const { data: postRows } = await supabase
+      .from("posts")
+      .select("id, user_id")
+      .in("id", postIds);
+    if (!postRows) return;
+
+    const userIdMap = new Map<string, string>();
+    for (const r of postRows) if (r.user_id) userIdMap.set(r.id, r.user_id);
+
+    // Update posts with user_id
+    setPosts((prev) =>
+      prev.map((p) => ({ ...p, user_id: userIdMap.get(p.id) ?? p.user_id }))
+    );
+
+    // Fetch profiles
+    const userIds = [...new Set(postRows.map((r) => r.user_id).filter(Boolean))];
+    if (userIds.length === 0) return;
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("id, display_name, avatar_url")
-      .in("id", ids);
-    if (data) {
+      .in("id", userIds);
+    if (profileData) {
       setProfiles((prev) => {
         const next = new Map(prev);
-        for (const p of data) next.set(p.id, p as AuthorProfile);
+        for (const p of profileData) next.set(p.id, p as AuthorProfile);
         return next;
       });
     }
@@ -109,7 +126,7 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("v_posts_engagement")
-      .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -120,13 +137,12 @@ export default function HomePage() {
       return;
     }
 
-    const postsData = (data ?? []) as Post[];
+    const postsData = (data ?? []).map((d) => ({ ...d, user_id: null })) as Post[];
     setPosts(postsData);
     setLoading(false);
 
-    const userIds = postsData.map((p) => p.user_id).filter(Boolean) as string[];
-    fetchProfiles([...new Set(userIds)]);
-  }, [fetchProfiles]);
+    fetchAuthors(postsData.map((p) => p.id));
+  }, [fetchAuthors]);
 
   useEffect(() => {
     load();
@@ -147,20 +163,20 @@ export default function HomePage() {
     const lastPost = posts[posts.length - 1];
     const { data } = await supabase
       .from("v_posts_engagement")
-      .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .lt("created_at", lastPost.created_at)
       .order("created_at", { ascending: false })
       .limit(20);
 
     if (data && data.length > 0) {
-      setPosts((prev) => [...prev, ...(data as Post[])]);
-      const userIds = (data as Post[]).map((p) => p.user_id).filter(Boolean) as string[];
-      fetchProfiles([...new Set(userIds)]);
+      const newPosts = (data as any[]).map((d) => ({ ...d, user_id: null })) as Post[];
+      setPosts((prev) => [...prev, ...newPosts]);
+      fetchAuthors(newPosts.map((p) => p.id));
     }
     if (!data || data.length < 20) setHasMore(false);
     setLoadingMore(false);
-  }, [posts, loadingMore, hasMore]);
+  }, [posts, loadingMore, hasMore, fetchAuthors]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -198,7 +214,7 @@ export default function HomePage() {
           if (!newId) return;
           supabase
             .from("v_posts_engagement")
-            .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+            .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
             .eq("id", newId)
             .maybeSingle()
             .then(({ data: p }) => {
@@ -215,7 +231,7 @@ export default function HomePage() {
           } else {
             supabase
               .from("v_posts_engagement")
-              .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+              .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
               .eq("id", updated.id)
               .maybeSingle()
               .then(({ data: p }) => {
