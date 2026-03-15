@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Supabase JS client stores sessions in localStorage (not cookies),
-// so middleware cannot verify auth. Protected route auth is handled
-// client-side via supabase.auth.getUser() + router.replace("/login").
-// Middleware only handles CSRF protection for API routes.
+const ALLOWED_ORIGIN = "https://borderly-tawny.vercel.app";
+const isProd = process.env.NODE_ENV === "production";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // CSRF protection for API mutation routes
+  // --- CORS preflight for API routes ---
+  if (pathname.startsWith("/api") && request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
+  // --- CSRF protection for API mutation requests ---
   if (pathname.startsWith("/api") && request.method !== "GET") {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");
@@ -26,9 +37,39 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // --- Security headers (production) ---
+  if (isProd) {
+    const csp = [
+      "default-src 'self'",
+      // unsafe-inline needed for Next.js hydration scripts; unsafe-eval removed
+      "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.mymemory.translated.net https://accounts.google.com",
+      "frame-src https://accounts.google.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+
+    response.headers.set("Content-Security-Policy", csp);
+    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  }
+
+  // --- CORS header for API responses ---
+  if (pathname.startsWith("/api")) {
+    response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: ["/api/:path*"],
+  matcher: [
+    // Match all routes except static files
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
