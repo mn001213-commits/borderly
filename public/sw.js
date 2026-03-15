@@ -1,4 +1,4 @@
-const CACHE_NAME = "borderly-v2";
+const CACHE_NAME = "borderly-v3";
 const APP_SHELL = ["/", "/manifest.json"];
 
 // Install: cache app shell
