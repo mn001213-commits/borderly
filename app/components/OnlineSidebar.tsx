@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useAuth } from "./AuthProvider";
-import { User, Users, Search, Globe, ChevronRight, Plus, ShieldBan, LogOut } from "lucide-react";
+import { User, Users, Search, Globe, ChevronRight, Plus, Settings } from "lucide-react";
 import { countryName } from "@/lib/countries";
 import { useT } from "./LangProvider";
 
@@ -269,29 +269,18 @@ export default function OnlineSidebar() {
 
           <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
             <Link
-              href="/profile/blocked"
-              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline transition"
-              style={{ color: "var(--text-secondary)" }}
+              href="/settings"
+              className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline transition"
+              style={{ color: pathname === "/settings" ? "var(--primary)" : "var(--text-secondary)" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--light-blue)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <ShieldBan className="h-3.5 w-3.5" />
-              {t("settings.blockedUsers")}
+              <span className="flex items-center gap-2">
+                <Settings className="h-3.5 w-3.5" />
+                {t("common.settings")}
+              </span>
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
             </Link>
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.href = "/login";
-              }}
-              className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium transition"
-              style={{ color: "#B91C1C" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#FEF2F2")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              {t("settings.logOut")}
-            </button>
           </div>
         </div>
       </div>

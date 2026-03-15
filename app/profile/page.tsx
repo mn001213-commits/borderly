@@ -159,7 +159,7 @@ export default function ProfilePage() {
         <header className="flex items-center justify-between gap-3 py-3">
           <h1 className="text-xl font-bold">{t("profile.title")}</h1>
           <Link
-            href="/settings"
+            href="/profile/edit"
             className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-semibold no-underline transition hover:opacity-80"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
           >

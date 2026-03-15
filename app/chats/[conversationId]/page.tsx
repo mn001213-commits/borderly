@@ -243,9 +243,9 @@ export default function ChatRoomPage() {
   }, [messages.length]);
 
   return (
-    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
-      <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 backdrop-blur" style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--bg-snow)" }}>
+    <div className="fixed inset-0 top-[60px] flex flex-col" style={{ color: "var(--deep-navy)", background: "var(--bg-snow)" }}>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
+        <header className="shrink-0 z-40" style={{ borderBottom: "1px solid var(--border-soft)" }}>
           <div className="flex items-center justify-between gap-3 py-3">
             <div className="flex items-center gap-2">
               <button
@@ -378,7 +378,7 @@ export default function ChatRoomPage() {
           </div>
         )}
 
-        <section className="b-card mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+        <section className="b-card mt-2 flex min-h-0 flex-1 flex-col overflow-hidden mb-2">
           <div className="flex-1 overflow-auto px-4 py-4">
             {blockedEither ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--light-blue)" }}>

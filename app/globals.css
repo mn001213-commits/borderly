@@ -17,6 +17,23 @@
   --foreground: var(--deep-navy);
 }
 
+/* ── Dark Mode ── */
+.dark {
+  --bg-snow: #0F1419;
+  --bg-card: #1A2332;
+  --primary: #4DA6FF;
+  --primary-hover: #3B95EE;
+  --light-blue: #1A2332;
+  --deep-navy: #E8EDF2;
+  --text-secondary: #9BB0C7;
+  --text-muted: #6B7F99;
+  --border-soft: #2A3A4E;
+  --accent-yellow: #FFE066;
+
+  --background: var(--bg-snow);
+  --foreground: var(--deep-navy);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -41,6 +58,17 @@ body::before {
     radial-gradient(ellipse 100% 60% at 80% 100%, rgba(77, 166, 255, 0.03) 0%, transparent 50%),
     linear-gradient(180deg, #F7FAFF 0%, #EEF4FB 50%, #F7FAFF 100%);
   pointer-events: none;
+}
+
+.dark body::before,
+.dark body {
+  background: #0F1419;
+}
+.dark body::before {
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 0%, rgba(77, 166, 255, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 60% at 80% 100%, rgba(77, 166, 255, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0F1419 0%, #141D27 50%, #0F1419 100%);
 }
 
 /* ── Scrollbar ── */
@@ -124,4 +152,111 @@ body::before {
   background-size: 200% 100%;
   animation: b-shimmer 1.5s infinite;
   border-radius: 20px;
+}
+
+/* ── Dark mode overrides for fixed elements ── */
+.dark header,
+.dark nav {
+  background: rgba(15, 20, 25, 0.95) !important;
+  backdrop-filter: blur(12px);
+}
+
+.dark aside {
+  background: transparent !important;
+}
+
+/* ── Dark mode: override inline white/light backgrounds ── */
+.dark [style*="background: white"],
+.dark [style*="background: #FFFFFF"],
+.dark [style*="background: #fff"] {
+  background: var(--bg-card) !important;
+}
+
+.dark [style*="background: rgba(234"] {
+  background: rgba(15, 20, 25, 0.9) !important;
+}
+
+/* Error/success banners */
+.dark [style*="#FEF2F2"] {
+  background: #2A1515 !important;
+  border-color: #5C2020 !important;
+}
+.dark [style*="#F0FDF4"] {
+  background: #152A15 !important;
+  border-color: #205C20 !important;
+}
+
+/* Foreigner/Local quota inputs */
+.dark [style*="#EFF6FF"] {
+  background: #1A2535 !important;
+  border-color: #2A3A50 !important;
+}
+.dark [style*="#FFFBEB"] {
+  background: #2A2515 !important;
+  border-color: #504A2A !important;
+}
+
+/* QR modal, popups */
+.dark .bg-white {
+  background: var(--bg-card) !important;
+}
+
+/* Select/option elements */
+.dark select,
+.dark option {
+  background: var(--bg-card);
+  color: var(--deep-navy);
+}
+
+/* Input placeholders in dark */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* White text on colored backgrounds should stay white */
+.dark .text-white {
+  color: #FFFFFF !important;
+}
+
+/* Ensure borders use dark mode variable */
+.dark [style*="border: 1px solid #FECACA"] {
+  border-color: #5C2020 !important;
+}
+.dark [style*="border: 1px solid #BBF7D0"] {
+  border-color: #205C20 !important;
+}
+.dark [style*="border: 1px solid #BFDBFE"] {
+  border-color: #2A3A50 !important;
+}
+.dark [style*="border: 1px solid #FDE68A"] {
+  border-color: #504A2A !important;
+}
+
+/* Google OAuth button */
+.dark [style*="border: 1px solid var(--border-soft)"] {
+  border-color: var(--border-soft) !important;
+}
+
+/* Category tag backgrounds */
+.dark .bg-\[\#EAF4FF\] { background: #1A2535 !important; }
+.dark .bg-\[\#E8F5E9\] { background: #152A18 !important; }
+.dark .bg-\[\#FFF3E0\] { background: #2A2015 !important; }
+.dark .bg-\[\#F3E5F5\] { background: #251A2A !important; }
+.dark .bg-\[\#FFF8E1\] { background: #2A2515 !important; }
+.dark .bg-\[\#ECEFF1\] { background: #1A2025 !important; }
+
+/* Red text stays readable */
+.dark .text-red-600,
+.dark .text-red-700,
+.dark [style*="color: #B91C1C"],
+.dark [style*="color: #DC2626"] {
+  color: #F87171 !important;
+}
+
+/* Green text stays readable */
+.dark .text-green-700,
+.dark .text-green-600,
+.dark [style*="color: #15803D"] {
+  color: #4ADE80 !important;
 }

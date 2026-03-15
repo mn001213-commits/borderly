@@ -85,14 +85,15 @@ export default function NewGroupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+    <div className="min-h-screen" style={{ background: "var(--bg-snow)", color: "var(--deep-navy)" }}>
       <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-[#F0F7FF]/90 backdrop-blur">
+        <header className="sticky top-0 z-40 backdrop-blur" style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--bg-snow)" }}>
           <div className="flex items-center justify-between gap-3 py-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push("/chats")}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full transition"
+                style={{ color: "var(--text-secondary)" }}
                 aria-label="Back"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -101,7 +102,7 @@ export default function NewGroupPage() {
                 <div className="text-base font-semibold tracking-tight">
                   {t("chatGroup.newGroupChat")}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
                   {t("chatGroup.addMembersAndStart")}
                 </div>
               </div>
@@ -111,23 +112,24 @@ export default function NewGroupPage() {
 
         <div className="mt-4 space-y-4">
           {/* Group Name */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+          <div className="b-card p-4">
+            <label className="block text-sm font-medium mb-2" style={{ color: "var(--deep-navy)" }}>
               {t("chatGroup.groupName")}
             </label>
             <input
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder={t("chatGroup.enterGroupName")}
-              className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none"
+              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
               maxLength={100}
             />
           </div>
 
           {/* Selected Members */}
           {selectedMembers.length > 0 && (
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+            <div className="b-card p-4">
+              <div className="flex items-center gap-2 text-sm font-medium mb-3" style={{ color: "var(--deep-navy)" }}>
                 <Users className="h-4 w-4" />
                 {t("chatGroup.selected")} ({selectedMembers.length})
               </div>
@@ -135,14 +137,15 @@ export default function NewGroupPage() {
                 {selectedMembers.map((m) => (
                   <div
                     key={m.id}
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#F0F7FF] px-3 py-1.5"
+                    className="inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+                    style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
                   >
-                    <span className="text-sm text-gray-800">
+                    <span className="text-sm" style={{ color: "var(--deep-navy)" }}>
                       {m.display_name ?? t("chat.user")}
                     </span>
                     <button
                       onClick={() => removeMember(m.id)}
-                      className="text-gray-400 hover:text-gray-600"
+                      style={{ color: "var(--text-muted)" }}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -153,13 +156,13 @@ export default function NewGroupPage() {
           )}
 
           {/* Search Users */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+          <div className="b-card p-4">
+            <label className="block text-sm font-medium mb-2" style={{ color: "var(--deep-navy)" }}>
               {t("chatGroup.addMembers")}
             </label>
             <div className="flex items-center gap-2">
-              <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-[#F0F7FF] px-3 py-2.5">
-                <Search className="h-4 w-4 text-gray-400" />
+              <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+                <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -167,13 +170,15 @@ export default function NewGroupPage() {
                     if (e.key === "Enter") handleSearch();
                   }}
                   placeholder={t("chat.searchByName")}
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                  className="w-full bg-transparent text-sm outline-none"
+                  style={{ color: "var(--deep-navy)" }}
                 />
               </div>
               <button
                 onClick={handleSearch}
                 disabled={searching || !searchQuery.trim()}
-                className="inline-flex h-10 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:opacity-50"
+                className="inline-flex h-10 items-center rounded-xl px-4 text-sm font-medium transition disabled:opacity-50"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
               >
                 {searching ? "..." : t("common.search")}
               </button>
@@ -185,9 +190,10 @@ export default function NewGroupPage() {
                   <button
                     key={user.id}
                     onClick={() => addMember(user)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-[#F0F7FF] p-3 text-left transition hover:bg-white"
+                    className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition"
+                    style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
                   >
-                    <div className="h-9 w-9 rounded-full border border-gray-200 bg-gray-100 overflow-hidden flex items-center justify-center">
+                    <div className="h-9 w-9 rounded-full overflow-hidden flex items-center justify-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
                       {user.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -196,12 +202,12 @@ export default function NewGroupPage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
                           {(user.display_name ?? "U")[0]}
                         </span>
                       )}
                     </div>
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium" style={{ color: "var(--deep-navy)" }}>
                       {user.display_name ?? t("chat.user")}
                     </div>
                   </button>
@@ -211,7 +217,7 @@ export default function NewGroupPage() {
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>
               {error}
             </div>
           )}
@@ -219,7 +225,8 @@ export default function NewGroupPage() {
           <button
             onClick={handleCreate}
             disabled={creating || !groupName.trim() || selectedMembers.length === 0}
-            className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full inline-flex h-12 items-center justify-center rounded-2xl text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: "var(--primary)" }}
           >
             {creating ? t("chatGroup.creating") : t("chatGroup.createGroupChat")}
           </button>
