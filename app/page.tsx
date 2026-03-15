@@ -75,6 +75,33 @@ const CAT_COLOR: Record<Category, string> = {
   other: "bg-[#ECEFF1] text-[#546E7A]",
 };
 
+// Fetch like & comment counts for a list of post IDs
+async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: number; comments: number }>> {
+  const map = new Map<string, { likes: number; comments: number }>();
+  if (postIds.length === 0) return map;
+
+  const [likesRes, commentsRes] = await Promise.all([
+    supabase.from("post_likes").select("post_id").in("post_id", postIds),
+    supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+  ]);
+
+  for (const id of postIds) map.set(id, { likes: 0, comments: 0 });
+
+  if (likesRes.data) {
+    for (const row of likesRes.data) {
+      const entry = map.get(row.post_id);
+      if (entry) entry.likes++;
+    }
+  }
+  if (commentsRes.data) {
+    for (const row of commentsRes.data) {
+      const entry = map.get(row.post_id);
+      if (entry) entry.comments++;
+    }
+  }
+  return map;
+}
+
 export default function HomePage() {
   const { t } = useT();
   const catLabel = (k: string) => t(`cat.${k}`);
@@ -87,46 +114,46 @@ export default function HomePage() {
   const [activeCat, setActiveCat] = useState<"all" | Category>("all");
   const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
 
-  const fetchAuthors = useCallback(async (postIds: string[]) => {
-    if (postIds.length === 0) return;
-    // Get user_ids from posts table
-    const { data: postRows } = await supabase
-      .from("posts")
-      .select("id, user_id")
-      .in("id", postIds);
-    if (!postRows) return;
-
-    const userIdMap = new Map<string, string>();
-    for (const r of postRows) if (r.user_id) userIdMap.set(r.id, r.user_id);
-
-    // Update posts with user_id
-    setPosts((prev) =>
-      prev.map((p) => ({ ...p, user_id: userIdMap.get(p.id) ?? p.user_id }))
-    );
-
-    // Fetch profiles
-    const userIds = [...new Set(postRows.map((r) => r.user_id).filter(Boolean))];
-    if (userIds.length === 0) return;
-    const { data: profileData } = await supabase
+  const fetchProfiles = useCallback(async (userIds: string[]) => {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    if (ids.length === 0) return;
+    const { data } = await supabase
       .from("profiles")
       .select("id, display_name, avatar_url")
-      .in("id", userIds);
-    if (profileData) {
+      .in("id", ids);
+    if (data) {
       setProfiles((prev) => {
         const next = new Map(prev);
-        for (const p of profileData) next.set(p.id, p as AuthorProfile);
+        for (const p of data) next.set(p.id, p as AuthorProfile);
         return next;
       });
     }
   }, []);
+
+  const enrichPosts = useCallback(async (rawPosts: any[]): Promise<Post[]> => {
+    const ids = rawPosts.map((p) => p.id);
+    const engagement = await fetchEngagement(ids);
+
+    const enriched = rawPosts.map((p) => ({
+      ...p,
+      like_count: engagement.get(p.id)?.likes ?? 0,
+      comment_count: engagement.get(p.id)?.comments ?? 0,
+    })) as Post[];
+
+    // Fetch profiles for authors
+    const userIds = enriched.map((p) => p.user_id).filter(Boolean) as string[];
+    fetchProfiles(userIds);
+
+    return enriched;
+  }, [fetchProfiles]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
 
     const { data, error } = await supabase
-      .from("v_posts_engagement")
-      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .from("posts")
+      .select("id,created_at,title,content,user_id,author_name,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -137,12 +164,10 @@ export default function HomePage() {
       return;
     }
 
-    const postsData = (data ?? []).map((d) => ({ ...d, user_id: null })) as Post[];
-    setPosts(postsData);
+    const enriched = await enrichPosts(data ?? []);
+    setPosts(enriched);
     setLoading(false);
-
-    fetchAuthors(postsData.map((p) => p.id));
-  }, [fetchAuthors]);
+  }, [enrichPosts]);
 
   useEffect(() => {
     load();
@@ -162,21 +187,20 @@ export default function HomePage() {
 
     const lastPost = posts[posts.length - 1];
     const { data } = await supabase
-      .from("v_posts_engagement")
-      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .from("posts")
+      .select("id,created_at,title,content,user_id,author_name,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .lt("created_at", lastPost.created_at)
       .order("created_at", { ascending: false })
       .limit(20);
 
     if (data && data.length > 0) {
-      const newPosts = (data as any[]).map((d) => ({ ...d, user_id: null })) as Post[];
-      setPosts((prev) => [...prev, ...newPosts]);
-      fetchAuthors(newPosts.map((p) => p.id));
+      const enriched = await enrichPosts(data);
+      setPosts((prev) => [...prev, ...enriched]);
     }
     if (!data || data.length < 20) setHasMore(false);
     setLoadingMore(false);
-  }, [posts, loadingMore, hasMore, fetchAuthors]);
+  }, [posts, loadingMore, hasMore, enrichPosts]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -209,19 +233,13 @@ export default function HomePage() {
       ch = supabase
         .channel("home:realtime")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
-          // New post: fetch full data and prepend
-          const newId = payload.new?.id;
-          if (!newId) return;
-          supabase
-            .from("v_posts_engagement")
-            .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
-            .eq("id", newId)
-            .maybeSingle()
-            .then(({ data: p }) => {
-              if (p && !p.is_hidden) {
-                setPosts((prev) => [p as Post, ...prev.filter((x) => x.id !== p.id)]);
-              }
-            });
+          const newPost = payload.new as any;
+          if (!newPost?.id || newPost.is_hidden) return;
+          enrichPosts([newPost]).then((enriched) => {
+            if (enriched.length > 0) {
+              setPosts((prev) => [enriched[0], ...prev.filter((x) => x.id !== enriched[0].id)]);
+            }
+          });
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts" }, (payload) => {
           const updated = payload.new as any;
@@ -229,14 +247,11 @@ export default function HomePage() {
           if (updated.is_hidden) {
             setPosts((prev) => prev.filter((p) => p.id !== updated.id));
           } else {
-            supabase
-              .from("v_posts_engagement")
-              .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
-              .eq("id", updated.id)
-              .maybeSingle()
-              .then(({ data: p }) => {
-                if (p) setPosts((prev) => prev.map((x) => (x.id === p.id ? (p as Post) : x)));
-              });
+            enrichPosts([updated]).then((enriched) => {
+              if (enriched.length > 0) {
+                setPosts((prev) => prev.map((x) => (x.id === enriched[0].id ? enriched[0] : x)));
+              }
+            });
           }
         })
         .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, (payload) => {
@@ -253,7 +268,7 @@ export default function HomePage() {
       startedRef.current = false;
       if (ch) supabase.removeChannel(ch);
     };
-  }, []);
+  }, [enrichPosts]);
 
   const handleSearch = useCallback(() => {
     setSearchText(searchInput.trim());
