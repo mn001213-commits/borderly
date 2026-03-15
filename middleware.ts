@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const ALLOWED_ORIGIN = "https://borderly-tawny.vercel.app";
-const isProd = process.env.NODE_ENV === "production";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // --- CORS preflight for API routes ---
-  if (pathname.startsWith("/api") && request.method === "OPTIONS") {
+  // CORS preflight
+  if (request.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 204,
       headers: {
@@ -20,8 +19,8 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // --- CSRF protection for API mutation requests ---
-  if (pathname.startsWith("/api") && request.method !== "GET") {
+  // CSRF protection for mutation requests
+  if (request.method !== "GET") {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");
 
@@ -38,38 +37,10 @@ export function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next();
-
-  // --- Security headers (production) ---
-  if (isProd) {
-    const csp = [
-      "default-src 'self'",
-      // unsafe-inline needed for Next.js hydration scripts; unsafe-eval removed
-      "script-src 'self' 'unsafe-inline' https://accounts.google.com",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in",
-      "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.mymemory.translated.net https://accounts.google.com",
-      "frame-src https://accounts.google.com",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join("; ");
-
-    response.headers.set("Content-Security-Policy", csp);
-    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-  }
-
-  // --- CORS header for API responses ---
-  if (pathname.startsWith("/api")) {
-    response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  }
-
+  response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   return response;
 }
 
 export const config = {
-  matcher: [
-    // Match all routes except static files
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/api/:path*"],
 };
