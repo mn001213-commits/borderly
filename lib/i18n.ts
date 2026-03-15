@@ -769,9 +769,8 @@ export function getLocale(): Locale {
   if (typeof window === "undefined") return "en";
   const stored = localStorage.getItem("borderly-locale");
   if (stored === "ko" || stored === "ja" || stored === "en") return stored;
-  const browserLang = navigator.language?.slice(0, 2);
-  if (browserLang === "ko") return "ko";
-  if (browserLang === "ja") return "ja";
+  // Default to English on first visit and persist it
+  localStorage.setItem("borderly-locale", "en");
   return "en";
 }
 
