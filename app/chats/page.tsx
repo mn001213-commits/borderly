@@ -222,12 +222,12 @@ export default function ChatsPage() {
         <header className="flex items-center justify-between gap-3 mb-6">
           <h1 className="text-xl font-bold">{t("nav.messages")}</h1>
           <Link
-            href="/chats/new-group"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white no-underline hover:opacity-90"
+            href="/chats/new"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white no-underline hover:opacity-90"
             style={{ background: "var(--primary)" }}
+            aria-label="New chat"
           >
-            <Plus className="h-4 w-4" />
-            {t("chat.newGroup")}
+            <Plus className="h-5 w-5" />
           </Link>
         </header>
 
