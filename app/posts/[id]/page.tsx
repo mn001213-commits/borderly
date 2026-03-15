@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import { createReport } from "@/lib/reportService";
 import NotificationBell from "@/app/components/NotificationBell";
+import { useT } from "@/app/components/LangProvider";
 
 import {
   ArrowLeft,
@@ -20,7 +21,19 @@ import {
   ChevronUp,
   ShieldAlert,
   FileText,
+  Bookmark,
+  Share2,
 } from "lucide-react";
+
+const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
+function isVideoUrl(url: string) {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
+  } catch {
+    return false;
+  }
+}
 
 type PostRow = {
   id: string;
@@ -31,6 +44,7 @@ type PostRow = {
   author_name: string | null;
   category: string;
   image_url: string | null;
+  image_urls: string[] | null;
   is_hidden?: boolean | null;
 };
 
@@ -49,20 +63,21 @@ function cx(...arr: Array<string | false | null | undefined>) {
   return arr.filter(Boolean).join(" ");
 }
 
-function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
+function formatRelative(iso: string, tr?: (key: string) => string) {
+  const ts = new Date(iso).getTime();
   const now = Date.now();
-  const diff = Math.max(0, now - t);
+  const diff = Math.max(0, now - ts);
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "Just now";
-  if (min < 60) return `${min}m ago`;
+  if (min < 1) return tr ? tr("post.justNow") : "Just now";
+  if (min < 60) return `${min}${tr ? tr("post.mAgo") : "m ago"}`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return `${hr}${tr ? tr("post.hAgo") : "h ago"}`;
   const day = Math.floor(hr / 24);
-  return `${day}d ago`;
+  return `${day}${tr ? tr("post.dAgo") : "d ago"}`;
 }
 
 export default function PostDetailPage() {
+  const { t } = useT();
   const router = useRouter();
 
   const params = useParams();
@@ -91,6 +106,10 @@ export default function PostDetailPage() {
 
   const [likeCount, setLikeCount] = useState(0);
   const [likedByMe, setLikedByMe] = useState(false);
+  const [bookmarkedByMe, setBookmarkedByMe] = useState(false);
+  const [bookmarking, setBookmarking] = useState(false);
+
+  const [copiedToast, setCopiedToast] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -101,21 +120,34 @@ export default function PostDetailPage() {
     myIdRef.current = myId;
   }, [myId]);
 
+  const CAT_COLORS: Record<string, { bg: string; color: string }> = {
+    general: { bg: "#E3F2FD", color: "#1565C0" },
+    info: { bg: "#FFF3E0", color: "#EF6C00" },
+    question: { bg: "#F3E5F5", color: "#8E24AA" },
+    daily: { bg: "#E8F5E9", color: "#2E7D32" },
+    jobs: { bg: "#FFF8E1", color: "#F57F17" },
+    meet: { bg: "#E3F2FD", color: "#1565C0" },
+    skill: { bg: "#F3E5F5", color: "#8E24AA" },
+    ngo: { bg: "#E8F5E9", color: "#2E7D32" },
+    legal: { bg: "#FFF3E0", color: "#EF6C00" },
+    other: { bg: "#F5F5F5", color: "#616161" },
+  };
+
   const catBadge = useMemo(() => {
     const map: Record<string, string> = {
-      general: "General",
-      info: "Info",
-      question: "Question",
-      daily: "Daily",
-      jobs: "Jobs",
-      meet: "Meet",
-      skill: "Skill Share",
-      ngo: "NGO",
-      legal: "Visa / Legal",
-      etc: "Other",
+      general: t("cat.general"),
+      info: t("cat.info"),
+      question: t("cat.question"),
+      daily: t("cat.daily"),
+      jobs: t("cat.jobs"),
+      meet: t("cat.meet"),
+      skill: t("cat.skill"),
+      ngo: t("cat.ngo"),
+      legal: t("cat.legal"),
+      etc: t("cat.other"),
     };
     return (k: string) => map[k] ?? k;
-  }, []);
+  }, [t]);
 
   const rootComments = useMemo(() => {
     return comments.filter((c) => !c.parent_id);
@@ -199,10 +231,21 @@ export default function PostDetailPage() {
     setLikedByMe(!!data);
   }, []);
 
+  const loadBookmarkState = useCallback(async (pid: string, uid: string | null) => {
+    if (!uid) { setBookmarkedByMe(false); return; }
+    const { data } = await supabase
+      .from("post_bookmarks")
+      .select("post_id")
+      .eq("post_id", pid)
+      .eq("user_id", uid)
+      .maybeSingle();
+    setBookmarkedByMe(!!data);
+  }, []);
+
   const loadPost = useCallback(async (pid: string) => {
     const { data: p, error: pErr } = await supabase
       .from("posts")
-      .select("id, user_id, created_at, title, content, author_name, category, image_url, is_hidden")
+      .select("id, user_id, created_at, title, content, author_name, category, image_url, image_urls, is_hidden")
       .eq("id", pid)
       .eq("is_hidden", false)
       .maybeSingle();
@@ -238,7 +281,7 @@ export default function PostDetailPage() {
         setPost(null);
         setComments([]);
         setLoading(false);
-        setErrorMsg("Invalid post URL.");
+        setErrorMsg(t("post.invalidUrl"));
         return;
       }
 
@@ -256,19 +299,20 @@ export default function PostDetailPage() {
 
       if (!p) {
         setLoading(false);
-        setErrorMsg("Post not found. It may have been deleted or hidden.");
+        setErrorMsg(t("post.notFoundMsg"));
         setTimeout(() => router.replace("/"), 600);
         return;
       }
 
       await loadComments(postId);
       await loadLikeState(postId, meId);
+      await loadBookmarkState(postId, meId);
 
       setLoading(false);
     };
 
     load();
-  }, [postId, loadPost, loadComments, loadLikeState, router]);
+  }, [postId, loadPost, loadComments, loadLikeState, loadBookmarkState, router]);
 
   const startedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -376,7 +420,7 @@ export default function PostDetailPage() {
         user_id: user.id,
         parent_id: null,
         content,
-        author_name: author ?? "Anonymous",
+        author_name: author ?? t("post.anonymous"),
       });
 
       if (error) {
@@ -390,7 +434,7 @@ export default function PostDetailPage() {
             userId: post.user_id,
             type: "comment",
             title: "New comment",
-            body: `${author ?? "Someone"} commented: ${content}`,
+            body: `${author ?? t("post.someone")} commented: ${content}`,
             link: `/posts/${postId}`,
             meta: { post_id: postId },
           });
@@ -431,7 +475,7 @@ export default function PostDetailPage() {
         user_id: user.id,
         parent_id: parentId,
         content,
-        author_name: author ?? "Anonymous",
+        author_name: author ?? t("post.anonymous"),
       });
 
       if (error) {
@@ -445,7 +489,7 @@ export default function PostDetailPage() {
             userId: post.user_id,
             type: "comment",
             title: "New reply",
-            body: `${author ?? "Someone"} replied: ${content}`,
+            body: `${author ?? t("post.someone")} replied: ${content}`,
             link: `/posts/${postId}`,
             meta: {
               post_id: postId,
@@ -468,14 +512,26 @@ export default function PostDetailPage() {
   const deleteComment = async (commentId: string) => {
     if (deletingCommentId) return;
 
-    const ok = confirm("Delete this comment and all its replies?");
+    // Verify ownership before attempting delete
+    const comment = comments.find((c) => c.id === commentId);
+    if (!comment || comment.user_id !== myId) {
+      setErrorMsg(t("post.noDeletePermission") || "No permission to delete");
+      return;
+    }
+
+    const ok = confirm(t("post.deleteCommentConfirm"));
     if (!ok) return;
 
     setDeletingCommentId(commentId);
     setErrorMsg(null);
 
     try {
-      const idsToDelete = [...getDescendantIds(commentId), commentId];
+      // Only delete own comments — RLS enforces this at DB level too
+      const descendantIds = getDescendantIds(commentId);
+      const myDescendants = descendantIds.filter(
+        (id) => comments.find((c) => c.id === id)?.user_id === myId
+      );
+      const idsToDelete = [...myDescendants, commentId];
 
       const { error } = await supabase.from("comments").delete().in("id", idsToDelete);
 
@@ -518,10 +574,10 @@ export default function PostDetailPage() {
       return;
     }
 
-    const reason = prompt("Report reason? (spam / abuse / hate / scam / other)");
+    const reason = prompt(t("post.reportReasonPrompt"));
     if (!reason) return;
 
-    const detail = prompt("Additional details? (optional)") ?? "";
+    const detail = prompt(t("post.reportDetailPrompt")) ?? "";
 
     setReportingPost(true);
     setErrorMsg(null);
@@ -534,9 +590,9 @@ export default function PostDetailPage() {
         detail,
       });
 
-      alert("Report submitted.");
+      alert(t("post.reportSubmitted"));
     } catch (error: any) {
-      setErrorMsg(error?.message ?? "Failed to submit report.");
+      setErrorMsg(error?.message ?? t("post.reportFailed"));
     } finally {
       setReportingPost(false);
     }
@@ -554,10 +610,10 @@ export default function PostDetailPage() {
       return;
     }
 
-    const reason = prompt("Report reason? (spam / abuse / hate / scam / other)");
+    const reason = prompt(t("post.reportReasonPrompt"));
     if (!reason) return;
 
-    const detail = prompt("Additional details? (optional)") ?? "";
+    const detail = prompt(t("post.reportDetailPrompt")) ?? "";
 
     setReportingCommentId(commentId);
     setErrorMsg(null);
@@ -570,9 +626,9 @@ export default function PostDetailPage() {
         detail,
       });
 
-      alert("Report submitted.");
+      alert(t("post.reportSubmitted"));
     } catch (error: any) {
-      setErrorMsg(error?.message ?? "Failed to submit report.");
+      setErrorMsg(error?.message ?? t("post.reportFailed"));
     } finally {
       setReportingCommentId(null);
     }
@@ -626,7 +682,7 @@ export default function PostDetailPage() {
 
       if (post && post.user_id !== user.id) {
         try {
-          const actorName = (await getMyDisplayName(user.id)) ?? "Someone";
+          const actorName = (await getMyDisplayName(user.id)) ?? t("post.someone");
           await createNotification({
             userId: post.user_id,
             type: "like",
@@ -646,6 +702,36 @@ export default function PostDetailPage() {
     }
   };
 
+  const toggleBookmark = async () => {
+    if (!postId || bookmarking) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+    setBookmarking(true);
+    try {
+      if (bookmarkedByMe) {
+        await supabase.from("post_bookmarks").delete().eq("post_id", postId).eq("user_id", user.id);
+      } else {
+        const { error } = await supabase.from("post_bookmarks").insert({ post_id: postId, user_id: user.id });
+        if (error && (error as any)?.code === "23505") { /* duplicate, ignore */ }
+        else if (error) throw error;
+      }
+      await loadBookmarkState(postId, user.id);
+    } finally {
+      setBookmarking(false);
+    }
+  };
+
+  const sharePost = async () => {
+    const url = `${window.location.origin}/posts/${postId}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: post?.title ?? "Post", url }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2000);
+    }
+  };
+
   const canEditPost = !!myId && !!post && post.user_id === myId;
 
   const goEdit = () => {
@@ -657,11 +743,11 @@ export default function PostDetailPage() {
     if (!postId || deletingPost) return;
 
     if (!canEditPost) {
-      setErrorMsg("You do not have permission to delete this post.");
+      setErrorMsg(t("post.noDeletePermission"));
       return;
     }
 
-    const ok = confirm("Do you want to delete this post?");
+    const ok = confirm(t("post.deletePostConfirm"));
     if (!ok) return;
 
     setDeletingPost(true);
@@ -683,9 +769,8 @@ export default function PostDetailPage() {
     router.refresh();
   };
 
-  const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
   const iconButton =
-    "inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60";
+    "inline-flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60";
 
   const ActionIconButton = ({
     onClick,
@@ -704,7 +789,8 @@ export default function PostDetailPage() {
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={cx(iconButton, "border border-gray-200 bg-white")}
+      className={iconButton}
+      style={{ color: "var(--text-secondary)", border: "1px solid var(--border-soft)", background: "var(--bg-card)" }}
     >
       {icon}
     </button>
@@ -719,42 +805,42 @@ export default function PostDetailPage() {
 
     return (
       <div key={comment.id} className={cx(depth > 0 && "mt-3")}>
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="b-card p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                <span className="font-medium text-gray-800">{comment.author_name ?? "Anonymous"}</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                <span className="font-medium" style={{ color: "var(--deep-navy)" }}>{comment.author_name ?? t("post.anonymous")}</span>
 
                 {isMine ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-blue-600 px-2 text-[10px] font-medium text-white">
-                    You
+                  <span className="inline-flex h-6 items-center rounded-full px-2 text-[10px] font-medium text-white" style={{ background: "var(--primary)" }}>
+                    {t("post.you")}
                   </span>
                 ) : null}
 
                 <span>·</span>
-                <span>{formatRelative(comment.created_at)}</span>
+                <span>{formatRelative(comment.created_at, t)}</span>
 
                 {replies.length > 0 ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-2 text-[10px] font-medium text-gray-600">
+                  <span className="inline-flex h-6 items-center rounded-full px-2 text-[10px] font-medium" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>
                     {replies.length}
                   </span>
                 ) : null}
               </div>
 
               {parentComment ? (
-                <div className="mt-2 text-xs font-medium text-gray-500">
-                  Replying to @{parentComment.author_name ?? "Anonymous"}
+                <div className="mt-2 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                  {t("post.replyingTo")} @{parentComment.author_name ?? t("post.anonymous")}
                 </div>
               ) : null}
 
-              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{comment.content}</div>
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{comment.content}</div>
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
               <ActionIconButton
                 onClick={() => toggleReplyBox(comment.id)}
                 icon={<Reply className="h-4 w-4" />}
-                label="Reply"
+                label={t("post.reply")}
               />
 
               {!isMine ? (
@@ -762,7 +848,7 @@ export default function PostDetailPage() {
                   onClick={() => reportComment(comment.id)}
                   disabled={reportingCommentId === comment.id}
                   icon={<ShieldAlert className="h-4 w-4" />}
-                  label={reportingCommentId === comment.id ? "Reporting..." : "Report"}
+                  label={reportingCommentId === comment.id ? t("post.reporting") : t("post.report")}
                 />
               ) : null}
 
@@ -781,7 +867,7 @@ export default function PostDetailPage() {
                       <ChevronUp className="h-4 w-4" />
                     )
                   }
-                  label={isRepliesHidden ? "Show replies" : "Hide replies"}
+                  label={isRepliesHidden ? t("post.showReplies") : t("post.hideReplies")}
                 />
               ) : null}
 
@@ -790,16 +876,16 @@ export default function PostDetailPage() {
                   onClick={() => deleteComment(comment.id)}
                   disabled={deletingCommentId === comment.id}
                   icon={<Trash2 className="h-4 w-4" />}
-                  label={deletingCommentId === comment.id ? "Deleting..." : "Delete"}
+                  label={deletingCommentId === comment.id ? t("post.deleting") : t("common.delete")}
                 />
               ) : null}
             </div>
           </div>
 
           {isReplyOpen ? (
-            <div className="mt-3 rounded-2xl border border-gray-100 bg-[#F0F7FF] p-3">
-              <div className="mb-2 text-xs font-medium text-gray-500">
-                Reply to @{comment.author_name ?? "Anonymous"}
+            <div className="mt-3 rounded-2xl p-3" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+              <div className="mb-2 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                {t("post.replyTo")} @{comment.author_name ?? t("post.anonymous")}
               </div>
 
               <textarea
@@ -819,8 +905,9 @@ export default function PostDetailPage() {
                     addReply(comment.id);
                   }
                 }}
-                placeholder={`Reply to @${comment.author_name ?? "Anonymous"}...`}
-                className="min-h-[96px] w-full resize-y rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-400"
+                placeholder={`${t("post.replyTo")} @${comment.author_name ?? t("post.anonymous")}...`}
+                className="min-h-[96px] w-full resize-y rounded-xl p-3 text-sm outline-none"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
               />
 
               <div className="mt-3 flex justify-end gap-2">
@@ -832,18 +919,20 @@ export default function PostDetailPage() {
                       [comment.id]: false,
                     }))
                   }
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border px-4 text-sm font-medium transition"
+                  style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => addReply(comment.id)}
                   disabled={replySavingId === comment.id || !(replyBodyById[comment.id] ?? "").trim()}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ background: "var(--primary)" }}
                 >
-                  {replySavingId === comment.id ? "Posting..." : "Post Reply"}
+                  {replySavingId === comment.id ? t("post.posting") : t("post.postReply")}
                 </button>
               </div>
             </div>
@@ -851,7 +940,7 @@ export default function PostDetailPage() {
         </div>
 
         {replies.length > 0 && !isRepliesHidden ? (
-          <div className={cx("mt-3 border-l-2 border-gray-200 pl-4", depth > 0 && "ml-2")}>
+          <div className={cx("mt-3 border-l-2 pl-4", depth > 0 && "ml-2")} style={{ borderColor: "var(--border-soft)" }}>
             {replies.map((child) => renderCommentNode(child, depth + 1))}
           </div>
         ) : null}
@@ -861,9 +950,13 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
         <div className="mx-auto max-w-[980px] px-4 pb-20 pt-4">
-          <div className={cx(card, "p-5 text-sm text-gray-500")}>Loading...</div>
+          <div className="b-card p-5 space-y-3">
+            <div className="b-skeleton h-6 w-2/3 rounded-lg" />
+            <div className="b-skeleton h-4 w-1/3 rounded-lg" />
+            <div className="b-skeleton h-24 w-full rounded-lg" />
+          </div>
         </div>
       </div>
     );
@@ -871,67 +964,78 @@ export default function PostDetailPage() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+      <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
         <div className="mx-auto max-w-[980px] px-4 pb-20 pt-4">
           <Link
             href="/"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+            className="inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition"
+            style={{ background: "var(--light-blue)", color: "var(--deep-navy)", border: "1px solid var(--border-soft)" }}
           >
             <ArrowLeft className="h-5 w-5" />
-            Back
+            {t("common.back")}
           </Link>
 
-          <div className={cx("mt-4 p-5 text-sm text-gray-600", card)}>{errorMsg ?? "Post not found"}</div>
+          <div className="b-card mt-4 p-5 text-sm" style={{ color: "var(--text-secondary)" }}>{errorMsg ?? t("post.notFound")}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+    <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-[980px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-[#F0F7FF]/90 backdrop-blur">
+        <header className="sticky top-0 z-40 backdrop-blur" style={{ borderBottom: "1px solid var(--border-soft)", background: "rgba(234,244,255,0.9)" }}>
           <div className="flex items-center justify-between gap-3 py-3">
             <Link
               href="/"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+              className="inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition"
+              style={{ background: "var(--light-blue)", color: "var(--deep-navy)", border: "1px solid var(--border-soft)" }}
             >
               <ArrowLeft className="h-5 w-5" />
-              Back
+              {t("common.back")}
             </Link>
 
             <div className="flex items-center gap-2">
-              <NotificationBell className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900" />
+              <NotificationBell className="relative flex h-10 w-10 items-center justify-center rounded-full transition" />
 
               <Link
                 href="/create"
-                className="hidden h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
+                className="hidden h-11 items-center gap-2 rounded-2xl px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
+                style={{ background: "var(--primary)" }}
               >
                 <Plus className="h-5 w-5" />
-                Create Post
+                {t("profile.createPost")}
               </Link>
             </div>
           </div>
         </header>
 
         {errorMsg && (
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {errorMsg}
           </div>
         )}
 
-        <section className={cx(card, "mt-4 p-5")}>
+        <section className="b-card mt-4 p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-semibold leading-7 text-gray-900 sm:text-xl">{post.title}</h1>
+              <h1 className="text-lg font-semibold leading-7 sm:text-xl" style={{ color: "var(--deep-navy)" }}>{post.title}</h1>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                <span className="inline-flex h-7 items-center rounded-full bg-gray-100 px-3 font-medium text-gray-600">
-                  {catBadge(post.category)}
-                </span>
-                <span className="font-medium text-gray-800">{post.author_name ?? "Anonymous"}</span>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                {(() => {
+                  const cc = CAT_COLORS[post.category] ?? CAT_COLORS.other;
+                  return (
+                    <span
+                      className="inline-flex h-7 items-center rounded-full px-3 font-semibold text-[10px]"
+                      style={{ background: cc.bg, color: cc.color }}
+                    >
+                      {catBadge(post.category)}
+                    </span>
+                  );
+                })()}
+                <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{post.author_name ?? t("post.anonymous")}</span>
                 <span>·</span>
-                <span>{formatRelative(post.created_at)}</span>
+                <span>{formatRelative(post.created_at, t)}</span>
               </div>
             </div>
 
@@ -940,15 +1044,36 @@ export default function PostDetailPage() {
                 type="button"
                 onClick={toggleLike}
                 disabled={liking}
-                className={cx(
-                  "inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-                  likedByMe
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-[#F0F7FF]"
-                )}
+                className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={likedByMe
+                  ? { borderColor: "var(--primary)", background: "var(--primary)", color: "#fff" }
+                  : { borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }
+                }
               >
                 <Heart className={cx("h-4 w-4", likedByMe && "fill-white")} />
-                <span>{liking ? "Updating..." : likeCount}</span>
+                <span>{liking ? t("post.updating") : likeCount}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleBookmark}
+                disabled={bookmarking}
+                className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={bookmarkedByMe
+                  ? { borderColor: "#F59E0B", background: "#F59E0B", color: "#fff" }
+                  : { borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }
+                }
+              >
+                <Bookmark className={cx("h-4 w-4", bookmarkedByMe && "fill-white")} />
+              </button>
+
+              <button
+                type="button"
+                onClick={sharePost}
+                className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition"
+                style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
+              >
+                <Share2 className="h-4 w-4" />
               </button>
 
               {!canEditPost ? (
@@ -956,10 +1081,11 @@ export default function PostDetailPage() {
                   type="button"
                   onClick={reportPost}
                   disabled={reportingPost}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                 >
                   <ShieldAlert className="h-4 w-4" />
-                  {reportingPost ? "Reporting..." : "Report"}
+                  {reportingPost ? t("post.reporting") : t("post.report")}
                 </button>
               ) : null}
 
@@ -968,65 +1094,112 @@ export default function PostDetailPage() {
                   <button
                     type="button"
                     onClick={goEdit}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+                    className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition"
+                    style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                   >
                     <Edit3 className="h-4 w-4" />
-                    Edit
+                    {t("common.edit")}
                   </button>
 
                   <button
                     type="button"
                     onClick={deletePost}
                     disabled={deletingPost}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                   >
                     <Trash2 className="h-4 w-4" />
-                    {deletingPost ? "Deleting..." : "Delete"}
+                    {deletingPost ? t("post.deleting") : t("common.delete")}
                   </button>
                 </>
               ) : null}
             </div>
           </div>
 
-          {post.image_url ? (
-            <div className="mt-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.image_url}
-                alt="Post image"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-                className="max-h-[520px] w-full rounded-xl object-cover"
-              />
-            </div>
-          ) : null}
+          {(() => {
+            const mediaUrls = post.image_urls && post.image_urls.length > 0 ? post.image_urls : post.image_url ? [post.image_url] : [];
+            if (mediaUrls.length === 0) return null;
 
-          <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-gray-700">{post.content}</div>
+            if (mediaUrls.length === 1) {
+              const url = mediaUrls[0];
+              return (
+                <div className="mt-4">
+                  {isVideoUrl(url) ? (
+                    <video src={url} controls preload="metadata" className="w-full rounded-xl" style={{ maxHeight: 520 }} />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt={t("post.postImage")} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full rounded-xl" />
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div className="mt-4">
+                <div
+                  className="flex snap-x snap-mandatory overflow-x-auto rounded-xl scrollbar-hide"
+                  style={{ scrollBehavior: "smooth" }}
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    const idx = Math.round(el.scrollLeft / el.clientWidth);
+                    const dots = el.parentElement?.querySelector("[data-dots]");
+                    if (dots) dots.setAttribute("data-active", String(idx));
+                    // Force re-render dots
+                    const allDots = dots?.querySelectorAll("span");
+                    allDots?.forEach((d, i) => {
+                      d.style.opacity = i === idx ? "1" : "0.4";
+                    });
+                  }}
+                >
+                  {mediaUrls.map((url, i) => (
+                    <div key={i} className="w-full shrink-0 snap-center">
+                      {isVideoUrl(url) ? (
+                        <video src={url} controls preload="metadata" className="w-full" style={{ maxHeight: 520 }} />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt={`${t("post.postImage")} ${i + 1}`} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full object-cover" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div data-dots className="mt-2 flex justify-center gap-1.5">
+                  {mediaUrls.map((_, i) => (
+                    <span
+                      key={i}
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: "var(--deep-navy)", opacity: i === 0 ? 1 : 0.4, transition: "opacity 0.2s" }}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="mt-4 whitespace-pre-wrap text-sm leading-7" style={{ color: "var(--text-secondary)" }}>{post.content}</div>
         </section>
 
-        <section className={cx(card, "mt-4 p-5")}>
+        <section className="b-card mt-4 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-base font-semibold text-gray-900">Comments</div>
-            <div className="text-xs text-gray-500">
-              <span className="font-medium text-gray-900">{comments.length}</span>
+            <div className="text-base font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.comments")}</div>
+            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+              <span className="font-medium" style={{ color: "var(--deep-navy)" }}>{comments.length}</span>
             </div>
           </div>
 
           <div className="mt-4 grid gap-3">
             {rootComments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-[#F0F7FF] px-6 py-10 text-center">
-                <FileText className="mb-3 h-10 w-10 text-gray-300" />
-                <div className="text-sm font-semibold text-gray-800">No comments yet</div>
-                <div className="mt-1 text-sm text-gray-500">Be the first to join the conversation.</div>
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--light-blue)" }}>
+                <FileText className="mb-3 h-10 w-10" style={{ color: "var(--text-muted)" }} />
+                <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.noComments")}</div>
+                <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("post.beFirstComment")}</div>
               </div>
             ) : (
               rootComments.map((comment) => renderCommentNode(comment))
             )}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-gray-100 bg-[#F0F7FF] p-4">
-            <div className="mb-2 text-sm font-medium text-gray-800">Write a comment</div>
+          <div className="mt-5 rounded-2xl p-4" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+            <div className="mb-2 text-sm font-medium" style={{ color: "var(--deep-navy)" }}>{t("post.writeComment")}</div>
 
             <textarea
               value={commentBody}
@@ -1037,9 +1210,10 @@ export default function PostDetailPage() {
                   addComment();
                 }
               }}
-              placeholder="Write a comment..."
+              placeholder={t("post.writeCommentPlaceholder")}
               disabled={saving}
-              className="min-h-[120px] w-full resize-y rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+              className="min-h-[120px] w-full resize-y rounded-xl p-3 text-sm outline-none disabled:opacity-70"
+              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
             />
 
             <div className="mt-3 flex justify-end">
@@ -1047,15 +1221,22 @@ export default function PostDetailPage() {
                 type="button"
                 onClick={addComment}
                 disabled={saving || !commentBody.trim()}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: "var(--primary)" }}
               >
                 <MessageCircle className="h-5 w-5" />
-                {saving ? "Posting..." : "Post Comment"}
+                {saving ? t("post.posting") : t("post.postComment")}
               </button>
             </div>
           </div>
         </section>
       </div>
+
+      {copiedToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-2xl px-4 py-2 text-sm font-semibold text-white shadow-lg" style={{ background: "var(--deep-navy)" }}>
+          {t("post.linkCopied")}
+        </div>
+      )}
     </div>
   );
 }

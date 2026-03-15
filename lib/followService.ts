@@ -1,10 +1,30 @@
 import { supabase } from "@/lib/supabaseClient";
+import { createNotification } from "@/lib/notificationService";
 
 export async function followUser(myId: string, targetId: string) {
-  return await supabase.from("follows").insert({
+  const result = await supabase.from("follows").insert({
     follower_id: myId,
     following_id: targetId,
   });
+
+  if (!result.error) {
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", myId)
+      .maybeSingle();
+
+    const name = myProfile?.display_name ?? "Someone";
+    createNotification({
+      userId: targetId,
+      type: "follow",
+      title: `${name} started following you`,
+      link: `/u/${myId}`,
+      meta: { follower_id: myId },
+    });
+  }
+
+  return result;
 }
 
 export async function unfollowUser(myId: string, targetId: string) {

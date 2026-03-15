@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { LangProvider } from "./components/LangProvider";
+import { AuthProvider } from "./components/AuthProvider";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import OnlineSidebar from "./components/OnlineSidebar";
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
     "foreigners",
     "refugees",
     "meetup",
-    "NGO",
+    "partners",
     "help",
   ],
   openGraph: {
@@ -50,22 +52,27 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#DBEAFE" />
+        <meta name="theme-color" content="#F7FAFF" />
         <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#F0F7FF] text-gray-900`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ background: "var(--bg-snow)", color: "var(--deep-navy)" }}
       >
-        <TopBar />
+        <LangProvider>
+          <AuthProvider>
+            <TopBar />
 
-        <main className="min-h-screen pb-20 xl:mr-64">
-          {children}
-        </main>
+            <main className="min-h-screen pb-[80px] xl:mr-[340px]">
+              {children}
+            </main>
 
-        <OnlineSidebar />
-        <BottomNav />
-        <PWAInstall />
+            <OnlineSidebar />
+            <BottomNav />
+            <PWAInstall />
+          </AuthProvider>
+        </LangProvider>
       </body>
     </html>
   );

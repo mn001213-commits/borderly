@@ -5,23 +5,44 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeft, LogIn } from "lucide-react";
+import { useT } from "@/app/components/LangProvider";
+import LangSwitcher from "@/app/components/LangSwitcher";
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MS = 60_000 * 3; // 3 minutes
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
 
+    // Check lockout
+    if (lockedUntil && Date.now() < lockedUntil) {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
+      setMsg(t("login.tooManyAttempts") || `Too many attempts. Try again in ${remaining}s`);
+      return;
+    }
+
+    // Reset lockout if expired
+    if (lockedUntil && Date.now() >= lockedUntil) {
+      setLockedUntil(null);
+      setAttempts(0);
+    }
+
     const e2 = email.trim();
     const p2 = password.trim();
 
     if (!e2 || !p2) {
-      setMsg("Please enter your email and password.");
+      setMsg(t("login.enterEmailPw"));
       return;
     }
 
@@ -35,33 +56,46 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setMsg(error.message);
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+
+      if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+        setLockedUntil(Date.now() + LOCKOUT_MS);
+        setMsg(t("login.accountLocked") || "Too many failed attempts. Account locked for 3 minutes.");
+      } else {
+        setMsg(error.message);
+      }
       return;
     }
 
+    setAttempts(0);
     router.push("/");
     router.refresh();
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto w-full max-w-md px-4 pb-24 pt-8">
-        <Link
-          href="/"
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Home
-        </Link>
+    <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
+      <div className="mx-auto w-full max-w-md px-4 pb-24 pt-4">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition hover:opacity-80"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("nav.home")}
+          </Link>
+          <LangSwitcher />
+        </div>
 
-        <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="b-card b-animate-in mt-6 p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-              <LogIn className="h-5 w-5 text-gray-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--light-blue)" }}>
+              <LogIn className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Log In</h1>
-              <p className="text-xs text-gray-500">Welcome back to Borderly</p>
+              <h1 className="text-xl font-semibold" style={{ color: "var(--deep-navy)" }}>{t("common.login")}</h1>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t("login.welcome")}</p>
             </div>
           </div>
 
@@ -73,7 +107,8 @@ export default function LoginPage() {
                 options: { redirectTo: window.location.origin },
               });
             }}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white py-3 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF]"
+            className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -93,42 +128,44 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            Continue with Google
+            {t("auth.google")}
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-400">or</span>
-            <div className="h-px flex-1 bg-gray-200" />
+            <div className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>{t("auth.or")}</span>
+            <div className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
           </div>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>{t("auth.email")}</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder={t("login.emailPlaceholder")}
                 type="email"
                 disabled={loading}
-                className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Password</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>{t("auth.password")}</label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
+                placeholder={t("login.pwPlaceholder")}
                 type="password"
                 disabled={loading}
-                className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:opacity-70"
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
               />
             </div>
 
             {msg && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>
                 {msg}
               </div>
             )}
@@ -136,18 +173,19 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-2xl py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: "var(--primary)" }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? t("login.signingIn") : t("login.signIn")}
             </button>
           </form>
 
           <div className="mt-4 flex items-center justify-between text-sm">
-            <Link href="/signup" className="text-gray-600 hover:text-gray-900">
-              Create account
+            <Link href="/signup" className="hover:opacity-70 transition" style={{ color: "var(--text-secondary)" }}>
+              {t("login.createAccount")}
             </Link>
-            <Link href="/reset-password" className="text-gray-600 hover:text-gray-900">
-              Forgot password?
+            <Link href="/reset-password" className="hover:opacity-70 transition" style={{ color: "var(--text-secondary)" }}>
+              {t("auth.forgotPassword")}
             </Link>
           </div>
         </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useT } from "@/app/components/LangProvider";
 
 type NGOPost = {
   id: string;
@@ -19,6 +20,7 @@ export default function EditNGOPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
+  const { t } = useT();
 
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(true);
@@ -82,7 +84,7 @@ export default function EditNGOPage() {
       } catch (err: any) {
         console.error(err);
         if (!alive) return;
-        setErrorMsg(err?.message || "Failed to load NGO post.");
+        setErrorMsg(err?.message || "Failed to load partner post.");
       } finally {
         if (!alive) return;
         setChecking(false);
@@ -102,12 +104,12 @@ export default function EditNGOPage() {
     setErrorMsg("");
 
     if (!allowed) {
-      setErrorMsg("Only the owner can edit this NGO post.");
+      setErrorMsg(t("editNgo.onlyOwner"));
       return;
     }
 
     if (!title.trim() || !oneLine.trim() || !location.trim() || !description.trim()) {
-      setErrorMsg("Please fill in all required fields.");
+      setErrorMsg(t("editNgo.fillRequired"));
       return;
     }
 
@@ -130,7 +132,7 @@ export default function EditNGOPage() {
       router.push(`/ngo/${id}`);
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err?.message || "Failed to update NGO post.");
+      setErrorMsg(err?.message || "Failed to update partner post.");
     } finally {
       setSubmitting(false);
     }
@@ -140,7 +142,7 @@ export default function EditNGOPage() {
     return (
       <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
         <div className="mx-auto max-w-2xl px-4 py-6">
-          <div className="text-sm text-gray-500">Loading...</div>
+          <div className="text-sm text-gray-500">{t("common.loading")}</div>
         </div>
       </div>
     );
@@ -151,16 +153,16 @@ export default function EditNGOPage() {
       <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
         <div className="mx-auto max-w-2xl px-4 py-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="text-xl font-bold">Access denied</div>
+            <div className="text-xl font-bold">{t("editNgo.accessDenied")}</div>
             <div className="mt-2 text-sm leading-relaxed text-gray-500">
-              Only the owner can edit this NGO post.
+              {t("editNgo.onlyOwner")}
             </div>
 
             <Link
               href={`/ngo/${id}`}
               className="mt-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
             >
-              ← Back to post
+              {`← ${t("editNgo.backToPost")}`}
             </Link>
           </div>
         </div>
@@ -175,13 +177,13 @@ export default function EditNGOPage() {
           href={`/ngo/${id}`}
           className="mb-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
         >
-          ← Back
+          {`← ${t("common.back")}`}
         </Link>
 
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="text-xl font-bold">Edit NGO Post</div>
+          <div className="text-xl font-bold">{t("editNgo.title")}</div>
           <div className="mt-2 text-sm leading-relaxed text-gray-500">
-            Update your support post information.
+            {t("editNgo.subtitle")}
           </div>
 
           {!!errorMsg && (
@@ -193,7 +195,7 @@ export default function EditNGOPage() {
           <form onSubmit={handleSubmit} className="mt-4">
             <div className="grid gap-3.5">
               <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">Title</div>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">{t("editNgo.titleLabel")}</div>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -204,7 +206,7 @@ export default function EditNGOPage() {
 
               <div>
                 <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  One-line summary
+                  {t("editNgo.oneLineSummary")}
                 </div>
                 <input
                   value={oneLine}
@@ -215,7 +217,7 @@ export default function EditNGOPage() {
               </div>
 
               <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">Location</div>
+                <div className="mb-1.5 text-sm font-medium text-gray-700">{t("editNgo.location")}</div>
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -226,7 +228,7 @@ export default function EditNGOPage() {
 
               <div>
                 <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  Website
+                  {t("editNgo.website")}
                 </div>
                 <input
                   value={website}
@@ -238,7 +240,7 @@ export default function EditNGOPage() {
 
               <div>
                 <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  Description
+                  {t("editNgo.description")}
                 </div>
                 <textarea
                   value={description}
@@ -255,7 +257,7 @@ export default function EditNGOPage() {
               disabled={submitting}
               className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
             >
-              {submitting ? "Saving..." : "Save Changes"}
+              {submitting ? t("editNgo.saving") : t("editNgo.saveChanges")}
             </button>
           </form>
         </div>

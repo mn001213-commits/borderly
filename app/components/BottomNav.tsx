@@ -2,27 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Calendar, MessageCircle, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Home, Users, Handshake, MessageCircle, Compass } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "./AuthProvider";
+import { useT } from "./LangProvider";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useT();
+  const { user } = useAuth();
   const [unread, setUnread] = useState(0);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (!user) return;
     let mounted = true;
 
     async function fetchUnread() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || !mounted) return;
-
       const { data } = await supabase
         .from("v_chat_list")
         .select("unread_count")
-        .eq("me_id", user.id);
+        .eq("me_id", user!.id);
 
       if (mounted) {
         const total = (data ?? []).reduce(
@@ -34,71 +35,74 @@ export default function BottomNav() {
       }
     }
 
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30_000);
+    // Fetch once on mount
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      fetchUnread();
+    }
 
-    // Realtime subscription for new messages
+    // Only use realtime, no polling
     const channel = supabase
       .channel("bottom-nav-unread")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        () => {
-          // Re-fetch the full count so we stay accurate
-          fetchUnread();
-        },
+        () => fetchUnread(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "message_read_receipts" },
+        () => fetchUnread(),
       )
       .subscribe();
 
     return () => {
       mounted = false;
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const base =
-    "flex flex-col items-center justify-center gap-1 text-[11px] transition";
-  const active = "text-blue-600 font-semibold";
-  const inactive = "text-gray-400";
+  }, [user]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const items = [
+    { href: "/", icon: Home, label: t("nav.home") },
+    { href: "/ngo", icon: Users, label: t("nav.ngo") },
+    { href: "/meet", icon: Handshake, label: t("nav.meet") },
+    { href: "/chats", icon: MessageCircle, label: t("nav.chats"), badge: unread },
+    { href: "/browse", icon: Compass, label: t("nav.explore") },
+  ];
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-blue-100 bg-white/95 backdrop-blur">
-      <div className="mx-auto grid h-16 max-w-md grid-cols-5">
-        <Link href="/" className={`${base} ${isActive("/") ? active : inactive}`}>
-          <Home className="h-5 w-5" />
-          Home
-        </Link>
-
-        <Link href="/ngo" className={`${base} ${isActive("/ngo") ? active : inactive}`}>
-          <Users className="h-5 w-5" />
-          NGO
-        </Link>
-
-        <Link href="/meet" className={`${base} ${isActive("/meet") ? active : inactive}`}>
-          <Calendar className="h-5 w-5" />
-          Meet
-        </Link>
-
-        <Link href="/chats" className={`${base} ${isActive("/chats") ? active : inactive}`}>
-          <div className="relative">
-            <MessageCircle className="h-5 w-5" />
-            {unread > 0 && (
-              <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
-                {unread > 99 ? "99+" : unread}
-              </span>
-            )}
-          </div>
-          Chats
-        </Link>
-
-        <Link href="/profile" className={`${base} ${isActive("/profile") ? active : inactive}`}>
-          <User className="h-5 w-5" />
-          Profile
-        </Link>
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md xl:hidden"
+      style={{ borderTop: "1px solid var(--border-soft)", boxShadow: "0 -2px 12px rgba(30,42,56,0.04)" }}
+    >
+      <div className="mx-auto grid h-[72px] max-w-lg grid-cols-5">
+        {items.map(({ href, icon: Icon, label, badge }) => {
+          const on = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-label={label}
+              className="flex flex-col items-center justify-center gap-1 no-underline transition"
+              style={{ color: on ? "var(--primary)" : "var(--text-muted)" }}
+            >
+              <div
+                className="relative flex h-9 w-9 items-center justify-center rounded-full transition"
+                style={{ background: on ? "var(--light-blue)" : "transparent" }}
+              >
+                <Icon className="h-[22px] w-[22px]" />
+                {badge !== undefined && badge > 0 && (
+                  <span className="absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

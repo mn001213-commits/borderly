@@ -8,6 +8,7 @@ import {
   createGroupConversation,
   searchUsers,
 } from "@/lib/groupChatService";
+import { useT } from "@/app/components/LangProvider";
 
 type UserProfile = {
   id: string;
@@ -17,6 +18,7 @@ type UserProfile = {
 
 export default function NewGroupPage() {
   const router = useRouter();
+  const { t } = useT();
 
   const [meId, setMeId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState("");
@@ -56,11 +58,11 @@ export default function NewGroupPage() {
 
   const handleCreate = async () => {
     if (!groupName.trim()) {
-      setError("Group name is required.");
+      setError(t("chatGroup.nameRequired"));
       return;
     }
     if (selectedMembers.length === 0) {
-      setError("Add at least one member.");
+      setError(t("chatGroup.addAtLeastOne"));
       return;
     }
 
@@ -74,7 +76,7 @@ export default function NewGroupPage() {
     );
 
     if (!conversationId) {
-      setError("Failed to create group chat.");
+      setError(t("chatGroup.createFailed"));
       setCreating(false);
       return;
     }
@@ -97,10 +99,10 @@ export default function NewGroupPage() {
               </button>
               <div>
                 <div className="text-base font-semibold tracking-tight">
-                  New Group Chat
+                  {t("chatGroup.newGroupChat")}
                 </div>
                 <div className="text-xs text-gray-500">
-                  Add members and start chatting
+                  {t("chatGroup.addMembersAndStart")}
                 </div>
               </div>
             </div>
@@ -111,12 +113,12 @@ export default function NewGroupPage() {
           {/* Group Name */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-800 mb-2">
-              Group Name
+              {t("chatGroup.groupName")}
             </label>
             <input
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Enter group name..."
+              placeholder={t("chatGroup.enterGroupName")}
               className="w-full rounded-xl border border-gray-200 bg-[#F0F7FF] px-4 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400"
               maxLength={100}
             />
@@ -127,7 +129,7 @@ export default function NewGroupPage() {
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
                 <Users className="h-4 w-4" />
-                Selected ({selectedMembers.length})
+                {t("chatGroup.selected")} ({selectedMembers.length})
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedMembers.map((m) => (
@@ -136,7 +138,7 @@ export default function NewGroupPage() {
                     className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-[#F0F7FF] px-3 py-1.5"
                   >
                     <span className="text-sm text-gray-800">
-                      {m.display_name ?? "User"}
+                      {m.display_name ?? t("chat.user")}
                     </span>
                     <button
                       onClick={() => removeMember(m.id)}
@@ -153,7 +155,7 @@ export default function NewGroupPage() {
           {/* Search Users */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-800 mb-2">
-              Add Members
+              {t("chatGroup.addMembers")}
             </label>
             <div className="flex items-center gap-2">
               <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-[#F0F7FF] px-3 py-2.5">
@@ -164,7 +166,7 @@ export default function NewGroupPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSearch();
                   }}
-                  placeholder="Search by name..."
+                  placeholder={t("chat.searchByName")}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
                 />
               </div>
@@ -173,7 +175,7 @@ export default function NewGroupPage() {
                 disabled={searching || !searchQuery.trim()}
                 className="inline-flex h-10 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:opacity-50"
               >
-                {searching ? "..." : "Search"}
+                {searching ? "..." : t("common.search")}
               </button>
             </div>
 
@@ -200,7 +202,7 @@ export default function NewGroupPage() {
                       )}
                     </div>
                     <div className="text-sm font-medium text-gray-900">
-                      {user.display_name ?? "User"}
+                      {user.display_name ?? t("chat.user")}
                     </div>
                   </button>
                 ))}
@@ -219,7 +221,7 @@ export default function NewGroupPage() {
             disabled={creating || !groupName.trim() || selectedMembers.length === 0}
             className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {creating ? "Creating..." : "Create Group Chat"}
+            {creating ? t("chatGroup.creating") : t("chatGroup.createGroupChat")}
           </button>
         </div>
       </div>

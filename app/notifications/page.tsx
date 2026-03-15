@@ -9,41 +9,45 @@ import {
   markRead,
   type NotificationRow,
 } from "@/lib/notificationService";
+import { useT } from "@/app/components/LangProvider";
 
-function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
+function formatRelative(iso: string, tr?: (key: string) => string) {
+  const ts = new Date(iso).getTime();
   const now = Date.now();
-  const diff = Math.max(0, now - t);
+  const diff = Math.max(0, now - ts);
 
   const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
+  if (sec < 60) return `${sec}${tr ? tr("notif.sAgo") : "s ago"}`;
 
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return `${min}${tr ? tr("notif.mAgo") : "m ago"}`;
 
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return `${hr}${tr ? tr("notif.hAgo") : "h ago"}`;
 
   const day = Math.floor(hr / 24);
-  return `${day}d ago`;
+  return `${day}${tr ? tr("notif.dAgo") : "d ago"}`;
 }
 
-function typeLabel(type: NotificationRow["type"]) {
+function typeLabel(type: NotificationRow["type"], tr?: (key: string) => string) {
   switch (type) {
     case "comment":
-      return "Comment";
+      return tr ? tr("notif.typeComment") : "Comment";
     case "like":
-      return "Like";
+      return tr ? tr("notif.typeLike") : "Like";
     case "dm":
-      return "Message";
+      return tr ? tr("notif.typeMessage") : "Message";
     case "meet":
-      return "Meet";
+      return tr ? tr("notif.typeMeet") : "Meet";
+    case "follow":
+      return tr ? tr("notif.typeFollow") : "Follow";
     default:
       return type;
   }
 }
 
 export default function NotificationsPage() {
+  const { t } = useT();
   const router = useRouter();
 
   const [rows, setRows] = useState<NotificationRow[]>([]);
@@ -115,30 +119,32 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4 shadow-sm">
+        <div className="b-card mb-4 flex items-center justify-between gap-3 px-4 py-4">
           <div>
-            <div className="text-xl font-bold">Notifications</div>
-            <div className="mt-1 text-sm text-gray-500">
-              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+            <div className="text-xl font-bold">{t("notif.title")}</div>
+            <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+              {unreadCount > 0 ? `${unreadCount} ${t("notif.unread")}` : t("notif.allCaughtUp")}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Link
               href="/"
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+              className="rounded-2xl px-3 py-2 text-sm font-semibold no-underline transition hover:opacity-80"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
             >
-              Home
+              {t("nav.home")}
             </Link>
 
             <button
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:opacity-50"
+              className="rounded-2xl px-3 py-2 text-sm font-semibold transition hover:opacity-80 disabled:opacity-50"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
               onClick={onMarkAll}
               disabled={markingAll || rows.length === 0 || unreadCount === 0}
             >
-              {markingAll ? "Updating..." : "Mark all read"}
+              {markingAll ? t("notif.updating") : t("notif.markAllRead")}
             </button>
           </div>
         </div>
@@ -146,53 +152,58 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-20 rounded-2xl border border-gray-100 bg-white shadow-sm"
-              />
+              <div key={i} className="b-skeleton h-20" />
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-100 bg-white px-5 py-8 text-center text-sm text-gray-500 shadow-sm">
-            No notifications yet.
+          <div
+            className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-12 text-center b-animate-in"
+            style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
+          >
+            <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("notif.noNotifications")}</div>
+            <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("notif.allCaughtUpDesc")}</div>
           </div>
         ) : (
           <div className="grid gap-3">
-            {rows.map((n) => (
+            {rows.map((n, idx) => (
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
-                className={`rounded-2xl border p-4 text-left shadow-sm transition ${
-                  n.is_read
-                    ? "border-gray-100 bg-white"
-                    : "border-blue-200 bg-blue-50"
-                }`}
+                className="b-card b-animate-in rounded-[20px] p-4 text-left transition"
+                style={{
+                  animationDelay: `${idx * 0.04}s`,
+                  background: n.is_read ? "var(--bg-card)" : "var(--light-blue)",
+                  borderColor: n.is_read ? "var(--border-soft)" : "var(--primary)",
+                }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-gray-900">
+                      <div className="truncate text-sm font-bold" style={{ color: "var(--deep-navy)" }}>
                         {n.title}
                       </div>
 
                       {!n.is_read ? (
                         <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                          NEW
+                          {t("notif.new")}
                         </span>
                       ) : null}
                     </div>
 
                     {n.body ? (
-                      <div className="mt-1 text-sm text-gray-600">
+                      <div className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                         {n.body}
                       </div>
                     ) : null}
 
-                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                      <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 font-semibold text-gray-600">
-                        {typeLabel(n.type)}
+                    <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                      <span
+                        className="rounded-full px-2 py-0.5 font-semibold"
+                        style={{ background: "var(--light-blue)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)" }}
+                      >
+                        {typeLabel(n.type, t)}
                       </span>
-                      <span>{formatRelative(n.created_at)}</span>
+                      <span>{formatRelative(n.created_at, t)}</span>
                     </div>
                   </div>
                 </div>

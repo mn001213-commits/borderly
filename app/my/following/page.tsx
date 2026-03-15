@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { getFollowing } from "@/lib/followService";
+import { useT } from "@/app/components/LangProvider";
 
 type Profile = {
   id: string;
@@ -12,6 +13,7 @@ type Profile = {
 };
 
 export default function FollowingPage() {
+  const { t } = useT();
   const [items, setItems] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,11 +51,11 @@ export default function FollowingPage() {
   return (
     <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <h2 className="text-xl font-bold mb-3">Following</h2>
+        <h2 className="text-xl font-bold mb-3">{t("profile.following")}</h2>
         {loading ? (
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-gray-500">{t("common.loading")}</div>
         ) : items.length === 0 ? (
-          <div className="text-gray-500">Not following anyone yet.</div>
+          <div className="text-gray-500">{t("myPage.notFollowingAnyone")}</div>
         ) : (
           <div className="grid gap-3">
             {items.map((p) => (
@@ -67,7 +69,7 @@ export default function FollowingPage() {
                     <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
                   ) : null}
                 </div>
-                <div className="font-semibold">{p.display_name ?? "No name"}</div>
+                <div className="font-semibold">{p.display_name ?? t("myPage.noName")}</div>
               </Link>
             ))}
           </div>

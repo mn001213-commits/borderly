@@ -5,19 +5,22 @@ import Link from "next/link";
 import {
   Search,
   FileText,
-  Users,
   CalendarDays,
+  ShieldCheck,
   Clock3,
   Sparkles,
+  Heart,
+  MessageCircle,
+  MapPin,
+  X,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
+import { useT } from "@/app/components/LangProvider";
 
-function cx(...arr: Array<string | false | null | undefined>) {
-  return arr.filter(Boolean).join(" ");
-}
-
-type SearchTab = "posts" | "users" | "meets";
-type SortMode = "latest" | "popular" | "az" | "newest" | "soonest";
+type SearchTab = "posts" | "meets" | "ngo";
+type SortMode = "latest" | "popular" | "newest" | "soonest";
 
 type RecentSearchItem = {
   keyword: string;
@@ -35,14 +38,6 @@ type PostRow = {
   comment_count: number | null;
 };
 
-type UserRow = {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  country_code: string | null;
-  social_status: string | null;
-};
-
 type MeetRow = {
   id: string;
   created_at: string;
@@ -52,6 +47,38 @@ type MeetRow = {
   start_at: string | null;
   type: string | null;
   is_closed: boolean | null;
+};
+
+type NgoRow = {
+  id: string;
+  created_at: string;
+  title: string;
+  description: string;
+  location: string | null;
+  ngo_name: string | null;
+  ngo_verified: boolean;
+  application_count: number | null;
+  is_closed: boolean | null;
+};
+
+const CAT_COLORS: Record<string, { bg: string; color: string }> = {
+  general: { bg: "#E3F2FD", color: "#1565C0" },
+  info: { bg: "#FFF3E0", color: "#EF6C00" },
+  question: { bg: "#F3E5F5", color: "#8E24AA" },
+  daily: { bg: "#E8F5E9", color: "#2E7D32" },
+  jobs: { bg: "#FFF8E1", color: "#F57F17" },
+  other: { bg: "#F5F5F5", color: "#616161" },
+};
+
+const MEET_TYPE_CLASSES: Record<string, string> = {
+  hangout: "b-meet-hangout",
+  study: "b-meet-study",
+  language: "b-meet-language",
+  meal: "b-meet-meal",
+  sports: "b-meet-sports",
+  culture: "b-meet-culture",
+  volunteer: "b-meet-volunteer",
+  other: "b-meet-other",
 };
 
 function formatRelative(iso?: string | null) {
@@ -77,8 +104,8 @@ function formatRelative(iso?: string | null) {
   return `${year}y ago`;
 }
 
-function formatDateTime(iso?: string | null) {
-  if (!iso) return "Schedule TBD";
+function formatDateTime(iso?: string | null, fallback = "Schedule TBD") {
+  if (!iso) return fallback;
   const d = new Date(iso);
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
@@ -89,6 +116,7 @@ function formatDateTime(iso?: string | null) {
 }
 
 export default function BrowsePage() {
+  const { t } = useT();
   const [tab, setTab] = useState<SearchTab>("posts");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
@@ -96,8 +124,8 @@ export default function BrowsePage() {
   const [debouncedQ, setDebouncedQ] = useState("");
 
   const [posts, setPosts] = useState<PostRow[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
   const [meets, setMeets] = useState<MeetRow[]>([]);
+  const [ngos, setNgos] = useState<NgoRow[]>([]);
 
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
 
@@ -106,74 +134,34 @@ export default function BrowsePage() {
 
   const cats = useMemo(
     () => [
-      { id: "all", label: "All" },
-      { id: "general", label: "General" },
-      { id: "skill", label: "Skill Share" },
-      { id: "ngo", label: "NGO" },
-      { id: "legal", label: "Visa / Legal" },
-      { id: "etc", label: "Other" },
+      { id: "all" },
+      { id: "general" },
+      { id: "info" },
+      { id: "question" },
+      { id: "daily" },
+      { id: "jobs" },
+      { id: "other" },
     ],
     []
   );
 
-  const catBadge = useMemo(() => {
-    const map: Record<string, string> = {
-      general: "General",
-      skill: "Skill Share",
-      ngo: "NGO",
-      legal: "Visa / Legal",
-      etc: "Other",
-    };
-    return (k: string) => map[k] ?? k;
-  }, []);
+  const catBadge = (k: string) => t(`cat.${k}`);
 
-  const suggestedKeywords = useMemo(() => {
-    if (tab === "posts") {
-      return ["visa", "housing", "job", "language exchange", "NGO", "volunteer"];
-    }
-    if (tab === "users") {
-      return ["Japan", "Korea", "student", "worker", "designer", "developer"];
-    }
-    return ["Tokyo", "Osaka", "Kyoto", "language exchange", "study", "meal"];
-  }, [tab]);
-
-  const resultMeta = useMemo(() => {
-    const keyword = debouncedQ.trim();
-
-    if (tab === "posts") {
-      return {
-        text: keyword
-          ? `${posts.length} ${posts.length === 1 ? "post" : "posts"} found for "${keyword}"`
-          : `${posts.length} ${posts.length === 1 ? "post" : "posts"} found`,
-      };
-    }
-
-    if (tab === "users") {
-      return {
-        text: keyword
-          ? `${users.length} ${users.length === 1 ? "user" : "users"} found for "${keyword}"`
-          : `${users.length} ${users.length === 1 ? "user" : "users"} found`,
-      };
-    }
-
-    return {
-      text: keyword
-        ? `${meets.length} ${meets.length === 1 ? "meet" : "meets"} found for "${keyword}"`
-        : `${meets.length} ${meets.length === 1 ? "meet" : "meets"} found`,
-    };
-  }, [tab, posts.length, users.length, meets.length, debouncedQ]);
+  const resultCount = useMemo(() => {
+    if (tab === "posts") return posts.length;
+    if (tab === "ngo") return ngos.length;
+    return meets.length;
+  }, [tab, posts.length, meets.length, ngos.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQ(q.trim());
     }, 300);
-
     return () => clearTimeout(timer);
   }, [q]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     try {
       const raw = window.localStorage.getItem("borderly_recent_searches");
       if (!raw) return;
@@ -186,7 +174,6 @@ export default function BrowsePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     try {
       window.localStorage.setItem(
         "borderly_recent_searches",
@@ -198,13 +185,11 @@ export default function BrowsePage() {
   useEffect(() => {
     const keyword = debouncedQ.trim();
     if (!keyword) return;
-
     setRecentSearches((prev) => {
       const deduped = prev.filter(
         (item) =>
           !(item.keyword.toLowerCase() === keyword.toLowerCase() && item.tab === tab)
       );
-
       return [{ keyword, tab }, ...deduped].slice(0, 8);
     });
   }, [debouncedQ, tab]);
@@ -213,25 +198,17 @@ export default function BrowsePage() {
     const load = async () => {
       setLoading(true);
       setErrorMsg(null);
-
       const keyword = debouncedQ;
 
       try {
         if (tab === "posts") {
           let query = supabase
-            .from("posts")
-            .select(
-              "id, created_at, title, content, author_name, category, like_count, comment_count"
-            )
+            .from("v_posts_engagement")
+            .select("id, created_at, title, content, author_name, category, like_count, comment_count")
             .limit(50);
 
-          if (activeCat !== "all") {
-            query = query.eq("category", activeCat);
-          }
-
-          if (keyword) {
-            query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
-          }
+          if (activeCat !== "all") query = query.eq("category", activeCat);
+          if (keyword) query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
 
           if (sortMode === "popular") {
             query = query
@@ -244,37 +221,14 @@ export default function BrowsePage() {
 
           const { data, error } = await query;
           if (error) throw error;
-
           setPosts((data ?? []) as PostRow[]);
-          setUsers([]);
           setMeets([]);
-        }
-
-        if (tab === "users") {
-          let query = supabase
-            .from("profiles")
-            .select("id, display_name, avatar_url, country_code, social_status")
-            .limit(50);
-
-          if (keyword) {
-            query = query.or(
-              `display_name.ilike.%${keyword}%,country_code.ilike.%${keyword}%,social_status.ilike.%${keyword}%`
-            );
-          }
-
-          query = query.order("display_name", { ascending: true });
-
-          const { data, error } = await query;
-          if (error) throw error;
-
-          setUsers((data ?? []) as UserRow[]);
-          setPosts([]);
-          setMeets([]);
+          setNgos([]);
         }
 
         if (tab === "meets") {
           let query = supabase
-            .from("meets")
+            .from("meet_posts")
             .select("id, created_at, title, description, city, start_at, type, is_closed")
             .limit(50);
 
@@ -292,17 +246,37 @@ export default function BrowsePage() {
 
           const { data, error } = await query;
           if (error) throw error;
-
           setMeets((data ?? []) as MeetRow[]);
           setPosts([]);
-          setUsers([]);
+          setNgos([]);
+        }
+
+        if (tab === "ngo") {
+          let query = supabase
+            .from("v_ngo_posts")
+            .select("id, created_at, title, description, location, ngo_name, ngo_verified, application_count, is_closed")
+            .limit(50);
+
+          if (keyword) {
+            query = query.or(
+              `title.ilike.%${keyword}%,description.ilike.%${keyword}%,location.ilike.%${keyword}%,ngo_name.ilike.%${keyword}%`
+            );
+          }
+
+          query = query.order("created_at", { ascending: false });
+
+          const { data, error } = await query;
+          if (error) throw error;
+          setNgos((data ?? []) as NgoRow[]);
+          setPosts([]);
+          setMeets([]);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load data.";
         setErrorMsg(message);
         setPosts([]);
-        setUsers([]);
         setMeets([]);
+        setNgos([]);
       } finally {
         setLoading(false);
       }
@@ -314,19 +288,10 @@ export default function BrowsePage() {
   const applyRecentSearch = (item: RecentSearchItem) => {
     setTab(item.tab);
     setQ(item.keyword);
-
-    if (item.tab === "posts") {
-      setActiveCat("all");
-      setSortMode("latest");
-    }
-    if (item.tab === "users") {
-      setActiveCat("all");
-      setSortMode("az");
-    }
-    if (item.tab === "meets") {
-      setActiveCat("all");
-      setSortMode("newest");
-    }
+    setActiveCat("all");
+    if (item.tab === "posts") setSortMode("latest");
+    if (item.tab === "meets") setSortMode("newest");
+    if (item.tab === "ngo") setSortMode("latest");
   };
 
   const removeRecentSearch = (target: RecentSearchItem) => {
@@ -335,465 +300,340 @@ export default function BrowsePage() {
     );
   };
 
-  const clearRecentSearches = () => {
-    setRecentSearches([]);
-  };
-
-  const applySuggestedKeyword = (keyword: string) => {
-    setQ(keyword);
-  };
+  const clearRecentSearches = () => setRecentSearches([]);
 
   const resetSearch = () => {
     setQ("");
     setActiveCat("all");
-
     if (tab === "posts") setSortMode("latest");
-    if (tab === "users") setSortMode("az");
     if (tab === "meets") setSortMode("newest");
+    if (tab === "ngo") setSortMode("latest");
   };
 
-  const EmptyState = () => {
-    const keyword = debouncedQ.trim();
+  const tabIcon = (tb: SearchTab) => {
+    if (tb === "posts") return <FileText className="h-3.5 w-3.5" />;
+    if (tb === "ngo") return <ShieldCheck className="h-3.5 w-3.5" />;
+    return <CalendarDays className="h-3.5 w-3.5" />;
+  };
 
-    if (tab === "posts") {
-      return (
-        <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100">
-            <FileText size={24} className="text-neutral-500" />
-          </div>
-          <div className="mt-4 text-lg font-extrabold text-neutral-900">
-            No posts found
-          </div>
-          <div className="mt-2 text-sm text-neutral-500">
-            {keyword
-              ? `Nothing matched "${keyword}". Try another keyword or a different category.`
-              : "There are no posts in this section yet."}
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={resetSearch}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-bold hover:bg-neutral-50"
-            >
-              Reset Search
-            </button>
-            <Link
-              href="/create"
-              className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-bold text-white hover:bg-neutral-800"
-            >
-              Write a Post
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
-    if (tab === "users") {
-      return (
-        <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sky-100">
-            <Users size={24} className="text-sky-700" />
-          </div>
-          <div className="mt-4 text-lg font-extrabold text-neutral-900">
-            No users found
-          </div>
-          <div className="mt-2 text-sm text-neutral-500">
-            {keyword
-              ? `No users matched "${keyword}". Try a country, role, or another name.`
-              : "Try searching by country, role, or display name."}
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={resetSearch}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-bold hover:bg-neutral-50"
-            >
-              Reset Search
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("posts")}
-              className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-bold text-white hover:bg-neutral-800"
-            >
-              Browse Posts
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-          <CalendarDays size={24} className="text-emerald-700" />
-        </div>
-        <div className="mt-4 text-lg font-extrabold text-neutral-900">
-          No meets found
-        </div>
-        <div className="mt-2 text-sm text-neutral-500">
-          {keyword
-            ? `No meets matched "${keyword}". Try a city, activity, or another keyword.`
-            : "There are no meet results yet. Try another city or keyword."}
-        </div>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={resetSearch}
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-bold hover:bg-neutral-50"
-          >
-            Reset Search
-          </button>
-          <Link
-            href="/meet"
-            className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-bold text-white hover:bg-neutral-800"
-          >
-            View Meets
-          </Link>
-        </div>
-      </div>
-    );
+  const tabLabel = (tb: SearchTab) => {
+    if (tb === "posts") return t("browse.posts");
+    if (tb === "ngo") return t("browse.ngo");
+    return t("browse.meets");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-sky-50 to-emerald-50 text-neutral-900">
-      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/"
-              className="rounded-xl border bg-white px-3 py-2 text-sm font-bold hover:bg-neutral-50"
-            >
-              ← Home
-            </Link>
-            <div className="truncate text-base font-black sm:text-lg">Browse</div>
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
+        {/* Search bar */}
+        <div className="sticky top-2 z-20">
+          <div className="b-card p-3" style={{ backdropFilter: "blur(12px)" }}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("browse.searchAll")}
+                className="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm outline-none"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded-full transition hover:opacity-70"
+                  style={{ background: "var(--border-soft)" }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="mt-3 flex items-center gap-3">
+              {(["posts", "meets", "ngo"] as SearchTab[]).map((tb) => (
+                <button
+                  key={tb}
+                  onClick={() => {
+                    setTab(tb);
+                    setActiveCat("all");
+                    if (tb === "posts") setSortMode("latest");
+                    if (tb === "meets") setSortMode("newest");
+                    if (tb === "ngo") setSortMode("latest");
+                  }}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 34,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: tab === tb ? "var(--deep-navy)" : "transparent",
+                    color: tab === tb ? "#fff" : "var(--text-secondary)",
+                    border: tab === tb ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {tabIcon(tb)}
+                  {tabLabel(tb)}
+                </button>
+              ))}
+            </div>
           </div>
-
-          <Link
-            href="/create"
-            className="shrink-0 rounded-xl border bg-white px-3 py-2 text-sm font-bold hover:bg-neutral-50"
-          >
-            + New Post
-          </Link>
-        </header>
-
-        <div className="sticky top-2 z-20 mt-4 sm:top-3 sm:mt-6">
-          <section className="rounded-[24px] border border-neutral-200 bg-white/95 p-4 shadow-sm backdrop-blur sm:rounded-[28px] sm:p-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
-                <Search size={18} />
-                <div className="relative w-full md:w-72">
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search..."
-                    className="w-full rounded-xl border px-3 py-2 pr-10 text-sm outline-none"
-                  />
-                  {q && (
-                    <button
-                      type="button"
-                      onClick={() => setQ("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-bold text-neutral-500 hover:bg-neutral-100"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    setTab("posts");
-                    setActiveCat("all");
-                    setSortMode("latest");
-                  }}
-                  className={cx(
-                    "flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold",
-                    tab === "posts"
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 bg-white hover:bg-neutral-50"
-                  )}
-                >
-                  <FileText size={16} />
-                  Posts
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTab("users");
-                    setActiveCat("all");
-                    setSortMode("az");
-                  }}
-                  className={cx(
-                    "flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold",
-                    tab === "users"
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 bg-white hover:bg-neutral-50"
-                  )}
-                >
-                  <Users size={16} />
-                  Users
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTab("meets");
-                    setActiveCat("all");
-                    setSortMode("newest");
-                  }}
-                  className={cx(
-                    "flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold",
-                    tab === "meets"
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 bg-white hover:bg-neutral-50"
-                  )}
-                >
-                  <CalendarDays size={16} />
-                  Meets
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4">
-              {tab === "posts" && (
-                <>
-                  {cats.map((c) => {
-                    const on = c.id === activeCat;
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => setActiveCat(c.id)}
-                        className={cx(
-                          "rounded-full border px-4 py-2 text-sm font-semibold",
-                          on
-                            ? "border-neutral-900 bg-neutral-900 text-white"
-                            : "border-neutral-200 bg-white hover:bg-sky-50"
-                        )}
-                      >
-                        {c.label}
-                      </button>
-                    );
-                  })}
-
-                  <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
-                    <button
-                      onClick={() => setSortMode("latest")}
-                      className={cx(
-                        "rounded-full border px-4 py-2 text-sm font-semibold",
-                        sortMode === "latest"
-                          ? "border-neutral-900 bg-neutral-900 text-white"
-                          : "border-neutral-200 bg-white hover:bg-neutral-50"
-                      )}
-                    >
-                      Latest
-                    </button>
-                    <button
-                      onClick={() => setSortMode("popular")}
-                      className={cx(
-                        "rounded-full border px-4 py-2 text-sm font-semibold",
-                        sortMode === "popular"
-                          ? "border-neutral-900 bg-neutral-900 text-white"
-                          : "border-neutral-200 bg-white hover:bg-neutral-50"
-                      )}
-                    >
-                      Popular
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {tab === "users" && (
-                <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
-                  <button
-                    onClick={() => setSortMode("az")}
-                    className={cx(
-                      "rounded-full border px-4 py-2 text-sm font-semibold",
-                      sortMode === "az"
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-white hover:bg-neutral-50"
-                    )}
-                  >
-                    A-Z
-                  </button>
-                </div>
-              )}
-
-              {tab === "meets" && (
-                <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
-                  <button
-                    onClick={() => setSortMode("newest")}
-                    className={cx(
-                      "rounded-full border px-4 py-2 text-sm font-semibold",
-                      sortMode === "newest"
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-white hover:bg-neutral-50"
-                    )}
-                  >
-                    Newest
-                  </button>
-                  <button
-                    onClick={() => setSortMode("soonest")}
-                    className={cx(
-                      "rounded-full border px-4 py-2 text-sm font-semibold",
-                      sortMode === "soonest"
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-white hover:bg-neutral-50"
-                    )}
-                  >
-                    Soonest
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
         </div>
 
-        <section className="mt-4 sm:mt-5">
+        {/* Category pills (posts only) */}
+        {tab === "posts" && (
+          <div className="mt-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
+            {cats.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setActiveCat(c.id)}
+                className="b-pill shrink-0"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  background: activeCat === c.id ? "var(--deep-navy)" : "transparent",
+                  color: activeCat === c.id ? "#fff" : "var(--text-secondary)",
+                  border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
+                }}
+              >
+                {t("cat." + c.id)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Sort pills */}
+        <div className="mt-3 flex items-center gap-3">
+          {tab === "posts" && (
+            <>
+              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "latest" ? "var(--deep-navy)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
+                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("common.latest")}
+              </button>
+              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "popular" ? "var(--deep-navy)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
+                <Sparkles className="mr-1 inline h-3.5 w-3.5" />{t("common.popular")}
+              </button>
+            </>
+          )}
+          {tab === "meets" && (
+            <>
+              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "newest" ? "var(--deep-navy)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
+                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("browse.newest")}
+              </button>
+              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "soonest" ? "var(--deep-navy)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />{t("browse.soonest")}
+              </button>
+            </>
+          )}
+
+          {/* Result count */}
           {!loading && !errorMsg && (
-            <div className="mb-4 flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm shadow-sm">
-              <div className="font-semibold text-neutral-800">{resultMeta.text}</div>
-              <div className="text-xs font-bold uppercase tracking-wide text-neutral-400">
-                {tab}
+            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              {resultCount} {tab === "posts" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : tab === "ngo" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : (resultCount === 1 ? t("browse.meet") : t("browse.meets"))}
+            </span>
+          )}
+        </div>
+
+        {/* Recent searches */}
+        {recentSearches.length > 0 && !debouncedQ && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{t("browse.recent")}</span>
+              <button onClick={clearRecentSearches} className="text-[11px] font-medium transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>{t("common.clear")}</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {recentSearches.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => applyRecentSearch(item)}
+                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition hover:opacity-80"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+                >
+                  {tabIcon(item.tab)}
+                  {item.keyword}
+                  <span
+                    onClick={(e) => { e.stopPropagation(); removeRecentSearch(item); }}
+                    className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full opacity-40 hover:opacity-100"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Results */}
+        <div className="mt-5 space-y-6">
+          {errorMsg && (
+            <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="b-skeleton h-48" />
+              ))}
+            </div>
+          )}
+
+          {/* Empty states */}
+          {!loading && !errorMsg && tab === "posts" && posts.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noPostsFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `Nothing matched "${debouncedQ}". Try another keyword.` : "There are no posts in this section yet."}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/create" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.writePost")}</Link>
               </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            {errorMsg && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                {errorMsg}
+          {!loading && !errorMsg && tab === "meets" && meets.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <CalendarDays className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noMeetsFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `No meets matched "${debouncedQ}". Try a city or keyword.` : "No meet results yet."}
               </div>
-            )}
-
-            {loading && (
-              <div className="rounded-2xl border bg-white p-6 text-sm text-neutral-600 shadow-sm">
-                Loading...
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/meet" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
               </div>
-            )}
+            </div>
+          )}
 
-            {!loading && !errorMsg && tab === "posts" && posts.length === 0 && <EmptyState />}
-            {!loading && !errorMsg && tab === "users" && users.length === 0 && <EmptyState />}
-            {!loading && !errorMsg && tab === "meets" && meets.length === 0 && <EmptyState />}
+          {!loading && !errorMsg && tab === "ngo" && ngos.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <ShieldCheck className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noNgoFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `No partner posts matched "${debouncedQ}".` : "No partner posts yet."}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/ngo" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.viewNgo")}</Link>
+              </div>
+            </div>
+          )}
 
-            {!loading &&
-              tab === "posts" &&
-              posts.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/posts/${p.id}`}
-                  className="block rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:bg-neutral-50 sm:p-6"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="truncate text-lg font-extrabold">{p.title}</div>
-
-                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                          {catBadge(p.category)}
-                        </span>
-                      </div>
-
-                      <div className="mt-1 text-xs text-neutral-500">
-                        {p.author_name ?? "Anonymous"} • {formatRelative(p.created_at)}
-                      </div>
-
-                      <div className="mt-3 line-clamp-2 text-sm text-neutral-600">
-                        {p.content}
-                      </div>
-
-                      <div className="mt-4 flex items-center gap-4 text-xs font-semibold text-neutral-500">
-                        <span>❤️ {p.like_count ?? 0}</span>
-                        <span>💬 {p.comment_count ?? 0}</span>
+          {/* Post results */}
+          {!loading &&
+            tab === "posts" &&
+            posts.map((p, idx) => {
+              const cc = CAT_COLORS[p.category] ?? CAT_COLORS.other;
+              return (
+                <Link key={p.id} href={`/posts/${p.id}`} className="block no-underline text-inherit">
+                  <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-sm font-semibold">{p.title}</div>
+                          <span
+                            className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
+                            style={{ background: cc.bg, color: cc.color }}
+                          >
+                            {catBadge(p.category)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {p.content}
+                        </div>
+                        <div className="mt-3 flex items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+                          <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{p.like_count ?? 0}</span>
+                          <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" />{p.comment_count ?? 0}</span>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="shrink-0 text-xs font-bold text-neutral-500">
-                      View →
-                    </div>
-                  </div>
+                  </article>
                 </Link>
-              ))}
+              );
+            })}
 
-            {!loading &&
-              tab === "users" &&
-              users.map((u) => (
-                <Link
-                  key={u.id}
-                  href={`/users/${u.id}`}
-                  className="block rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:bg-neutral-50 sm:p-6"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-sm font-bold text-sky-700">
-                      {u.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={u.avatar_url}
-                          alt={u.display_name ?? "User"}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span>{(u.display_name ?? "U").slice(0, 1).toUpperCase()}</span>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-base font-extrabold">
-                        {u.display_name ?? "Unnamed User"}
-                      </div>
-                      <div className="mt-1 text-sm text-neutral-500">
-                        {u.country_code ?? "No country"} • {u.social_status ?? "No status"}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-xs font-bold text-neutral-500">
-                      View →
-                    </div>
-                  </div>
-                </Link>
-              ))}
-
-            {!loading &&
-              tab === "meets" &&
-              meets.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/meet/${m.id}`}
-                  className="block rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:bg-neutral-50 sm:p-6"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="truncate text-lg font-extrabold">{m.title}</div>
-
-                        <span
-                          className={cx(
-                            "rounded-full px-3 py-1 text-xs font-bold",
-                            m.is_closed
-                              ? "bg-neutral-200 text-neutral-700"
-                              : "bg-sky-100 text-sky-800"
+          {/* Meet results */}
+          {!loading &&
+            tab === "meets" &&
+            meets.map((m, idx) => {
+              const typeClass = MEET_TYPE_CLASSES[m.type ?? "other"] ?? "";
+              return (
+                <Link key={m.id} href={`/meet/${m.id}`} className="block no-underline text-inherit">
+                  <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-sm font-semibold">{m.title}</div>
+                          {m.type && (
+                            <span className={`shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${typeClass}`}>
+                              {m.type}
+                            </span>
                           )}
-                        >
-                          {m.is_closed ? "Closed" : "Open"}
-                        </span>
-                      </div>
-
-                      <div className="mt-1 text-xs text-neutral-500">
-                        {m.city ?? "Location TBD"} • {formatDateTime(m.start_at)}
-                      </div>
-
-                      <div className="mt-3 line-clamp-2 text-sm text-neutral-600">
-                        {m.description}
+                          {m.is_closed && (
+                            <span className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">
+                              Closed
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {m.city && (
+                            <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{m.city}</span>
+                          )}
+                          <span className="inline-flex items-center gap-0.5"><CalendarDays className="h-3 w-3" />{formatDateTime(m.start_at, t("meet.timeNotSet"))}</span>
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {m.description}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="shrink-0 text-xs font-bold text-neutral-500">
-                      View →
-                    </div>
-                  </div>
+                  </article>
                 </Link>
-              ))}
-          </div>
-        </section>
+              );
+            })}
+
+          {/* NGO results */}
+          {!loading &&
+            tab === "ngo" &&
+            ngos.map((n, idx) => (
+              <Link key={n.id} href={`/ngo/${n.id}`} className="block no-underline text-inherit">
+                <article
+                  className="b-card b-card-hover b-animate-in p-5"
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                >
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                      {n.ngo_name ?? "Partner"}
+                    </span>
+                    <NgoVerifiedBadge verified={n.ngo_verified} size={12} />
+                  </div>
+                  <h2 className="text-lg font-semibold leading-snug line-clamp-2" style={{ color: "var(--deep-navy)" }}>
+                    {n.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {n.description}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+                    {n.location && (
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{n.location}</span>
+                    )}
+                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{n.application_count ?? 0} applied</span>
+                  </div>
+                  {n.is_closed && (
+                    <div className="mt-3">
+                      <span className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">Closed</span>
+                    </div>
+                  )}
+                </article>
+              </Link>
+            ))}
+        </div>
       </div>
     </div>
   );

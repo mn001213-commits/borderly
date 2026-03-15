@@ -1,269 +1,248 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { getNgoPost, applyToNgoPost, getMyApplication, type NgoPost, type NgoApplication } from "@/lib/ngoService";
+import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
+import { useT } from "@/app/components/LangProvider";
+import { ArrowLeft, MapPin, Globe, Users, Send, CheckCircle, Clock, XCircle } from "lucide-react";
 
-type Msg = {
-  id: string;
-  conversation_id: string;
-  user_id: string;
-  body: string | null;
-  image_url: string | null;
-  created_at: string;
-  deleted_at?: string | null;
-};
+export default function NgoDetailPage() {
+  const { t } = useT();
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const id = params?.id;
 
-type Profile = {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-};
-
-function formatTime(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
-}
-
-export default function ChatDetailPage() {
-  const params = useParams();
-  const conversationId = String(params.id);
-
-  const [me, setMe] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
-  const [text, setText] = useState("");
+  const [post, setPost] = useState<NgoPost | null>(null);
+  const [myApp, setMyApp] = useState<NgoApplication | null>(null);
+  const [myUid, setMyUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const userIds = useMemo(() => {
-    return Array.from(new Set(messages.map((m) => m.user_id).filter(Boolean)));
-  }, [messages]);
+  // Application form
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-
-    async function load() {
+    if (!id) return;
+    (async () => {
       try {
-        setLoading(true);
-        setErrorMsg("");
+        const { data: { user } } = await supabase.auth.getUser();
+        setMyUid(user?.id ?? null);
 
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const p = await getNgoPost(id);
+        setPost(p);
+        setAnswers(((p.questions as string[]) ?? []).map(() => ""));
 
-        if (authError) throw authError;
-        if (!user) {
-          setErrorMsg("Please log in first.");
-          return;
+        if (user) {
+          const app = await getMyApplication(id);
+          setMyApp(app);
         }
-
-        if (!alive) return;
-        setMe(user.id);
-
-        const { data, error } = await supabase
-          .from("messages")
-          .select("id, conversation_id, user_id, body, image_url, created_at, deleted_at")
-          .eq("conversation_id", conversationId)
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        if (!alive) return;
-
-        setMessages(data ?? []);
-      } catch (err: any) {
-        console.error(err);
-        if (!alive) return;
-        setErrorMsg(err?.message || "Failed to load chat.");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
+      } catch (e: any) {
+        setErrorMsg(e?.message || t("ngoDetail.failedToLoad"));
       }
-    }
+      setLoading(false);
+    })();
+  }, [id]);
 
-    load();
+  const updateAnswer = (idx: number, val: string) => {
+    setAnswers((prev) => prev.map((a, i) => (i === idx ? val : a)));
+  };
 
-    const channel = supabase
-      .channel(`chat-room-${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const row = payload.new as Msg;
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev;
-            return [...prev, row];
-          });
-        }
-      )
-      .subscribe();
+  const onApply = async () => {
+    if (!post) return;
+    setSubmitting(true);
+    setErrorMsg(null);
 
-    return () => {
-      alive = false;
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId]);
-
-  useEffect(() => {
-    let alive = true;
-
-    async function loadProfiles() {
-      if (userIds.length === 0) return;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url")
-        .in("id", userIds);
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      if (!alive) return;
-
-      const nextMap: Record<string, Profile> = {};
-      for (const row of data ?? []) {
-        nextMap[row.id] = row;
-      }
-      setProfiles(nextMap);
-    }
-
-    loadProfiles();
-
-    return () => {
-      alive = false;
-    };
-  }, [userIds]);
-
-  async function handleSend() {
-    if (!me) {
-      setErrorMsg("Please log in first.");
+    const trimmed = answers.map((a) => a.trim());
+    if (trimmed.some((a) => !a)) {
+      setErrorMsg(t("ngoDetail.answerAll"));
+      setSubmitting(false);
       return;
     }
 
-    if (!text.trim()) return;
-
     try {
-      setSending(true);
-      setErrorMsg("");
-
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        user_id: me,
-        body: text.trim(),
-        image_url: null,
-      });
-
-      if (error) throw error;
-
-      setText("");
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err?.message || "Failed to send message.");
-    } finally {
-      setSending(false);
+      await applyToNgoPost(post.id, trimmed);
+      const app = await getMyApplication(post.id);
+      setMyApp(app);
+      setShowForm(false);
+    } catch (e: any) {
+      setErrorMsg(e?.message || t("ngoDetail.failedToApply"));
     }
-  }
+    setSubmitting(false);
+  };
 
-  return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <Link
-          href="/ngo"
-          className="mb-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
-        >
-          ← Back
-        </Link>
+  const isOwner = myUid && post?.ngo_user_id === myUid;
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="text-xl font-bold">Chat</div>
-          <div className="mt-1.5 text-xs text-gray-500">
-            Conversation ID: {conversationId}
-          </div>
-
-          {!!errorMsg && (
-            <div className="mt-3.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMsg}
-            </div>
-          )}
-
-          <div className="mt-4 grid min-h-[320px] max-h-[520px] gap-2.5 overflow-y-auto p-1.5">
-            {loading ? (
-              <div className="text-sm text-gray-500">Loading chat...</div>
-            ) : messages.length === 0 ? (
-              <div className="text-sm text-gray-500">No messages yet.</div>
-            ) : (
-              messages.map((msg) => {
-                const mine = msg.user_id === me;
-                const profile = profiles[msg.user_id];
-                const name = profile?.display_name?.trim() || "User";
-
-                return (
-                  <div
-                    key={msg.id}
-                    className={`max-w-[82%] ${mine ? "justify-self-end" : "justify-self-start"}`}
-                  >
-                    <div
-                      className={`mb-1 text-xs text-gray-500 ${mine ? "text-right" : "text-left"}`}
-                    >
-                      {name}
-                    </div>
-
-                    <div
-                      className={`rounded-xl px-3.5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                        mine
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-900"
-                      }`}
-                    >
-                      {msg.body || ""}
-                    </div>
-
-                    <div
-                      className={`mt-1 text-[11px] text-gray-500 ${mine ? "text-right" : "text-left"}`}
-                    >
-                      {formatTime(msg.created_at)}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center gap-2.5">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Write a message..."
-              className="flex-1 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-            />
-
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={sending}
-              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
-            >
-              {sending ? "Sending..." : "Send"}
-            </button>
+  if (loading) {
+    return (
+      <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+        <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
+          <div className="space-y-4">
+            <div className="b-skeleton h-8 w-32" style={{ borderRadius: 12 }} />
+            <div className="b-skeleton h-64" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+        <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
+          <div className="b-card p-6 text-center">
+            <div className="text-sm font-semibold">{t("ngoDetail.notFound")}</div>
+            <Link href="/ngo" className="mt-3 inline-block text-sm font-medium" style={{ color: "var(--primary)" }}>{t("ngoDetail.backToNgo")}</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const questions = (post.questions as string[]) ?? [];
+
+  return (
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-lg font-bold flex-1">{t("ngoDetail.title")}</h1>
+          {isOwner && (
+            <Link href={`/ngo/applications`} className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold no-underline transition hover:opacity-80" style={{ background: "var(--light-blue)", color: "#43A047", border: "1px solid var(--border-soft)" }}>
+              {t("ngo.applications")}
+            </Link>
+          )}
+        </div>
+
+        {errorMsg && <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>}
+
+        {/* Post card */}
+        <div className="b-card b-animate-in overflow-hidden">
+          {post.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.image_url} alt="" className="w-full" />
+          )}
+
+          <div className="p-5">
+            {/* NGO info */}
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>{post.ngo_name ?? "Partner"}</span>
+              <NgoVerifiedBadge verified={post.ngo_verified} />
+            </div>
+
+            <h2 className="text-xl font-bold leading-snug">{post.title}</h2>
+
+            {post.is_closed && (
+              <span className="mt-2 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">{t("meet.closed")}</span>
+            )}
+
+            <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>{post.description}</p>
+
+            {/* Meta */}
+            <div className="mt-4 space-y-2 text-sm" style={{ color: "var(--text-muted)" }}>
+              {post.location && (
+                <div className="flex items-center gap-2"><MapPin className="h-4 w-4" />{post.location}</div>
+              )}
+              {post.website_url && (
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  <a href={post.website_url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "var(--primary)" }}>{post.website_url}</a>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                {post.approved_count ?? 0} {t("ngoDetail.approved")} / {post.application_count ?? 0} {t("ngo.applied")}
+                {post.max_applicants != null && ` (${t("ngo.max")} ${post.max_applicants})`}
+              </div>
+            </div>
+
+            {/* Questions preview */}
+            {questions.length > 0 && (
+              <div className="mt-5 rounded-2xl p-4" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("ngoDetail.questionsYoullAnswer")}</div>
+                <ol className="list-decimal list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {questions.map((q, i) => <li key={i}>{q}</li>)}
+                </ol>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Apply section */}
+        {myUid && !isOwner && (
+          <div className="mt-4">
+            {myApp ? (
+              <div className="b-card b-animate-in p-5" style={{ animationDelay: "0.1s" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  {myApp.status === "approved" ? (
+                    <><CheckCircle className="h-5 w-5 text-green-500" /><span className="font-semibold text-green-700">{t("ngoDetail.statusApproved")}</span></>
+                  ) : myApp.status === "rejected" ? (
+                    <><XCircle className="h-5 w-5 text-red-500" /><span className="font-semibold text-red-700">{t("ngoDetail.statusRejected")}</span></>
+                  ) : (
+                    <><Clock className="h-5 w-5" style={{ color: "var(--text-muted)" }} /><span className="font-semibold" style={{ color: "var(--text-muted)" }}>{t("ngoDetail.statusPending")}</span></>
+                  )}
+                </div>
+                <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {myApp.status === "approved"
+                    ? t("ngoDetail.approvedMsg")
+                    : myApp.status === "rejected"
+                    ? t("ngoDetail.rejectedMsg")
+                    : t("ngoDetail.pendingMsg")}
+                </div>
+              </div>
+            ) : post.is_closed ? (
+              <div className="b-card p-5 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+                {t("ngoDetail.closedForApps")}
+              </div>
+            ) : !showForm ? (
+              <button
+                onClick={() => setShowForm(true)}
+                className="w-full inline-flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition hover:opacity-90 b-animate-in"
+                style={{ background: "#43A047", animationDelay: "0.1s" }}
+              >
+                <Send className="h-4 w-4" />
+                {t("ngoDetail.applyForHelp")}
+              </button>
+            ) : (
+              <div className="b-card b-animate-in p-5 space-y-4" style={{ animationDelay: "0.1s" }}>
+                <div className="text-sm font-bold">{t("ngoDetail.answerBelow")}</div>
+                {questions.map((q, idx) => (
+                  <div key={idx}>
+                    <div className="text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>{idx + 1}. {q}</div>
+                    <textarea
+                      value={answers[idx] ?? ""}
+                      onChange={(e) => updateAnswer(idx, e.target.value)}
+                      placeholder={t("ngoDetail.yourAnswer")}
+                      className="w-full min-h-[80px] resize-none rounded-xl px-3 py-2.5 text-sm outline-none"
+                      style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                    />
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <button onClick={onApply} disabled={submitting} className="inline-flex h-10 items-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40" style={{ background: "#43A047" }}>
+                    {submitting ? t("ngoDetail.submitting") : t("ngoDetail.submitApp")}
+                  </button>
+                  <button onClick={() => setShowForm(false)} className="inline-flex h-10 items-center rounded-2xl px-4 text-sm font-medium transition hover:opacity-70" style={{ color: "var(--text-secondary)" }}>
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!myUid && (
+          <div className="mt-4 b-card p-5 text-center">
+            <Link href="/login" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{t("ngoDetail.signInToApply")}</Link>
+          </div>
+        )}
       </div>
     </div>
   );

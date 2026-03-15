@@ -1,346 +1,204 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { listNgoPosts, listApplications, updateApplicationStatus, createNgoConversation, type NgoPost, type NgoApplication } from "@/lib/ngoService";
+import { createNotification } from "@/lib/notificationService";
+import { useT } from "@/app/components/LangProvider";
+import { ArrowLeft, CheckCircle, XCircle, Clock, MessageCircle } from "lucide-react";
 
-type NGOApplicationRow = {
-  id: string;
-  ngo_post_id: string;
-  user_id: string;
-  conversation_id: string | null;
-  situation: string;
-  help_needed: string;
-  country: string;
-  language: string;
-  status: string;
-  created_at: string;
-  ngo_posts: {
-    id: string;
-    title: string;
-    location: string;
-    owner_user_id: string;
-  } | null;
-};
-
-type ProfileRow = {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-};
-
-function formatDateTime(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
-}
-
-export default function NGOApplicationsPage() {
+export default function NgoApplicationsPage() {
+  const { t } = useT();
   const router = useRouter();
 
-  const [me, setMe] = useState<string | null>(null);
+  const [myUid, setMyUid] = useState<string | null>(null);
+  const [posts, setPosts] = useState<NgoPost[]>([]);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [apps, setApps] = useState<NgoApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [items, setItems] = useState<NGOApplicationRow[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  const applicantIds = useMemo(() => {
-    return Array.from(new Set(items.map((item) => item.user_id).filter(Boolean)));
-  }, [items]);
+  const [appsLoading, setAppsLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.replace("/login"); return; }
+      setMyUid(user.id);
 
-    async function load() {
       try {
-        setLoading(true);
-        setErrorMsg("");
-
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) throw authError;
-
-        if (!user) {
-          router.replace("/login");
-          return;
+        const all = await listNgoPosts(200);
+        const mine = all.filter((p) => p.ngo_user_id === user.id);
+        setPosts(mine);
+        if (mine.length > 0) {
+          setSelectedPostId(mine[0].id);
         }
-
-        if (!alive) return;
-        setMe(user.id);
-
-        const { data, error } = await supabase
-          .from("ngo_applications")
-          .select(`
-            id,
-            ngo_post_id,
-            user_id,
-            conversation_id,
-            situation,
-            help_needed,
-            country,
-            language,
-            status,
-            created_at,
-            ngo_posts:ngo_post_id (
-              id,
-              title,
-              location,
-              owner_user_id
-            )
-          `)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        if (!alive) return;
-
-        const rows = (data ?? []).filter(
-          (row: any) => {
-            const ngo = Array.isArray(row.ngo_posts) ? row.ngo_posts[0] : row.ngo_posts;
-            return ngo?.owner_user_id === user.id;
-          }
-        ) as unknown as NGOApplicationRow[];
-
-        setItems(rows);
-      } catch (err: any) {
-        console.error(err);
-        if (!alive) return;
-        setErrorMsg(err?.message || "Failed to load applications.");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
+      } catch (e: any) {
+        setErrorMsg(e?.message);
       }
-    }
-
-    load();
-
-    return () => {
-      alive = false;
-    };
+      setLoading(false);
+    })();
   }, [router]);
 
   useEffect(() => {
-    let alive = true;
-
-    async function loadProfiles() {
-      if (applicantIds.length === 0) return;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url")
-        .in("id", applicantIds);
-
-      if (error) {
-        console.error(error);
-        return;
+    if (!selectedPostId) { setApps([]); return; }
+    (async () => {
+      setAppsLoading(true);
+      try {
+        const list = await listApplications(selectedPostId);
+        setApps(list);
+      } catch {
+        setApps([]);
       }
+      setAppsLoading(false);
+    })();
+  }, [selectedPostId]);
 
-      if (!alive) return;
+  const handleApprove = async (app: NgoApplication) => {
+    if (!myUid || !selectedPostId) return;
+    setBusy(app.id);
+    setErrorMsg(null);
 
-      const nextMap: Record<string, ProfileRow> = {};
-      for (const row of data ?? []) {
-        nextMap[row.id] = row;
-      }
-      setProfiles(nextMap);
-    }
-
-    loadProfiles();
-
-    return () => {
-      alive = false;
-    };
-  }, [applicantIds]);
-
-  async function updateStatus(
-    applicationId: string,
-    nextStatus: "pending" | "accepted" | "rejected"
-  ) {
     try {
-      setUpdatingId(applicationId);
-      setErrorMsg("");
+      await updateApplicationStatus(app.id, "approved");
 
-      const { error } = await supabase
-        .from("ngo_applications")
-        .update({ status: nextStatus })
-        .eq("id", applicationId);
+      // Create NGO conversation
+      const post = posts.find((p) => p.id === selectedPostId);
+      const convId = await createNgoConversation(myUid, app.applicant_id, post?.title ?? "Partner Support");
 
-      if (error) throw error;
+      // Notify applicant
+      await createNotification({
+        userId: app.applicant_id,
+        type: "meet",
+        title: t("ngoApp.notifyApprovedTitle"),
+        body: `${t("ngoApp.notifyApprovedBody")} "${post?.title}"`,
+        link: `/chats/${convId}`,
+      });
 
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === applicationId ? { ...item, status: nextStatus } : item
-        )
-      );
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err?.message || "Failed to update application status.");
-    } finally {
-      setUpdatingId(null);
+      setApps((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: "approved" as const } : a)));
+    } catch (e: any) {
+      setErrorMsg(e?.message || t("ngoApp.failedApprove"));
     }
-  }
+    setBusy(null);
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-        <div className="mx-auto max-w-2xl px-4 py-6">
-          <div className="text-sm text-gray-500">Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  const handleReject = async (app: NgoApplication) => {
+    setBusy(app.id);
+    try {
+      await updateApplicationStatus(app.id, "rejected");
+      setApps((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: "rejected" as const } : a)));
+    } catch (e: any) {
+      setErrorMsg(e?.message || t("ngoApp.failedReject"));
+    }
+    setBusy(null);
+  };
+
+  const statusBadge = (status: string) => {
+    if (status === "approved") return <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><CheckCircle className="h-3.5 w-3.5" />{t("ngoDetail.statusApproved")}</span>;
+    if (status === "rejected") return <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600"><XCircle className="h-3.5 w-3.5" />{t("ngoDetail.statusRejected")}</span>;
+    return <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--text-muted)" }}><Clock className="h-3.5 w-3.5" />{t("ngoApp.pending")}</span>;
+  };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Link
-              href="/ngo"
-              className="mb-3 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
-            >
-              ← Back
-            </Link>
-
-            <div className="text-xl font-bold">NGO Applications</div>
-            <div className="mt-2 text-sm leading-relaxed text-gray-500">
-              Review applications submitted to your NGO posts.
-            </div>
-          </div>
-
-          {!!me && (
-            <Link
-              href="/ngo/new"
-              className="self-start rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
-            >
-              Create NGO Post
-            </Link>
-          )}
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-lg font-bold">{t("ngo.applications")}</h1>
         </div>
 
-        {!!errorMsg && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errorMsg}
-          </div>
-        )}
+        {errorMsg && <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>}
 
-        {items.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="text-lg font-bold">No applications yet</div>
-            <div className="mt-2 text-sm leading-relaxed text-gray-500">
-              Applications submitted to your NGO posts will appear here.
-            </div>
+        {loading ? (
+          <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="b-skeleton h-16" />)}</div>
+        ) : posts.length === 0 ? (
+          <div className="b-card p-6 text-center">
+            <div className="text-sm font-semibold">{t("ngoApp.noPostsYet")}</div>
+            <Link href="/ngo/new" className="mt-2 inline-block text-sm font-medium" style={{ color: "#43A047" }}>{t("ngoApp.createFirst")}</Link>
           </div>
         ) : (
-          <div className="mt-4 grid gap-3.5">
-            {items.map((item) => {
-              const profile = profiles[item.user_id];
-              const displayName = profile?.display_name?.trim() || "Unknown user";
-
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+          <>
+            {/* Post selector */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+              {posts.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPostId(p.id)}
+                  className="b-pill shrink-0"
+                  style={{
+                    background: selectedPostId === p.id ? "#43A047" : "var(--bg-card)",
+                    color: selectedPostId === p.id ? "#fff" : "var(--text-secondary)",
+                    border: selectedPostId === p.id ? "none" : "1px solid var(--border-soft)",
+                  }}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="text-lg font-bold">
-                        {item.ngo_posts?.title || "Untitled NGO Post"}
+                  {p.title.length > 25 ? p.title.slice(0, 25) + "..." : p.title}
+                </button>
+              ))}
+            </div>
+
+            {/* Applications list */}
+            {appsLoading ? (
+              <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="b-skeleton h-32" />)}</div>
+            ) : apps.length === 0 ? (
+              <div className="b-card p-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+                {t("ngoApp.noApps")}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {apps.map((app, idx) => {
+                  const post = posts.find((p) => p.id === selectedPostId);
+                  const questions = (post?.questions as string[]) ?? [];
+
+                  return (
+                    <div key={app.id} className="b-card b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="font-semibold text-sm">{app.applicant_name ?? t("ngoApp.unknown")}</div>
+                        {statusBadge(app.status)}
                       </div>
-                      <div className="mt-1.5 text-xs text-gray-500">
-                        Applicant: {displayName}
+
+                      {/* Answers */}
+                      <div className="space-y-3">
+                        {questions.map((q, i) => (
+                          <div key={i}>
+                            <div className="text-xs font-semibold mb-1" style={{ color: "var(--text-muted)" }}>{q}</div>
+                            <div className="text-sm" style={{ color: "var(--text-secondary)" }}>{(app.answers as string[])?.[i] ?? "-"}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        Submitted: {formatDateTime(item.created_at)}
-                      </div>
+
+                      {/* Actions */}
+                      {app.status === "pending" && (
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            onClick={() => handleApprove(app)}
+                            disabled={busy === app.id}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                            style={{ background: "#43A047" }}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            {t("ngoApp.approve")}
+                          </button>
+                          <button
+                            onClick={() => handleReject(app)}
+                            disabled={busy === app.id}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                            style={{ background: "#E53935" }}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            {t("ngoApp.reject")}
+                          </button>
+                        </div>
+                      )}
                     </div>
-
-                    <div
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold capitalize ${
-                        item.status === "accepted"
-                          ? "bg-green-100 text-green-800"
-                          : item.status === "rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {item.status}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-gray-700">Current situation</div>
-                      <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
-                        {item.situation}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-medium text-gray-700">Help needed</div>
-                      <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
-                        {item.help_needed}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                      <div>
-                        <span className="font-bold text-gray-900">Country:</span> {item.country}
-                      </div>
-                      <div>
-                        <span className="font-bold text-gray-900">Language:</span> {item.language}
-                      </div>
-                      <div>
-                        <span className="font-bold text-gray-900">Location:</span>{" "}
-                        {item.ngo_posts?.location || "-"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(item.id, "accepted")}
-                      disabled={updatingId === item.id}
-                      className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
-                    >
-                      Accept
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(item.id, "rejected")}
-                      disabled={updatingId === item.id}
-                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
-                    >
-                      Reject
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(item.id, "pending")}
-                      disabled={updatingId === item.id}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:opacity-50 disabled:cursor-default"
-                    >
-                      Reset to Pending
-                    </button>
-
-                    {item.conversation_id && (
-                      <Link
-                        href={`/chat/${item.conversation_id}`}
-                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
-                      >
-                        Open Chat
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

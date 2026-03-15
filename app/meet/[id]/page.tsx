@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Edit3, Trash2 } from "lucide-react";
+import { useT } from "@/app/components/LangProvider";
 import { supabase } from "@/lib/supabaseClient";
 
 type MeetType =
@@ -27,10 +28,14 @@ type MeetRow = {
   place_hint: string | null;
   start_at: string | null;
   max_people: number | null;
+  max_foreigners: number | null;
+  max_locals: number | null;
   is_closed: boolean;
   created_at: string;
   image_url: string | null;
   participant_count: number;
+  foreigner_count: number;
+  local_count: number;
 };
 
 type MyStatus = "none" | "pending" | "approved" | "rejected";
@@ -40,32 +45,38 @@ type Participant = {
   status: MyStatus;
   display_name: string | null;
   avatar_url: string | null;
+  user_type: string | null;
 };
 
 function cx(...arr: Array<string | false | null | undefined>) {
   return arr.filter(Boolean).join(" ");
 }
 
-function typeLabel(t: MeetType) {
+function typeEmoji(t: MeetType) {
   switch (t) {
-    case "hangout":
-      return "Hangout";
-    case "study":
-      return "Study";
-    case "skill":
-      return "Skill Exchange";
-    case "language":
-      return "Language Exchange";
-    case "meal":
-      return "Meal Buddy";
-    case "party":
-      return "Party";
-    case "project":
-      return "Team Recruit";
-    case "sports":
-      return "Sports";
-    default:
-      return "MEET";
+    case "hangout": return "🤝";
+    case "study": return "📚";
+    case "language": return "🗣️";
+    case "meal": return "🍽️";
+    case "sports": return "⚽";
+    case "skill": return "🔧";
+    case "party": return "🎉";
+    case "project": return "🚀";
+    default: return "📌";
+  }
+}
+
+function typeLabelKey(t: MeetType) {
+  switch (t) {
+    case "hangout": return "meet.hangout";
+    case "study": return "meet.study";
+    case "skill": return "meetDetail.skillExchange";
+    case "language": return "meetDetail.languageExchange";
+    case "meal": return "meetDetail.mealBuddy";
+    case "party": return "meetDetail.party";
+    case "project": return "meetDetail.teamRecruit";
+    case "sports": return "meet.sports";
+    default: return "nav.meet";
   }
 }
 
@@ -75,6 +86,7 @@ function isPast(start_at: string | null) {
 }
 
 export default function MeetDetailPage() {
+  const { t } = useT();
   const params = useParams();
   const router = useRouter();
 
@@ -182,12 +194,12 @@ export default function MeetDetailPage() {
 
     const userIds = mpRows.map((x) => x.user_id).filter(Boolean);
 
-    const profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+    const profileMap = new Map<string, { display_name: string | null; avatar_url: string | null; user_type: string | null }>();
 
     if (userIds.length > 0) {
       const pr = await supabase
         .from("profiles")
-        .select("id,display_name,avatar_url")
+        .select("id,display_name,avatar_url,user_type")
         .in("id", userIds);
 
       if (!pr.error) {
@@ -195,6 +207,7 @@ export default function MeetDetailPage() {
           profileMap.set(p.id, {
             display_name: p.display_name ?? null,
             avatar_url: p.avatar_url ?? null,
+            user_type: p.user_type ?? null,
           });
         }
       } else {
@@ -209,6 +222,7 @@ export default function MeetDetailPage() {
         status: r.status,
         display_name: prof?.display_name ?? null,
         avatar_url: prof?.avatar_url ?? null,
+        user_type: prof?.user_type ?? null,
       };
     });
 
@@ -280,22 +294,63 @@ export default function MeetDetailPage() {
     meet?.max_people != null &&
     (meet.participant_count ?? 0) >= (meet.max_people ?? 0);
 
+  const isForeignerFull =
+    meet?.max_foreigners != null &&
+    (meet.foreigner_count ?? 0) >= (meet.max_foreigners ?? 0);
+
+  const isLocalFull =
+    meet?.max_locals != null &&
+    (meet.local_count ?? 0) >= (meet.max_locals ?? 0);
+
   const isClosed = !!meet?.is_closed || ended || isFull;
 
   const capText =
-    meet?.max_people == null
-      ? `${meet?.participant_count ?? 0} joined`
-      : `${meet?.participant_count ?? 0}/${meet?.max_people} joined`;
+    meet?.max_foreigners != null && meet?.max_locals != null
+      ? `${t("createMeet.foreigners")} ${meet.foreigner_count ?? 0}/${meet.max_foreigners} · ${t("createMeet.locals")} ${meet.local_count ?? 0}/${meet.max_locals}`
+      : meet?.max_people == null
+        ? `${meet?.participant_count ?? 0} ${t("meet.joined_count")}`
+        : `${meet?.participant_count ?? 0}/${meet?.max_people} ${t("meet.joined_count")}`;
 
   const remainText =
-    meet?.max_people == null
-      ? "No capacity limit"
-      : `${Math.max(0, (meet.max_people ?? 0) - (meet.participant_count ?? 0))} spots left`;
+    meet?.max_foreigners != null && meet?.max_locals != null
+      ? `${Math.max(0, (meet.max_foreigners ?? 0) - (meet.foreigner_count ?? 0))} ${t("meetDetail.foreignerSpots")} + ${Math.max(0, (meet.max_locals ?? 0) - (meet.local_count ?? 0))} ${t("meetDetail.localSpots")}`
+      : meet?.max_people == null
+        ? t("meetDetail.noCapLimit")
+        : `${Math.max(0, (meet.max_people ?? 0) - (meet.participant_count ?? 0))} ${t("meetDetail.spotsLeft")}`;
 
   async function joinOrRequest() {
     if (!meet || !meId) return;
 
     setJoining(true);
+
+    // Check user_type and slot availability
+    if (meet.max_foreigners != null && meet.max_locals != null) {
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", meId)
+        .maybeSingle();
+
+      const myType = myProfile?.user_type;
+
+      if (myType === "foreigner" && isForeignerFull) {
+        alert(t("meetDetail.foreignerSlotsFull"));
+        setJoining(false);
+        return;
+      }
+      if (myType === "local" && isLocalFull) {
+        alert(t("meetDetail.localSlotsFull"));
+        setJoining(false);
+        return;
+      }
+      if (!myType || (myType !== "foreigner" && myType !== "local")) {
+        if (confirm(t("meetDetail.setUserType"))) {
+          router.push("/settings");
+        }
+        setJoining(false);
+        return;
+      }
+    }
 
     const ins = await supabase.from("meet_participants").insert({
       meet_id: meet.id,
@@ -304,8 +359,6 @@ export default function MeetDetailPage() {
     } as any);
 
     if (ins.error) {
-      // Immediate (legacy) fallback: insert without status
-      // Group chat member add/remove is handled by DB trigger
       await supabase.from("meet_participants").insert({
         meet_id: meet.id,
         user_id: meId,
@@ -337,12 +390,12 @@ export default function MeetDetailPage() {
   }
 
   function primaryButtonText() {
-    if (!meId) return "Login Required";
+    if (!meId) return t("meetDetail.loginRequired");
     if (isHost) return "";
-    if (myStatus === "approved") return "Leave";
-    if (myStatus === "pending") return "Pending - Cancel Request";
-    if (myStatus === "rejected") return "Rejected";
-    return "Request to Join";
+    if (myStatus === "approved") return t("meet.leave");
+    if (myStatus === "pending") return t("meetDetail.pendingCancel");
+    if (myStatus === "rejected") return t("meetDetail.rejected");
+    return t("meetDetail.requestToJoin");
   }
 
   function primaryDisabled() {
@@ -366,7 +419,7 @@ export default function MeetDetailPage() {
 
   async function handleDelete() {
     if (!meet || !meId) return;
-    if (!confirm("Are you sure you want to delete this meetup? This action cannot be undone.")) return;
+    if (!confirm(t("meetDetail.deleteConfirm"))) return;
 
     setDeleting(true);
     const { error } = await supabase.from("meet_posts").delete().eq("id", meet.id);
@@ -381,40 +434,40 @@ export default function MeetDetailPage() {
   const approvedList = useMemo(() => participants.filter((p) => p.status === "approved"), [participants]);
   const pendingList = useMemo(() => participants.filter((p) => p.status === "pending"), [participants]);
 
-  if (loading) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Loading...</div>;
-  if (!meet) return <div className="min-h-screen bg-[#F0F7FF] p-6 text-gray-500">Meetup not found.</div>;
+  if (loading) return <div className="min-h-screen p-6" style={{ color: "var(--text-muted)" }}><div className="mx-auto max-w-2xl space-y-4">{Array.from({length:3}).map((_,i)=><div key={i} className="b-skeleton h-24 w-full"/>)}</div></div>;
+  if (!meet) return <div className="min-h-screen p-6" style={{ color: "var(--text-muted)" }}>{t("meetDetail.notFound")}</div>;
 
   const pendingBtn = myStatus === "pending";
 
   const primaryClass = (() => {
-    if (primaryDisabled()) return "bg-gray-300 text-white";
-    if (pendingBtn) return "bg-white text-gray-700 border border-gray-200 hover:bg-[#F0F7FF]";
-    return "bg-blue-600 text-white hover:opacity-90";
+    if (primaryDisabled()) return "text-white" + " " + "opacity-50";
+    if (pendingBtn) return "bg-[var(--bg-card)] border hover:bg-[var(--light-blue)]";
+    return "text-white hover:opacity-90";
   })();
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24 b-animate-in">
         <div className="flex items-center justify-between">
-          <Link href="/meet" className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
-            &larr; List
+          <Link href="/meet" className="rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)]" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>
+            &larr; {t("meetDetail.list")}
           </Link>
 
-          <button onClick={() => loadAll()} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
-            Refresh
+          <button onClick={() => loadAll()} className="rounded-2xl px-3 py-2 text-sm font-semibold hover:bg-[var(--light-blue)]" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>
+            {t("meetDetail.refresh")}
           </button>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="b-card mt-4 p-4">
           {meet.image_url && (
-            <div className="mb-4 overflow-hidden rounded-2xl border border-gray-100">
+            <div className="mb-4 overflow-hidden rounded-2xl" style={{ border: "1px solid var(--border-soft)" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={meet.image_url} alt="cover" className="h-56 w-full object-cover" />
             </div>
           )}
 
-          <div className="text-xs font-semibold text-gray-500">
-            {typeLabel(meet.type)}
+          <div className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+            {typeEmoji(meet.type)} {t(typeLabelKey(meet.type))}
             {meet.type === "sports" && meet.sport ? ` · ${meet.sport}` : ""}
           </div>
 
@@ -423,10 +476,10 @@ export default function MeetDetailPage() {
           {/* Approval banner + shortcut */}
           {approvedJustNow && (
             <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm flex items-center justify-between gap-3">
-              <div>The host approved you. You can now enter the group chat!</div>
+              <div>{t("meetDetail.approvedBanner")}</div>
               {groupConversationId && (
-                <button onClick={goChat} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
-                  Enter Now
+                <button onClick={goChat} className="rounded-2xl px-4 py-2 text-sm font-semibold text-white hover:opacity-90" style={{ background: "var(--primary)" }}>
+                  {t("meetDetail.enterNow")}
                 </button>
               )}
             </div>
@@ -434,17 +487,17 @@ export default function MeetDetailPage() {
 
           <div className="mt-3 flex flex-wrap gap-2">
             {ended ? (
-              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Ended</span>
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{t("meet.ended")}</span>
             ) : meet.is_closed ? (
-              <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">Closed</span>
+              <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ border: "1px solid var(--border-soft)", background: "var(--light-blue)", color: "var(--text-secondary)" }}>{t("meet.closed")}</span>
             ) : isFull ? (
-              <span className="rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">Full</span>
+              <span className="rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">{t("meet.full")}</span>
             ) : (
-              <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Open</span>
+              <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">{t("meet.open")}</span>
             )}
 
             {meet.max_people != null && (
-              <span className="rounded-full border border-gray-200 bg-[#F0F7FF] px-3 py-1 text-xs font-semibold text-gray-600">{remainText}</span>
+              <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ border: "1px solid var(--border-soft)", background: "var(--light-blue)", color: "var(--text-secondary)" }}>{remainText}</span>
             )}
 
             {myStatus !== "none" && !isHost && (
@@ -454,43 +507,80 @@ export default function MeetDetailPage() {
                 myStatus === "pending" ? "border-yellow-200 bg-yellow-50 text-yellow-700" :
                 "border-red-200 bg-red-50 text-red-700"
               )}>
-                My status: {myStatus}
+                {t("meetDetail.myStatus")}: {myStatus}
               </span>
             )}
           </div>
 
           <div className="mt-3 text-sm whitespace-pre-wrap">{meet.description}</div>
 
-          <div className="mt-4 space-y-1 text-sm text-gray-500">
-            <div>Time: {meet.start_at ? new Date(meet.start_at).toLocaleString() : "TBD"}</div>
-            <div>Place: {[meet.city, meet.place_hint].filter(Boolean).join(" · ") || "TBD"}</div>
+          <div className="mt-4 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            <div>{t("meetDetail.time")}: {meet.start_at ? new Date(meet.start_at).toLocaleString() : t("meetDetail.tbd")}</div>
+            <div>{t("meetDetail.place")}: {[meet.city, meet.place_hint].filter(Boolean).join(" · ") || t("meetDetail.tbd")}</div>
             <div>{capText}</div>
           </div>
 
+          {/* Foreigner / Local quota bars */}
+          {meet.max_foreigners != null && meet.max_locals != null && (
+            <div className="mt-4 space-y-2">
+              <div>
+                <div className="flex items-center justify-between text-xs font-medium mb-1">
+                  <span style={{ color: "#1D4ED8" }}>{t("createMeet.foreigners")}</span>
+                  <span style={{ color: "var(--text-muted)" }}>{meet.foreigner_count ?? 0} / {meet.max_foreigners}</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${Math.min(100, ((meet.foreigner_count ?? 0) / meet.max_foreigners) * 100)}%`,
+                    background: isForeignerFull ? "#22C55E" : "#3B82F6",
+                  }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs font-medium mb-1">
+                  <span style={{ color: "#92400E" }}>{t("createMeet.locals")}</span>
+                  <span style={{ color: "var(--text-muted)" }}>{meet.local_count ?? 0} / {meet.max_locals}</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${Math.min(100, ((meet.local_count ?? 0) / meet.max_locals) * 100)}%`,
+                    background: isLocalFull ? "#22C55E" : "#F59E0B",
+                  }} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Participant list */}
-          <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-4">
+          <div className="b-card mt-6 p-4">
             <div className="flex items-center justify-between">
-              <div className="font-semibold">Participants</div>
-              <div className="text-sm text-gray-500">{approvedList.length}</div>
+              <div className="font-semibold">{t("meetDetail.participants")}</div>
+              <div className="text-sm" style={{ color: "var(--text-secondary)" }}>{approvedList.length}</div>
             </div>
 
             {approvedList.length === 0 ? (
-              <div className="mt-2 text-sm text-gray-400">No participants yet.</div>
+              <div className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>{t("meetDetail.noParticipants")}</div>
             ) : (
               <div className="mt-3 grid gap-2">
                 {approvedList.map((p) => (
                   <div key={p.user_id} className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full border border-gray-100 overflow-hidden bg-white">
+                    <div className="h-8 w-8 rounded-full overflow-hidden" style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)" }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {p.avatar_url ? (
                         <img src={p.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                       ) : null}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex items-center gap-2">
                       <div className="text-sm font-semibold truncate">
                         {p.display_name ?? p.user_id.slice(0, 8)}
                       </div>
-                      <div className="text-xs text-green-600">approved</div>
+                      {p.user_type && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{
+                          background: p.user_type === "foreigner" ? "#DBEAFE" : "#FEF3C7",
+                          color: p.user_type === "foreigner" ? "#1D4ED8" : "#92400E",
+                        }}>
+                          {p.user_type === "foreigner" ? t("createMeet.foreigners") : t("createMeet.locals")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -500,31 +590,39 @@ export default function MeetDetailPage() {
             {pendingList.length > 0 && (
               <div className="mt-5">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold">Pending</div>
-                  <div className="text-sm text-gray-500">{pendingList.length}</div>
+                  <div className="font-semibold">{t("meetDetail.pending")}</div>
+                  <div className="text-sm" style={{ color: "var(--text-secondary)" }}>{pendingList.length}</div>
                 </div>
 
                 <div className="mt-3 grid gap-2">
                   {pendingList.map((p) => (
                     <div key={p.user_id} className="flex items-center gap-3 opacity-80">
-                      <div className="h-8 w-8 rounded-full border border-gray-100 overflow-hidden bg-white">
+                      <div className="h-8 w-8 rounded-full overflow-hidden" style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)" }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {p.avatar_url ? (
                           <img src={p.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                         ) : null}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex items-center gap-2">
                         <div className="text-sm font-semibold truncate">
                           {p.display_name ?? p.user_id.slice(0, 8)}
                         </div>
-                        <div className="text-xs text-yellow-600">pending</div>
+                        {p.user_type && (
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{
+                            background: p.user_type === "foreigner" ? "#DBEAFE" : "#FEF3C7",
+                            color: p.user_type === "foreigner" ? "#1D4ED8" : "#92400E",
+                          }}>
+                            {p.user_type === "foreigner" ? t("createMeet.foreigners") : t("createMeet.locals")}
+                          </span>
+                        )}
+                        <span className="text-xs text-yellow-600">{t("meetDetail.pending")}</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {!isHost && myStatus === "pending" && (
-                  <div className="mt-3 text-xs text-gray-400">The group chat will open once approved.</div>
+                  <div className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>{t("meetDetail.chatOnceApproved")}</div>
                 )}
               </div>
             )}
@@ -535,27 +633,29 @@ export default function MeetDetailPage() {
               <button
                 onClick={goChat}
                 className={cx(
-                  "rounded-xl px-4 py-2 text-sm font-semibold",
-                  approvedJustNow ? "bg-blue-600 text-white hover:opacity-90" : "border border-gray-200 bg-white text-gray-700 hover:bg-[#F0F7FF]"
+                  "rounded-2xl px-4 py-2 text-sm font-semibold",
+                  approvedJustNow ? "text-white hover:opacity-90" : "hover:bg-[var(--light-blue)]"
                 )}
+                style={{ background: approvedJustNow ? "var(--primary)" : "var(--bg-card)", border: approvedJustNow ? "none" : "1px solid var(--border-soft)", color: approvedJustNow ? undefined : "var(--text-secondary)" }}
               >
-                Group Chat
+                {t("meetDetail.groupChat")}
               </button>
             )}
 
             {isHost && (
-              <Link href={`/meet/${meet.id}/manage`} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]">
-                Manage Participants
+              <Link href={`/meet/${meet.id}/manage`} className="rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)]" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>
+                {t("meetDetail.manageParticipants")}
               </Link>
             )}
 
             {isHost && (
               <Link
                 href={`/meet/${meet.id}/edit`}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] inline-flex items-center gap-1.5"
+                className="rounded-2xl px-4 py-2 text-sm font-semibold inline-flex items-center gap-1.5 hover:bg-[var(--light-blue)]"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
               >
                 <Edit3 size={14} />
-                Edit
+                {t("common.edit")}
               </Link>
             )}
 
@@ -563,10 +663,10 @@ export default function MeetDetailPage() {
               <button
                 disabled={deleting}
                 onClick={handleDelete}
-                className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 inline-flex items-center gap-1.5 disabled:opacity-50"
+                className="rounded-2xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Trash2 size={14} />
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? t("meetDetail.deleting") : t("common.delete")}
               </button>
             )}
 
@@ -574,10 +674,11 @@ export default function MeetDetailPage() {
               <button
                 disabled={joining || primaryDisabled()}
                 onClick={onPrimary}
-                className={cx("rounded-xl px-4 py-2 text-sm font-semibold", primaryClass)}
+                className={cx("rounded-2xl px-4 py-2 text-sm font-semibold", primaryClass)}
+                style={{ background: primaryDisabled() ? "var(--text-muted)" : pendingBtn ? "var(--bg-card)" : "var(--primary)", border: pendingBtn ? "1px solid var(--border-soft)" : "none", color: pendingBtn ? "var(--text-secondary)" : undefined }}
               >
                 {joining ? (
-                  "Processing..."
+                  t("meetDetail.processing")
                 ) : pendingBtn ? (
                   primaryButtonText()
                 ) : (

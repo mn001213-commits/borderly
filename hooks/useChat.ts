@@ -38,6 +38,11 @@ export type GroupMember = {
   avatar_url: string | null;
 };
 
+export type ReadReceipt = {
+  user_id: string;
+  last_read_message_id: string | null;
+};
+
 export function useChat(conversationId?: string) {
   const [me, setMe] = useState<string | null>(null);
 
@@ -54,7 +59,13 @@ export function useChat(conversationId?: string) {
   const [iBlocked, setIBlocked] = useState(false);
   const [blockedEither, setBlockedEither] = useState(false);
 
+  const [readReceipts, setReadReceipts] = useState<Record<string, ReadReceipt>>({});
+
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const receiptChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
 
   // Reset on conversation change
@@ -68,6 +79,11 @@ export function useChat(conversationId?: string) {
     setGroupMembers([]);
     setIBlocked(false);
     setBlockedEither(false);
+    setReadReceipts({});
+    setTypingUsers(new Set());
+    // Clear all typing timeouts
+    for (const t of Object.values(typingTimeouts.current)) clearTimeout(t);
+    typingTimeouts.current = {};
   }, [conversationId]);
 
   // Set my ID
@@ -298,18 +314,82 @@ export function useChat(conversationId?: string) {
         }
       );
 
+      ch.on("broadcast", { event: "typing" }, (payload: any) => {
+        const uid = payload.payload?.user_id as string | undefined;
+        if (!uid || uid === me) return;
+        setTypingUsers((prev) => new Set(prev).add(uid));
+        if (typingTimeouts.current[uid]) clearTimeout(typingTimeouts.current[uid]);
+        typingTimeouts.current[uid] = setTimeout(() => {
+          setTypingUsers((prev) => {
+            const next = new Set(prev);
+            next.delete(uid);
+            return next;
+          });
+        }, 3000);
+      });
+
       await ch.subscribe();
       channelRef.current = ch;
     };
 
+    const loadReadReceipts = async () => {
+      if (!conversationId) return;
+      const { data } = await supabase
+        .from("message_read_receipts")
+        .select("user_id, last_read_message_id")
+        .eq("conversation_id", conversationId);
+      if (!alive || !data) return;
+      const map: Record<string, ReadReceipt> = {};
+      for (const r of data) {
+        map[r.user_id] = { user_id: r.user_id, last_read_message_id: r.last_read_message_id };
+      }
+      setReadReceipts(map);
+    };
+
+    const subscribeReceipts = async () => {
+      if (receiptChannelRef.current) {
+        await supabase.removeChannel(receiptChannelRef.current);
+        receiptChannelRef.current = null;
+      }
+      if (!conversationId) return;
+
+      const ch = supabase.channel(`receipts:${conversationId}`);
+      ch.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "message_read_receipts",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const r = payload.new as any;
+          if (r && r.user_id) {
+            setReadReceipts((prev) => ({
+              ...prev,
+              [r.user_id]: { user_id: r.user_id, last_read_message_id: r.last_read_message_id },
+            }));
+          }
+        }
+      );
+      await ch.subscribe();
+      receiptChannelRef.current = ch;
+    };
+
     void (async () => {
       await loadInitial();
+      await loadReadReceipts();
       await subscribe();
+      await subscribeReceipts();
     })();
 
     return () => {
       alive = false;
       void cleanup();
+      if (receiptChannelRef.current) {
+        void supabase.removeChannel(receiptChannelRef.current);
+        receiptChannelRef.current = null;
+      }
     };
   }, [conversationId, blockedEither]);
 
@@ -334,6 +414,26 @@ export function useChat(conversationId?: string) {
       });
     },
     [conversationId, blockedEither]
+  );
+
+  const sendTyping = useCallback(() => {
+    if (!channelRef.current || !me) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: me },
+    });
+  }, [me]);
+
+  const markAsRead = useCallback(
+    async (messageId: string) => {
+      if (!conversationId || !me) return;
+      await supabase.rpc("mark_messages_read", {
+        p_conversation_id: conversationId,
+        p_message_id: messageId,
+      });
+    },
+    [conversationId, me]
   );
 
   const block = useCallback(async () => {
@@ -361,6 +461,10 @@ export function useChat(conversationId?: string) {
       messages,
       loading,
       sendText,
+      sendTyping,
+      markAsRead,
+      readReceipts,
+      typingUsers,
       iBlocked,
       blockedEither,
       block,
@@ -377,6 +481,10 @@ export function useChat(conversationId?: string) {
       messages,
       loading,
       sendText,
+      sendTyping,
+      markAsRead,
+      readReceipts,
+      typingUsers,
       iBlocked,
       blockedEither,
       block,

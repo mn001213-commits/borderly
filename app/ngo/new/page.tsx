@@ -1,237 +1,168 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { createNgoPost } from "@/lib/ngoService";
+import { ArrowLeft, ImagePlus, Plus, X, Trash2 } from "lucide-react";
+import { useT } from "@/app/components/LangProvider";
 
-export default function NewNGOPage() {
+const BUCKET = "post-images";
+
+async function compressImage(file: File): Promise<{ blob: Blob; ext: string }> {
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("load failed"));
+    im.src = dataUrl;
+  });
+  const maxSize = 1600;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxSize / Math.max(w, h));
+  const nw = Math.round(w * scale);
+  const nh = Math.round(h * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = nw;
+  canvas.height = nh;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, nw, nh);
+  ctx.drawImage(img, 0, 0, nw, nh);
+  const blob = await new Promise<Blob>((res, rej) =>
+    canvas.toBlob((b) => (b ? res(b) : rej(new Error("blob failed"))), "image/jpeg", 0.82)
+  );
+  return { blob, ext: "jpg" };
+}
+
+export default function NgoNewPage() {
   const router = useRouter();
-
-  const [checking, setChecking] = useState(true);
-  const [allowed, setAllowed] = useState(false);
-  const [me, setMe] = useState<string | null>(null);
+  const { t } = useT();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
-  const [oneLine, setOneLine] = useState("");
-  const [location, setLocation] = useState("");
-  const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [location, setLocation] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [questions, setQuestions] = useState<string[]>([""]);
+  const [maxApplicants, setMaxApplicants] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
+    if (!file) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
-    async function checkAccess() {
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+  const addQuestion = () => { if (questions.length < 10) setQuestions([...questions, ""]); };
+  const removeQuestion = (idx: number) => setQuestions(questions.filter((_, i) => i !== idx));
+  const updateQuestion = (idx: number, val: string) => setQuestions(questions.map((q, i) => (i === idx ? val : q)));
 
-        if (authError) throw authError;
-        if (!alive) return;
-
-        const userId = user?.id ?? null;
-        setMe(userId);
-
-        if (!userId) {
-          router.replace("/login");
-          return;
-        }
-
-        const { data: ngoRow, error: ngoError } = await supabase
-          .from("ngo_accounts")
-          .select("user_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (ngoError) throw ngoError;
-        if (!alive) return;
-
-        setAllowed(!!ngoRow);
-      } catch (err: any) {
-        console.error(err);
-        if (!alive) return;
-        setErrorMsg(err?.message || "Failed to check NGO account.");
-      } finally {
-        if (!alive) return;
-        setChecking(false);
-      }
-    }
-
-    checkAccess();
-
-    return () => {
-      alive = false;
-    };
-  }, [router]);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErrorMsg("");
-
-    if (!me) {
-      setErrorMsg("Please log in first.");
-      return;
-    }
-
-    if (!allowed) {
-      setErrorMsg("Only NGO accounts can create NGO posts.");
-      return;
-    }
-
-    if (!title.trim() || !oneLine.trim() || !location.trim() || !description.trim()) {
-      setErrorMsg("Please fill in all required fields.");
-      return;
-    }
+  const onSubmit = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    if (!title.trim()) { setErrorMsg(t("createNgo.titleRequired")); setLoading(false); return; }
+    if (!description.trim()) { setErrorMsg(t("createNgo.descRequired")); setLoading(false); return; }
+    const validQ = questions.map((q) => q.trim()).filter(Boolean);
+    if (validQ.length === 0) { setErrorMsg(t("createNgo.questionRequired")); setLoading(false); return; }
 
     try {
-      setSubmitting(true);
-
-      const { error } = await supabase.from("ngo_posts").insert({
-        owner_user_id: me,
-        title: title.trim(),
-        one_line: oneLine.trim(),
-        location: location.trim(),
-        website: website.trim() || null,
-        description: description.trim(),
-      });
-
-      if (error) throw error;
-
-      router.push("/ngo");
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err?.message || "Failed to create NGO post.");
-    } finally {
-      setSubmitting(false);
+      let imageUrl: string | null = null;
+      if (file) {
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth.user?.id;
+        if (!uid) { router.push("/login"); return; }
+        const { blob, ext } = await compressImage(file);
+        const path = `${uid}/${Date.now()}-${Math.random().toString(16).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, blob, { cacheControl: "3600", upsert: false, contentType: "image/jpeg" });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        imageUrl = data.publicUrl;
+      }
+      const id = await createNgoPost({ title: title.trim(), description: description.trim(), location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
+      router.push(`/ngo/${id}`);
+    } catch (e: any) {
+      setErrorMsg(e?.message || "Failed to create post");
+      setLoading(false);
     }
-  }
+  };
 
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-        <div className="mx-auto max-w-2xl px-4 py-6">
-          <div className="text-sm text-gray-500">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-        <div className="mx-auto max-w-2xl px-4 py-6">
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="text-xl font-bold">Access denied</div>
-            <div className="mt-2 text-sm leading-relaxed text-gray-500">
-              Only designated NGO accounts can create NGO posts.
-            </div>
-
-            <Link
-              href="/ngo"
-              className="mt-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
-            >
-              ← Back to NGO page
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const canSubmit = !loading && !!title.trim() && !!description.trim() && questions.some((q) => q.trim());
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <Link
-          href="/ngo"
-          className="mb-4 inline-block rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
-        >
-          ← Back
-        </Link>
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>
+            <ArrowLeft className="h-5 w-5" style={{ color: "var(--deep-navy)" }} />
+          </button>
+          <h1 className="text-lg font-bold">{t("createNgo.title")}</h1>
+          <button onClick={onSubmit} disabled={!canSubmit} className="inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40" style={{ background: "#43A047" }}>
+            {loading ? t("createNgo.posting") : t("createNgo.publish")}
+          </button>
+        </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="text-xl font-bold">Create NGO Post</div>
-          <div className="mt-2 text-sm leading-relaxed text-gray-500">
-            Create a support post that residents can apply to.
-          </div>
+        {errorMsg && <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>}
 
-          {!!errorMsg && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMsg}
+        {/* Image */}
+        <div className="b-card b-animate-in overflow-hidden mb-4">
+          {previewUrl ? (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={previewUrl} alt="" className="w-full" />
+              <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"><X className="h-4 w-4" /></button>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="mt-4">
-            <div className="grid gap-3.5">
-              <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">Title</div>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Job support for residents in Kyoto"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-                />
+          ) : (
+            <button type="button" onClick={() => fileRef.current?.click()} className="flex w-full flex-col items-center justify-center gap-3 py-12 transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}>
+                <ImagePlus className="h-6 w-6" style={{ color: "#43A047" }} />
               </div>
-
-              <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  One-line summary
-                </div>
-                <input
-                  value={oneLine}
-                  onChange={(e) => setOneLine(e.target.value)}
-                  placeholder="Consultation, daily life support, and job guidance"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-                />
-              </div>
-
-              <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">Location</div>
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Kyoto"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-                />
-              </div>
-
-              <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  Website
-                </div>
-                <input
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  placeholder="https://example.org"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
-                />
-              </div>
-
-              <div>
-                <div className="mb-1.5 text-sm font-medium text-gray-700">
-                  Description
-                </div>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Explain what kind of support your organization can provide."
-                  rows={6}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none resize-y focus:border-gray-400 min-h-[120px]"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-default"
-            >
-              {submitting ? "Creating..." : "Create NGO Post"}
+              <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{t("createNgo.addCover")}</div>
             </button>
-          </form>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="hidden" />
+        </div>
+
+        {/* Details */}
+        <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.05s" }}>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.titlePlaceholder")} className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <div style={{ borderTop: "1px solid var(--border-soft)" }} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("createNgo.descPlaceholder")} className="w-full min-h-[120px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <div style={{ borderTop: "1px solid var(--border-soft)" }} />
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("createNgo.locationPlaceholder")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder={t("createNgo.websitePlaceholder")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <input value={maxApplicants} onChange={(e) => setMaxApplicants(e.target.value.replace(/\D/g, ""))} placeholder={t("createNgo.maxApplicants")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+        </div>
+
+        {/* Questions */}
+        <div className="b-card b-animate-in p-4" style={{ animationDelay: "0.1s" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>{t("createNgo.questions")}</div>
+          <div className="space-y-3">
+            {questions.map((q, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-xs font-bold shrink-0" style={{ color: "var(--text-muted)", width: 20 }}>{idx + 1}.</span>
+                <input value={q} onChange={(e) => updateQuestion(idx, e.target.value)} placeholder={t("createNgo.questionPlaceholder")} className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }} />
+                {questions.length > 1 && (
+                  <button type="button" onClick={() => removeQuestion(idx)} className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-red-50"><Trash2 className="h-3.5 w-3.5 text-red-400" /></button>
+                )}
+              </div>
+            ))}
+          </div>
+          {questions.length < 10 && (
+            <button type="button" onClick={addQuestion} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70" style={{ color: "#43A047" }}>
+              <Plus className="h-4 w-4" /> {t("createNgo.addQuestion")}
+            </button>
+          )}
         </div>
       </div>
     </div>

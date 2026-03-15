@@ -91,6 +91,19 @@ export async function addGroupMember(
   conversationId: string,
   userId: string
 ) {
+  // Verify caller is admin of the group
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: myMembership } = await supabase
+    .from("conversation_members")
+    .select("role")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!myMembership || myMembership.role !== "admin") return false;
+
   const { error } = await supabase.from("conversation_members").upsert(
     [{ conversation_id: conversationId, user_id: userId, role: "member" }],
     { onConflict: "conversation_id,user_id" }
@@ -102,6 +115,21 @@ export async function removeGroupMember(
   conversationId: string,
   userId: string
 ) {
+  // Verify caller is admin of the group (or removing themselves)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  if (user.id !== userId) {
+    const { data: myMembership } = await supabase
+      .from("conversation_members")
+      .select("role")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!myMembership || myMembership.role !== "admin") return false;
+  }
+
   const { error } = await supabase
     .from("conversation_members")
     .delete()
@@ -123,9 +151,22 @@ export async function updateGroupName(
   conversationId: string,
   name: string
 ) {
+  // Verify caller is admin of the group
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: myMembership } = await supabase
+    .from("conversation_members")
+    .select("role")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!myMembership || myMembership.role !== "admin") return false;
+
   const { error } = await supabase
     .from("conversations")
-    .update({ name: name.trim() })
+    .update({ name: name.trim().slice(0, 50) })
     .eq("id", conversationId);
   return !error;
 }

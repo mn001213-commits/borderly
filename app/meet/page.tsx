@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { checkAndSendMeetReminders } from "@/lib/meetReminderService";
+import { useT } from "../components/LangProvider";
 import {
   Users,
   Search,
-  Plus,
   MapPin,
   Calendar,
   UserPlus,
   UserMinus,
   FileText,
+  Clock,
+  TrendingUp,
+  Star,
 } from "lucide-react";
 
 type MeetType =
@@ -32,30 +36,24 @@ type MeetRow = {
   place_hint: string | null;
   start_at: string | null;
   max_people: number | null;
+  max_foreigners: number | null;
+  max_locals: number | null;
   is_closed: boolean;
   created_at: string;
   image_url: string | null;
   participant_count: number;
+  foreigner_count: number;
+  local_count: number;
 };
 
-function cx(...arr: Array<string | false | null | undefined>) {
-  return arr.filter(Boolean).join(" ");
-}
-
-function typeLabel(t: MeetType) {
+function typeEmoji(t: MeetType) {
   switch (t) {
-    case "hangout":
-      return "Hangout";
-    case "study":
-      return "Study";
-    case "language":
-      return "Language";
-    case "meal":
-      return "Meal";
-    case "sports":
-      return "Sports";
-    default:
-      return "Meet";
+    case "hangout": return "🤝";
+    case "study": return "📚";
+    case "language": return "🗣️";
+    case "meal": return "🍽️";
+    case "sports": return "⚽";
+    default: return "📌";
   }
 }
 
@@ -66,7 +64,7 @@ function isPastMeet(start_at: string | null) {
 }
 
 function formatWhen(start_at: string | null) {
-  if (!start_at) return "Time not set";
+  if (!start_at) return null;
   return new Date(start_at).toLocaleString("en-US", {
     year: "numeric",
     month: "short",
@@ -113,11 +111,11 @@ function scoreMeet(meet: MeetRow, prefs: { topTypes: string[]; topCities: string
 }
 
 export default function MeetPage() {
+  const { t } = useT();
   const [meets, setMeets] = useState<MeetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [isAuthed, setIsAuthed] = useState(false);
   const [myUid, setMyUid] = useState<string | null>(null);
   const [joinedSet, setJoinedSet] = useState<Set<string>>(new Set());
 
@@ -142,12 +140,11 @@ export default function MeetPage() {
     const uid = user?.id ?? null;
 
     setMyUid(uid);
-    setIsAuthed(!!uid);
-
+    
     const { data, error } = await supabase
       .from("v_meet_with_count")
       .select(
-        "id,host_id,type,sport,title,description,city,place_hint,start_at,max_people,is_closed,created_at,image_url,participant_count"
+        "id,host_id,type,sport,title,description,city,place_hint,start_at,max_people,max_foreigners,max_locals,is_closed,created_at,image_url,participant_count,foreigner_count,local_count"
       )
       .order("created_at", { ascending: false })
       .limit(80);
@@ -169,7 +166,7 @@ export default function MeetPage() {
       setJoinedSet(new Set(meetIds));
 
       if (meetIds.length > 0) {
-        const { data: joinedMeets } = await supabase.from("meets").select("id,type,city").in("id", meetIds);
+        const { data: joinedMeets } = await supabase.from("meet_posts").select("id,type,city").in("id", meetIds);
 
         const types = (joinedMeets ?? []).map((m: any) => m.type as string);
         const cities = (joinedMeets ?? []).map((m: any) => (m.city as string | null) ?? null);
@@ -192,14 +189,7 @@ export default function MeetPage() {
   useEffect(() => {
     load();
 
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthed(!!data.session);
-      setMyUid(data.session?.user?.id ?? null);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session);
-      setMyUid(session?.user?.id ?? null);
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
       load();
     });
 
@@ -229,6 +219,15 @@ export default function MeetPage() {
     };
   }, [load]);
 
+  // Run reminder check once per session
+  const reminderChecked = useRef(false);
+  useEffect(() => {
+    if (myUid && !reminderChecked.current) {
+      reminderChecked.current = true;
+      checkAndSendMeetReminders(myUid);
+    }
+  }, [myUid]);
+
   const typeTabs: Array<"all" | MeetType> = [
     "all",
     "hangout",
@@ -238,9 +237,12 @@ export default function MeetPage() {
     "sports",
   ];
 
-  const typeLabelForTab = (t: "all" | MeetType) => {
-    if (t === "all") return "All";
-    return typeLabel(t);
+  const meetTypeLabel = (type: MeetType) => {
+    return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
+  };
+  const meetTabLabel = (type: "all" | MeetType) => {
+    if (type === "all") return t("common.all");
+    return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
   };
 
   const filtered = useMemo(() => {
@@ -347,253 +349,302 @@ export default function MeetPage() {
     }
   };
 
-  const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
-  const tabBase =
-    "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition whitespace-nowrap";
-
-  const SortButton = ({
-    mode,
-    label,
-  }: {
-    mode: "recommend" | "latest" | "popular";
-    label: string;
-  }) => {
-    const active = sortMode === mode;
-    return (
-      <button
-        type="button"
-        onClick={() => setSortMode(mode)}
-        className={cx(
-          tabBase,
-          active ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
-        )}
-      >
-        {label}
-      </button>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
-        <header className="flex items-center justify-between gap-3 py-3">
-          <h1 className="text-xl font-bold">Meet</h1>
-          <Link
-            href={isAuthed ? "/meet/new" : "/login"}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:opacity-90"
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
+        {/* Search bar */}
+        <div className="mb-6">
+          <div
+            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
           >
-            <Plus className="h-4 w-4" />
-            Create
-          </Link>
-        </header>
+            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t("meet.searchMeets")}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+              style={{ color: "var(--deep-navy)" }}
+            />
+            {q && (
+              <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                {t("common.clear")}
+              </button>
+            )}
+          </div>
+        </div>
 
-        <div className="space-y-4">
-            <section className={cx(card, "p-4")}>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-                  <Search className="h-4 w-4 shrink-0 text-gray-400" />
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search..."
-                    className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                  />
-                </div>
+        {/* Type tabs + sort */}
+        <div className="mb-6 flex flex-col gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {typeTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveType(tab)}
+                className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+              >
+                {meetTabLabel(tab)}
+              </button>
+            ))}
+          </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {typeTabs.map((t) => {
-                    const active = activeType === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setActiveType(t)}
-                        className={cx(
-                          tabBase,
-                          active
-                            ? "bg-blue-600 text-white"
-                            : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
-                        )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSortMode("recommend")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "recommend" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <Star className="h-3.5 w-3.5" />
+              {t("common.recommended")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("latest")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {t("common.latest")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("popular")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              {t("common.popular")}
+            </button>
+
+            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              {filtered.length} {t("common.meets")}
+              {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
+              {q.trim() && <> · &quot;{q.trim()}&quot;</>}
+            </span>
+          </div>
+        </div>
+
+        {/* Meet cards */}
+        <div className="space-y-6">
+          {loading && (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="b-skeleton h-48" />
+              ))}
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+              {errorMsg}
+            </div>
+          )}
+
+          {!loading &&
+            !errorMsg &&
+            filtered.map((m, idx) => {
+              const where = [m.city, m.place_hint].filter(Boolean).join(" · ") || t("meet.locationNotSet");
+              const when = formatWhen(m.start_at) ?? t("meet.timeNotSet");
+              const ended = isPastMeet(m.start_at);
+
+              const cap =
+                m.max_foreigners != null && m.max_locals != null
+                  ? `F ${m.foreigner_count ?? 0}/${m.max_foreigners} · L ${m.local_count ?? 0}/${m.max_locals}`
+                  : m.max_people == null
+                    ? `${m.participant_count} ${t("meet.joined_count")}`
+                    : `${m.participant_count} / ${m.max_people}`;
+
+              const isFull = m.max_people != null && m.participant_count >= m.max_people;
+              const joined = joinedSet.has(m.id);
+
+              const joinDisabled = !myUid || ended || m.is_closed || isFull || busy[m.id];
+
+              let statusLabel = t("meet.open");
+              if (ended) statusLabel = t("meet.ended");
+              else if (m.is_closed) statusLabel = t("meet.closed");
+              else if (isFull) statusLabel = t("meet.full");
+              else if (joined) statusLabel = t("meet.joined");
+
+              return (
+                <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit">
+                  <article className="b-card b-card-hover b-animate-in overflow-hidden" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    {/* Image — full width, top of card */}
+                    {m.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={m.image_url}
+                        alt="Meet cover"
+                        className="w-full"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                    )}
+
+                    <div className="p-5">
+                    {/* Tags */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <span
+                        className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold b-meet-${m.type}`}
                       >
-                        {typeLabelForTab(t)}
-                      </button>
-                    );
-                  })}
-                </div>
+                        {meetTypeLabel(m.type)}
+                        {m.type === "sports" && m.sport ? ` · ${m.sport}` : ""}
+                      </span>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <span className="mr-1 text-xs font-medium text-gray-500">Sort</span>
-                  <SortButton mode="recommend" label="Recommended" />
-                  <SortButton mode="latest" label="Latest" />
-                  <SortButton mode="popular" label="Popular" />
+                      <span
+                        className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
+                        style={{
+                          background: joined ? "var(--primary)" : "var(--light-blue)",
+                          color: joined ? "#fff" : (ended || m.is_closed || isFull) ? "var(--text-muted)" : "var(--text-secondary)",
+                        }}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
 
-                  <span className="ml-auto text-right">
-                    Results <b className="text-gray-900">{filtered.length}</b>
-                    {activeType !== "all" ? (
-                      <>
-                        {" "}
-                        · <b className="text-gray-900">{typeLabelForTab(activeType)}</b>
-                      </>
-                    ) : null}
-                    {q.trim() ? (
-                      <>
-                        {" "}
-                        · Search <b className="text-gray-900">{q.trim()}</b>
-                      </>
-                    ) : null}
-                  </span>
-                </div>
+                    {/* Title */}
+                    <h2
+                      className="line-clamp-2 text-lg font-semibold leading-snug"
+                      style={{ color: "var(--deep-navy)" }}
+                    >
+                      {m.title}
+                    </h2>
+
+                    {/* Details */}
+                    <div className="mt-4 space-y-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                        <span>{when}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                        <span>{where}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                        <span>{cap}</span>
+                      </div>
+                    </div>
+
+                    {/* Mini quota bars */}
+                    {m.max_foreigners != null && m.max_locals != null && (
+                      <div className="mt-3 flex gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between text-[10px] font-semibold mb-0.5">
+                            <span style={{ color: "#1D4ED8" }}>F</span>
+                            <span style={{ color: "var(--text-muted)" }}>{m.foreigner_count ?? 0}/{m.max_foreigners}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                            <div className="h-full rounded-full transition-all" style={{
+                              width: `${Math.min(100, ((m.foreigner_count ?? 0) / m.max_foreigners) * 100)}%`,
+                              background: (m.foreigner_count ?? 0) >= m.max_foreigners ? "#22C55E" : "#3B82F6",
+                            }} />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between text-[10px] font-semibold mb-0.5">
+                            <span style={{ color: "#92400E" }}>L</span>
+                            <span style={{ color: "var(--text-muted)" }}>{m.local_count ?? 0}/{m.max_locals}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                            <div className="h-full rounded-full transition-all" style={{
+                              width: `${Math.min(100, ((m.local_count ?? 0) / m.max_locals) * 100)}%`,
+                              background: (m.local_count ?? 0) >= m.max_locals ? "#22C55E" : "#F59E0B",
+                            }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <p
+                      className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {m.description.length > 200 ? `${m.description.slice(0, 200)}...` : m.description}
+                    </p>
+
+                    {/* Actions */}
+                    <div className="mt-4 flex justify-end gap-2">
+                      {!myUid ? (
+                        <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                          {t("meet.signInToJoin")}
+                        </span>
+                      ) : joined ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            leaveMeet(m.id);
+                          }}
+                          disabled={busy[m.id]}
+                          className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ background: "var(--light-blue)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)" }}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                          {t("meet.leave")}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            joinMeet(m.id);
+                          }}
+                          disabled={joinDisabled}
+                          className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{
+                            background: joinDisabled ? "var(--text-muted)" : "var(--primary)",
+                          }}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          {ended ? t("meet.ended") : m.is_closed ? t("meet.closed") : isFull ? t("meet.full") : t("meet.join")}
+                        </button>
+                      )}
+                    </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
+
+          {!loading && !errorMsg && filtered.length === 0 && (
+            <div
+              className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center"
+              style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
+            >
+              <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                {t("meet.noMeets")}
               </div>
-            </section>
-
-            <section className="grid gap-3">
-              {loading && <div className={cx(card, "p-5 text-sm text-gray-500")}>Loading...</div>}
-
-              {errorMsg && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {errorMsg}
-                </div>
-              )}
-
-              {!loading &&
-                !errorMsg &&
-                filtered.map((m) => {
-                  const where = [m.city, m.place_hint].filter(Boolean).join(" · ") || "Location not set";
-                  const when = formatWhen(m.start_at);
-                  const ended = isPastMeet(m.start_at);
-
-                  const cap =
-                    m.max_people == null
-                      ? `${m.participant_count} joined`
-                      : `${m.participant_count} / ${m.max_people}`;
-
-                  const isFull = m.max_people != null && m.participant_count >= m.max_people;
-                  const joined = joinedSet.has(m.id);
-
-                  const joinDisabled = !myUid || ended || m.is_closed || isFull || busy[m.id];
-
-                  let statusLabel = "Open";
-                  if (ended) statusLabel = "Ended";
-                  else if (m.is_closed) statusLabel = "Closed";
-                  else if (isFull) statusLabel = "Full";
-                  else if (joined) statusLabel = "Joined";
-
-                  return (
-                    <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit">
-                      <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                              <span className="inline-flex h-7 items-center rounded-full bg-gray-100 px-3 font-medium text-gray-600">
-                                {typeLabel(m.type)}
-                                {m.type === "sports" && m.sport ? ` · ${m.sport}` : ""}
-                              </span>
-
-                              <span
-                                className={cx(
-                                  "inline-flex h-7 items-center rounded-full px-3 font-medium",
-                                  joined
-                                    ? "bg-blue-600 text-white"
-                                    : ended || m.is_closed || isFull
-                                    ? "bg-gray-100 text-gray-500"
-                                    : "bg-gray-100 text-gray-700"
-                                )}
-                              >
-                                {statusLabel}
-                              </span>
-                            </div>
-
-                            <h2 className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-gray-900 sm:text-base">
-                              {m.title}
-                            </h2>
-                          </div>
-                        </div>
-
-                        {m.image_url ? (
-                          <div className="mt-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={m.image_url}
-                              alt="Meet cover"
-                              className="h-44 w-full rounded-xl object-cover"
-                            />
-                          </div>
-                        ) : null}
-
-                        <div className="mt-4 space-y-2 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>{when}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-400" />
-                            <span>{where}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span>{cap}</span>
-                          </div>
-                        </div>
-
-                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-600">
-                          {m.description.length > 140 ? `${m.description.slice(0, 140)}...` : m.description}
-                        </p>
-
-                        <div className="mt-4 flex justify-end gap-2">
-                          {!myUid ? (
-                            <span className="inline-flex h-10 items-center text-xs font-medium text-gray-500">
-                              Sign in required
-                            </span>
-                          ) : joined ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                leaveMeet(m.id);
-                              }}
-                              disabled={busy[m.id]}
-                              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                              Leave
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                joinMeet(m.id);
-                              }}
-                              disabled={joinDisabled}
-                              className={cx(
-                                "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-                                joinDisabled
-                                  ? "border border-gray-200 bg-white text-gray-500"
-                                  : "bg-blue-600 text-white hover:opacity-90"
-                              )}
-                            >
-                              <UserPlus className="h-4 w-4" />
-                              {ended ? "Ended" : m.is_closed ? "Closed" : isFull ? "Full" : "Join"}
-                            </button>
-                          )}
-                        </div>
-                      </article>
-                    </Link>
-                  );
-                })}
-
-              {!loading && !errorMsg && filtered.length === 0 && (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-                  <FileText className="mb-3 h-10 w-10 text-gray-300" />
-                  <div className="text-sm font-semibold text-gray-800">No meets found</div>
-                  <div className="mt-1 text-sm text-gray-500">Try another search or create a new meet.</div>
-                </div>
-              )}
-            </section>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {t("meet.trySearch")}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { countryName } from "@/lib/countries";
+import { useT } from "@/app/components/LangProvider";
 
 type User = {
   id: string;
@@ -14,6 +15,7 @@ type User = {
 };
 
 export default function UsersPage() {
+  const { t } = useT();
   const [users, setUsers] = useState<User[]>([]);
   const [country, setCountry] = useState("");
   const [social, setSocial] = useState("");
@@ -37,11 +39,11 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <h1 className="text-xl font-bold">Find Users</h1>
+        <h1 className="text-xl font-bold">{t("users.title")}</h1>
 
         <div className="mt-4 flex gap-3">
           <input
-            placeholder="Country code (KR, JP...)"
+            placeholder={t("users.countryCodePlaceholder")}
             value={country}
             onChange={(e) => setCountry(e.target.value.toUpperCase())}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
@@ -52,12 +54,12 @@ export default function UsersPage() {
             onChange={(e) => setSocial(e.target.value)}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
           >
-            <option value="">All</option>
-            <option value="worker">Employee</option>
-            <option value="job_seeker">Job seeker</option>
-            <option value="student">Student</option>
-            <option value="homemaker">Homemaker</option>
-            <option value="freelancer">Freelancer</option>
+            <option value="">{t("common.all")}</option>
+            <option value="worker">{t("users.employee")}</option>
+            <option value="job_seeker">{t("users.jobSeeker")}</option>
+            <option value="student">{t("users.student")}</option>
+            <option value="homemaker">{t("users.homemaker")}</option>
+            <option value="freelancer">{t("users.freelancer")}</option>
           </select>
         </div>
 

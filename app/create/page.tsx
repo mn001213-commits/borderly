@@ -1,12 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { ArrowLeft, ImagePlus, Film, X } from "lucide-react";
+import { useT } from "@/app/components/LangProvider";
+
+const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
+const MAX_VIDEO_MB = 50;
+
+function isVideoFile(file: File) {
+  return file.type.startsWith("video/");
+}
+
+function isVideoUrl(url: string) {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
+  } catch {
+    return false;
+  }
+}
 
 const BUCKET = "post-images";
 
-// Image resize/compress (max 1600px, quality 0.82)
 async function compressImage(
   file: File,
   opts?: { maxSize?: number; quality?: number; mime?: "image/jpeg" | "image/webp" }
@@ -43,10 +60,8 @@ async function compressImage(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to create canvas context");
 
-  // Fill transparent background with white
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, nw, nh);
-
   ctx.drawImage(img, 0, 0, nw, nh);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
@@ -57,54 +72,66 @@ async function compressImage(
   return { blob, contentType: mime, ext };
 }
 
-type Category = "info" | "question" | "daily" | "jobs" | "meet" | "general";
+type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
-const CATEGORY_OPTIONS: Array<{ value: Category; label: string }> = [
-  { value: "info", label: "Info Sharing" },
-  { value: "question", label: "Questions" },
-  { value: "daily", label: "Daily Life" },
-  { value: "jobs", label: "Jobs" },
-  { value: "meet", label: "Meetups" },
-  { value: "general", label: "General" },
+const CATEGORY_OPTIONS: Array<{ value: Category; color: string }> = [
+  { value: "general", color: "bg-[#EAF4FF] text-[#4DA6FF]" },
+  { value: "info", color: "bg-[#E8F5E9] text-[#43A047]" },
+  { value: "question", color: "bg-[#FFF3E0] text-[#EF6C00]" },
+  { value: "daily", color: "bg-[#F3E5F5] text-[#8E24AA]" },
+  { value: "jobs", color: "bg-[#FFF8E1] text-[#F9A825]" },
+  { value: "other", color: "bg-[#ECEFF1] text-[#546E7A]" },
 ];
 
 export default function CreatePage() {
   const router = useRouter();
+  const { t } = useT();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-
-  // Category: no default (force selection)
   const [category, setCategory] = useState<Category | "">("");
-
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Image preview
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
+    if (files.length === 0) {
+      setPreviewUrls([]);
       return;
     }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
 
-  // Generate file path (with extension)
   const makeSafePath = (userId: string, ext: string) => {
     const rand = Math.random().toString(16).slice(2);
     return `${userId}/${Date.now()}-${rand}.${ext}`;
   };
 
-  const uploadImageIfAny = async (userId: string) => {
-    if (!file) return null;
+  const uploadSingleFile = async (userId: string, f: File): Promise<string> => {
+    if (isVideoFile(f)) {
+      if (f.size > MAX_VIDEO_MB * 1024 * 1024) {
+        throw new Error(`Video must be under ${MAX_VIDEO_MB}MB`);
+      }
+      const ext = f.name.split(".").pop()?.toLowerCase() || "mp4";
+      const path = makeSafePath(userId, ext);
 
-    // Compress before upload
-    const { blob, contentType, ext } = await compressImage(file, {
+      const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: f.type,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      return data.publicUrl;
+    }
+
+    const { blob, contentType, ext } = await compressImage(f, {
       maxSize: 1600,
       quality: 0.82,
       mime: "image/jpeg",
@@ -124,11 +151,30 @@ export default function CreatePage() {
     return data.publicUrl;
   };
 
+  const uploadAllFiles = async (userId: string): Promise<string[]> => {
+    if (files.length === 0) return [];
+    const urls: string[] = [];
+    for (const f of files) {
+      const url = await uploadSingleFile(userId, f);
+      urls.push(url);
+    }
+    return urls;
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const removeAllMedia = () => {
+    setFiles([]);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const onSubmit = async () => {
     setLoading(true);
     setErrorMsg(null);
 
-    // Check logged-in user
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user ?? null;
 
@@ -138,36 +184,36 @@ export default function CreatePage() {
       return;
     }
 
-    const t = title.trim();
+    const trimTitle = title.trim();
     const c = content.trim();
 
     if (!category) {
-      setErrorMsg("Please select a category");
+      setErrorMsg(t("create.selectCategory"));
       setLoading(false);
       return;
     }
 
-    if (!t || !c) {
-      setErrorMsg("Please enter a title and content");
+    if (!trimTitle || !c) {
+      setErrorMsg(t("create.enterTitleContent"));
       setLoading(false);
       return;
     }
 
     try {
-      const authorName = null;
-
-      // Upload image (if present, compress then upload)
-      const imageUrl = await uploadImageIfAny(user.id);
+      const uploadedUrls = await uploadAllFiles(user.id);
+      const imageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : null;
+      const imageUrls = uploadedUrls.length > 0 ? uploadedUrls : null;
 
       const { data, error } = await supabase
         .from("posts")
         .insert({
-          title: t,
+          title: trimTitle,
           content: c,
           category,
           user_id: user.id,
-          author_name: authorName,
+          author_name: null,
           image_url: imageUrl,
+          image_urls: imageUrls,
         })
         .select("id")
         .single();
@@ -185,90 +231,209 @@ export default function CreatePage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <button
-          onClick={() => router.back()}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
-        >
-          ← Back
-        </button>
+  const canSubmit = !loading && !!title.trim() && !!content.trim() && !!category;
 
-        <h2 className="mt-4 text-xl font-bold">Create New Post</h2>
+  return (
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:opacity-70"
+            style={{ background: "var(--light-blue)" }}
+          >
+            <ArrowLeft className="h-5 w-5" style={{ color: "var(--deep-navy)" }} />
+          </button>
+
+          <h1 className="text-lg font-bold">{t("create.newPost")}</h1>
+
+          <button
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            style={{ background: "var(--primary)" }}
+          >
+            {loading ? t("create.posting") : t("create.share")}
+          </button>
+        </div>
 
         {errorMsg && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            className="mb-4 rounded-2xl px-4 py-3 text-sm"
+            style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}
+          >
             {errorMsg}
           </div>
         )}
 
-        <div className="mt-4 space-y-4">
-          {/* Category selection */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as any)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none"
+        {/* Image area */}
+        <div className="b-card b-animate-in overflow-hidden mb-4">
+          {previewUrls.length > 0 ? (
+            <div>
+              <div className="flex gap-3 overflow-x-auto p-3 scrollbar-hide">
+                {previewUrls.map((url, i) => (
+                  <div key={i} className="relative shrink-0">
+                    {files[i] && isVideoFile(files[i]) ? (
+                      <video
+                        src={url}
+                        controls
+                        className="rounded-xl"
+                        style={{ height: 200, maxWidth: 280 }}
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={url}
+                        alt={`Preview ${i + 1}`}
+                        className="rounded-xl object-cover"
+                        style={{ height: 200, width: 200 }}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {files.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="flex shrink-0 items-center justify-center rounded-xl"
+                    style={{ height: 200, width: 100, background: "var(--light-blue)", border: "2px dashed var(--border-soft)" }}
+                  >
+                    <ImagePlus className="h-6 w-6" style={{ color: "var(--primary)" }} />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center justify-between px-3 pb-3">
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {files.length}/5 {t("create.files")}
+                </span>
+                <button
+                  type="button"
+                  onClick={removeAllMedia}
+                  className="text-xs font-medium hover:opacity-70"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {t("create.removeAll")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-3 py-16 transition hover:opacity-70"
+              style={{ background: "var(--light-blue)" }}
             >
-              <option value="" disabled>
-                Select
-              </option>
-              {CATEGORY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Image */}
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm"
-            />
-          </div>
-
-          {previewUrl && (
-            <img
-              src={previewUrl}
-              alt="preview"
-              className="w-full max-h-[400px] object-cover rounded-xl border border-gray-100"
-            />
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full"
+                  style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}
+                >
+                  <ImagePlus className="h-6 w-6" style={{ color: "var(--primary)" }} />
+                </div>
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full"
+                  style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}
+                >
+                  <Film className="h-6 w-6" style={{ color: "var(--primary)" }} />
+                </div>
+              </div>
+              <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                {t("create.tapToAdd")}
+              </div>
+              <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                {t("create.autoCompress")} {MAX_VIDEO_MB}MB
+              </div>
+            </button>
           )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={(e) => {
+              const selected = Array.from(e.target.files ?? []);
+              if (selected.length === 0) return;
+              setFiles((prev) => {
+                const combined = [...prev, ...selected];
+                return combined.slice(0, 5);
+              });
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+            className="hidden"
+          />
+        </div>
 
+        {/* Category pills */}
+        <div className="b-card b-animate-in p-4 mb-4" style={{ animationDelay: "0.05s" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+            {t("create.category")}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setCategory(o.value)}
+                className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition ${
+                  category === o.value
+                    ? o.color
+                    : ""
+                }`}
+                style={
+                  category === o.value
+                    ? { boxShadow: "0 0 0 2px var(--primary)" }
+                    : { background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }
+                }
+              >
+                {t("cat." + o.value)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Title + Content */}
+        <div className="b-card b-animate-in p-4 space-y-4" style={{ animationDelay: "0.1s" }}>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
+            placeholder={t("create.title")}
+            className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-[var(--text-muted)]"
+            style={{ color: "var(--deep-navy)" }}
           />
+
+          <div style={{ borderTop: "1px solid var(--border-soft)" }} />
 
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Content"
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400 min-h-[150px]"
+            placeholder={t("create.writeSomething")}
+            className="w-full min-h-[180px] resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-[var(--text-muted)]"
+            style={{ color: "var(--deep-navy)" }}
           />
-
-          <button
-            onClick={onSubmit}
-            disabled={loading}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Submitting..." : "Submit"}
-          </button>
-
-          <div className="text-xs text-gray-500">
-            Images are automatically resized and compressed before upload.
-          </div>
         </div>
+
+        {/* Bottom action bar (mobile) */}
+        {previewUrls.length > 0 && files.length < 5 && (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition hover:opacity-80"
+              style={{ background: "var(--light-blue)", color: "var(--primary)", border: "1px solid var(--border-soft)" }}
+            >
+              <ImagePlus className="h-4 w-4" />
+              {t("create.addMoreMedia")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

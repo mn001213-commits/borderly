@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabaseClient";
+
 const cache = new Map<string, string>();
 
 export async function translateText(
@@ -9,9 +11,16 @@ export async function translateText(
   const cached = cache.get(key);
   if (cached) return cached;
 
+  // Get auth token for API authentication
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch("/api/translate", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ text, targetLang }),
   });
 

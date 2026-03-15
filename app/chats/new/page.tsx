@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useT } from "@/app/components/LangProvider";
 
 type Profile = {
   id: string;
@@ -18,6 +19,7 @@ type DirectConversation = {
 
 export default function NewChatPage() {
   const router = useRouter();
+  const { t } = useT();
 
   const [me, setMe] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -157,7 +159,7 @@ export default function NewChatPage() {
     router.push(`/chats/${conversationId}`);
   };
 
-  if (!me) return <div className="p-4 text-sm text-gray-500">Loading...</div>;
+  if (!me) return <div className="p-4 text-sm text-gray-500">{t("common.loading")}</div>;
 
   return (
     <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
@@ -167,16 +169,16 @@ export default function NewChatPage() {
             onClick={() => router.push("/chats")}
             className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
           >
-            ← Back
+            ← {t("common.back")}
           </button>
-          <h2 className="text-xl font-bold">New Chat</h2>
+          <h2 className="text-xl font-bold">{t("chat.newChat")}</h2>
         </div>
 
         <div className="mt-4 flex items-center gap-3">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name"
+            placeholder={t("chat.searchByName")}
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400"
             onKeyDown={(e) => {
               if (e.key === "Enter") refreshSearch();
@@ -186,7 +188,7 @@ export default function NewChatPage() {
             onClick={refreshSearch}
             className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            Search
+            {t("common.search")}
           </button>
         </div>
 
@@ -198,9 +200,9 @@ export default function NewChatPage() {
 
         <div className="mt-4 space-y-3">
           {loading ? (
-            <div className="text-sm text-gray-500">Loading...</div>
+            <div className="text-sm text-gray-500">{t("common.loading")}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-sm text-gray-500">No results found.</div>
+            <div className="text-sm text-gray-500">{t("chat.noResults")}</div>
           ) : (
             filtered.map((p) => (
               <div
@@ -209,7 +211,7 @@ export default function NewChatPage() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-bold">
-                    {p.display_name ?? "Unnamed"}
+                    {p.display_name ?? t("chat.unnamed")}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
                     @{p.id.slice(0, 8)}...
@@ -220,7 +222,7 @@ export default function NewChatPage() {
                   onClick={() => getOrCreateConversation(p.id)}
                   className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
                 >
-                  Chat
+                  {t("chat.chat")}
                 </button>
               </div>
             ))

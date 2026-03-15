@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const ADMIN_UIDS = new Set<string>([
-  // Add admin UIDs here if needed, e.g. "uuid-here"
-]);
-
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -16,7 +12,14 @@ export async function GET(req: Request) {
 
   const uid = userRes.user.id;
 
-  if (ADMIN_UIDS.size > 0 && !ADMIN_UIDS.has(uid)) {
+  // DB에서 admin role 확인
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", uid)
+    .maybeSingle();
+
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

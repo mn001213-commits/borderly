@@ -2,17 +2,28 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useT } from "./components/LangProvider";
 import {
   Heart,
   MessageCircle,
   Search,
   Flame,
   ChevronRight,
-  Plus,
   FileText,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
+
+const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
+function isVideoUrl(url: string) {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
+  } catch {
+    return false;
+  }
+}
 
 type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
@@ -25,13 +36,10 @@ type Post = {
   like_count: number;
   comment_count: number;
   image_url: string | null;
+  image_urls: string[] | null;
   category: Category | null;
   is_hidden?: boolean | null;
 };
-
-function cx(...arr: Array<string | false | null | undefined>) {
-  return arr.filter(Boolean).join(" ");
-}
 
 function formatRelative(iso: string) {
   const t = new Date(iso).getTime();
@@ -51,24 +59,21 @@ function formatRelative(iso: string) {
   return `${day}d ago`;
 }
 
-const CAT_LABEL: Record<"all" | Category, string> = {
-  all: "All",
-  general: "General",
-  info: "Info",
-  question: "Question",
-  daily: "Daily",
-  jobs: "Jobs",
-  other: "Other",
+const CAT_COLOR: Record<Category, string> = {
+  general: "bg-[#EAF4FF] text-[#4DA6FF]",
+  info: "bg-[#E8F5E9] text-[#43A047]",
+  question: "bg-[#FFF3E0] text-[#EF6C00]",
+  daily: "bg-[#F3E5F5] text-[#8E24AA]",
+  jobs: "bg-[#FFF8E1] text-[#F9A825]",
+  other: "bg-[#ECEFF1] text-[#546E7A]",
 };
 
 export default function HomePage() {
-  const router = useRouter();
-
+  const { t } = useT();
+  const catLabel = (k: string) => t(`cat.${k}`);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isAuthed, setIsAuthed] = useState(false);
-
   const [searchInput, setSearchInput] = useState("");
   const [searchText, setSearchText] = useState("");
   const [activeCat, setActiveCat] = useState<"all" | Category>("all");
@@ -80,10 +85,10 @@ export default function HomePage() {
 
     const { data, error } = await supabase
       .from("v_posts_engagement")
-      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,category,is_hidden")
+      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
-      .limit(80);
+      .limit(20);
 
     if (error) {
       setErrorMsg(error.message);
@@ -98,22 +103,49 @@ export default function HomePage() {
   useEffect(() => {
     load();
 
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthed(!!data.session);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session);
-    });
-
-    return () => {
-      sub.subscription.unsubscribe();
-    };
+    return () => {};
   }, [load]);
 
   const startedRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // Load more posts (infinite scroll)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || posts.length === 0) return;
+    setLoadingMore(true);
+
+    const lastPost = posts[posts.length - 1];
+    const { data } = await supabase
+      .from("v_posts_engagement")
+      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .eq("is_hidden", false)
+      .lt("created_at", lastPost.created_at)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (data && data.length > 0) {
+      setPosts((prev) => [...prev, ...(data as Post[])]);
+    }
+    if (!data || data.length < 20) setHasMore(false);
+    setLoadingMore(false);
+  }, [posts, loadingMore, hasMore]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
+  // Realtime: incremental updates instead of full refetch
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -128,16 +160,43 @@ export default function HomePage() {
 
       if (cancelled) return;
 
-      const refetchSoon = () => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => load(), 250);
-      };
-
       ch = supabase
         .channel("home:realtime")
-        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, refetchSoon)
-        .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, refetchSoon)
-        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, refetchSoon)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
+          // New post: fetch full data and prepend
+          const newId = payload.new?.id;
+          if (!newId) return;
+          supabase
+            .from("v_posts_engagement")
+            .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+            .eq("id", newId)
+            .maybeSingle()
+            .then(({ data: p }) => {
+              if (p && !p.is_hidden) {
+                setPosts((prev) => [p as Post, ...prev.filter((x) => x.id !== p.id)]);
+              }
+            });
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts" }, (payload) => {
+          const updated = payload.new as any;
+          if (!updated?.id) return;
+          if (updated.is_hidden) {
+            setPosts((prev) => prev.filter((p) => p.id !== updated.id));
+          } else {
+            supabase
+              .from("v_posts_engagement")
+              .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+              .eq("id", updated.id)
+              .maybeSingle()
+              .then(({ data: p }) => {
+                if (p) setPosts((prev) => prev.map((x) => (x.id === p.id ? (p as Post) : x)));
+              });
+          }
+        })
+        .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, (payload) => {
+          const oldId = (payload.old as any)?.id;
+          if (oldId) setPosts((prev) => prev.filter((p) => p.id !== oldId));
+        })
         .subscribe();
     };
 
@@ -146,10 +205,9 @@ export default function HomePage() {
     return () => {
       cancelled = true;
       startedRef.current = false;
-      if (timerRef.current) clearTimeout(timerRef.current);
       if (ch) supabase.removeChannel(ch);
     };
-  }, [load]);
+  }, []);
 
   const handleSearch = useCallback(() => {
     setSearchText(searchInput.trim());
@@ -159,15 +217,6 @@ export default function HomePage() {
     setSearchInput("");
     setSearchText("");
   }, []);
-
-  const goBrowseWithSearch = useCallback(() => {
-    const q = searchInput.trim();
-    if (q) {
-      router.push(`/browse?q=${encodeURIComponent(q)}`);
-      return;
-    }
-    router.push("/browse");
-  }, [router, searchInput]);
 
   const trendingTop3 = useMemo(() => {
     const now = Date.now();
@@ -220,176 +269,129 @@ export default function HomePage() {
     return arr;
   }, [posts, searchText, activeCat, sortMode]);
 
-  const catCounts = useMemo(() => {
-    const base: Record<"all" | Category, number> = {
-      all: posts.length,
-      general: 0,
-      info: 0,
-      question: 0,
-      daily: 0,
-      jobs: 0,
-      other: 0,
-    };
-
-    for (const p of posts) {
-      const k = (p.category ?? "general") as Category;
-      if (k in base) {
-        base[k] = (base[k] ?? 0) + 1;
-      } else {
-        base.other = (base.other ?? 0) + 1;
-      }
-    }
-
-    return base;
-  }, [posts]);
-
   const catTabs: Array<"all" | Category> = ["all", "general", "info", "question", "daily", "jobs", "other"];
 
-  const card = "rounded-2xl border border-gray-100 bg-white shadow-sm";
-  const pillBase =
-    "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition whitespace-nowrap";
-
-  const SegTab = ({ k }: { k: "all" | Category }) => {
-    const active = activeCat === k;
-
-    return (
-      <button
-        type="button"
-        onClick={() => setActiveCat(k)}
-        className={cx(
-          pillBase,
-          active ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
-        )}
-      >
-        {CAT_LABEL[k]}
-      </button>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
-        <header className="flex items-center justify-between gap-3 py-3">
-          <h1 className="text-xl font-bold">Community</h1>
-          <Link
-            href={isAuthed ? "/create" : "/login"}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:opacity-90"
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
+        {/* Search bar */}
+        <div className="mb-6">
+          <div
+            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
           >
-            <Plus className="h-4 w-4" />
-            Post
-          </Link>
-        </header>
+            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+              placeholder={t("home.searchPosts")}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+              style={{ color: "var(--deep-navy)" }}
+            />
+            {searchInput && (
+              <button type="button" onClick={clearSearch} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                {t("common.clear")}
+              </button>
+            )}
+          </div>
+        </div>
 
-        <div className="space-y-4">
-            <section className={cx(card, "p-4")}>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-                  <Search className="h-4 w-4 shrink-0 text-gray-400" />
-                  <input
-                    id="home-search"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch();
-                    }}
-                    placeholder="Search..."
-                    className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                  />
-                  {searchInput && (
-                    <button type="button" onClick={clearSearch} className="text-xs font-medium text-gray-400 hover:text-gray-600">
-                      Clear
-                    </button>
-                  )}
-                </div>
+        {/* Category tabs + sort */}
+        <div className="mb-6 flex flex-col gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {catTabs.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setActiveCat(k)}
+                className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+              >
+                {catLabel(k)}
+              </button>
+            ))}
+          </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                  {catTabs.map((k) => (
-                    <SegTab key={k} k={k} />
-                  ))}
-                </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSortMode("latest")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {t("common.latest")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("likes")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "likes" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "likes" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "likes" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              {t("common.popular")}
+            </button>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <button
-                    type="button"
-                    onClick={() => setSortMode("latest")}
-                    className={cx(
-                      "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
-                      sortMode === "latest"
-                        ? "bg-blue-600 text-white"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
-                    )}
-                  >
-                    Latest
-                  </button>
+            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              {filteredPosts.length} {t("common.posts")}
+              {searchText && <> · &quot;{searchText}&quot;</>}
+            </span>
+          </div>
+        </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSortMode("likes")}
-                    className={cx(
-                      "inline-flex h-8 items-center rounded-full px-3 font-medium transition",
-                      sortMode === "likes"
-                        ? "bg-blue-600 text-white"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-[#F0F7FF]"
-                    )}
-                  >
-                    Popular
-                  </button>
-
-                  <span className="ml-auto text-right">
-                    Results <b className="text-gray-900">{filteredPosts.length}</b>
-                    {searchText ? (
-                      <>
-                        {" "}
-                        · Search <b className="text-gray-900">{searchText}</b>
-                      </>
-                    ) : null}
-                    {activeCat !== "all" ? (
-                      <>
-                        {" "}
-                        · <b className="text-gray-900">{CAT_LABEL[activeCat]}</b> ({catCounts[activeCat] ?? 0})
-                      </>
-                    ) : (
-                      <>
-                        {" "}
-                        · <b className="text-gray-900">All</b> ({catCounts.all})
-                      </>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </section>
-
+        {/* Feed */}
+        <div className="space-y-6">
+            {/* Trending */}
             {!loading && !errorMsg && trendingTop3.length > 0 && (
-              <section className={cx(card, "p-4 sm:p-5")}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-base font-semibold text-gray-900">
-                    <Flame className="h-5 w-5 text-orange-500" />
-                    Trending
+              <section className="b-card p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-base font-semibold" style={{ color: "var(--deep-navy)" }}>
+                    <Flame className="h-5 w-5 text-orange-400" />
+                    {t("home.trending")}
                   </div>
-
                   <Link
                     href="/browse"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 transition hover:text-gray-900"
+                    className="inline-flex items-center gap-1 text-sm font-medium no-underline transition hover:opacity-70"
+                    style={{ color: "var(--text-secondary)" }}
                   >
-                    See all <ChevronRight className="h-4 w-4" />
+                    {t("home.seeAll")} <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
 
-                <div className="mt-3 grid gap-2">
+                <div className="grid gap-3">
                   {trendingTop3.map((p, idx) => (
                     <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
-                      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-[#F0F7FF] px-3 py-3 transition hover:bg-white">
-                        <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
-
+                      <div
+                        className="flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:shadow-sm"
+                        style={{ background: "var(--light-blue)" }}
+                      >
+                        <div className="w-6 text-center text-sm font-bold" style={{ color: "var(--primary)" }}>
+                          {idx + 1}
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-gray-900">{p.title}</div>
-                          <div className="mt-1 truncate text-xs text-gray-500">
-                            {p.author_name ?? "Anonymous"} · {formatRelative(p.created_at)}
+                          <div className="truncate text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                            {p.title}
+                          </div>
+                          <div className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
+                            {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
                           </div>
                         </div>
-
-                        <div className="inline-flex items-center gap-1 text-gray-500">
-                          <Heart className="h-4 w-4" />
+                        <div className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+                          <Heart className="h-3.5 w-3.5" />
                           <span className="text-xs font-medium">{p.like_count ?? 0}</span>
                         </div>
                       </div>
@@ -399,82 +401,127 @@ export default function HomePage() {
               </section>
             )}
 
-            <section className="grid gap-3">
-              {loading && (
-                <div className={cx(card, "p-5 text-sm text-gray-500")}>
-                  Loading...
-                </div>
-              )}
-
-              {errorMsg && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {errorMsg}
-                </div>
-              )}
-
-              {!loading &&
-                !errorMsg &&
-                filteredPosts.map((p) => (
-                  <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
-                    <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs text-gray-400">
-                            {p.author_name ?? "Anonymous"} · {formatRelative(p.created_at)}
-                          </div>
-
-                          <h2 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-gray-900 sm:text-base">
-                            {p.title}
-                          </h2>
-
-                          <div className="mt-2 inline-flex h-7 items-center rounded-full bg-gray-100 px-3 text-xs font-medium text-gray-600">
-                            {CAT_LABEL[(p.category ?? "general") as Category]}
-                          </div>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-3 text-gray-500">
-                          <div className="inline-flex items-center gap-1">
-                            <Heart className="h-5 w-5" />
-                            <span className="text-xs font-medium">{p.like_count ?? 0}</span>
-                          </div>
-                          <div className="inline-flex items-center gap-1">
-                            <MessageCircle className="h-5 w-5" />
-                            <span className="text-xs font-medium">{p.comment_count ?? 0}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {p.image_url ? (
-                        <div className="mt-4">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={p.image_url}
-                            alt="Post thumbnail"
-                            className="h-44 w-full rounded-xl object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        </div>
-                      ) : null}
-
-                      <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-gray-600">
-                        {p.content.length > 180 ? `${p.content.slice(0, 180)}...` : p.content}
-                      </p>
-                    </article>
-                  </Link>
+            {/* Post cards */}
+            {loading && (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="b-skeleton h-48" />
                 ))}
+              </div>
+            )}
 
-              {!loading && !errorMsg && filteredPosts.length === 0 && (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-                  <FileText className="mb-3 h-10 w-10 text-gray-300" />
-                  <div className="text-sm font-semibold text-gray-800">No posts found</div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    {searchText ? "Try another keyword." : "Be the first to share something."}
+            {errorMsg && (
+              <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+                {errorMsg}
+              </div>
+            )}
+
+            {!loading && !errorMsg && filteredPosts.map((p, idx) => (
+              <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
+                <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                  {/* Author + time */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                      {p.author_name ?? t("home.anonymous")}
+                    </span>
+                    <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+                      · {formatRelative(p.created_at)}
+                    </span>
                   </div>
+
+                  {/* Title */}
+                  <h2
+                    className="line-clamp-2 text-lg font-semibold leading-snug"
+                    style={{ color: "var(--deep-navy)" }}
+                  >
+                    {p.title}
+                  </h2>
+
+                  {/* Category tag */}
+                  <div className="mt-2.5">
+                    <span
+                      className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${
+                        CAT_COLOR[(p.category ?? "general") as Category]
+                      }`}
+                    >
+                      {catLabel(p.category ?? "general")}
+                    </span>
+                  </div>
+
+                  {/* Content preview */}
+                  <p
+                    className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {p.content.length > 200 ? `${p.content.slice(0, 200)}...` : p.content}
+                  </p>
+
+                  {/* Media */}
+                  {p.image_url && (
+                    <div className="relative mt-4">
+                      {isVideoUrl(p.image_url) ? (
+                        <video
+                          src={p.image_url}
+                          controls
+                          preload="metadata"
+                          className="w-full rounded-2xl"
+                          style={{ border: "1px solid var(--border-soft)" }}
+                          onClick={(e) => e.preventDefault()}
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.image_url}
+                          alt=""
+                          className="w-full rounded-2xl"
+                          style={{ border: "1px solid var(--border-soft)" }}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        />
+                      )}
+                      {p.image_urls && p.image_urls.length > 1 && (
+                        <div className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-black/60 px-2.5 text-xs font-semibold text-white">
+                          +{p.image_urls.length - 1}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="mt-4 flex items-center gap-5">
+                    <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                      <Heart className="h-[18px] w-[18px]" />
+                      <span className="text-[13px] font-medium">{p.like_count ?? 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                      <MessageCircle className="h-[18px] w-[18px]" />
+                      <span className="text-[13px] font-medium">{p.comment_count ?? 0}</span>
+                    </div>
+                  </div>
+                </article>
+              </Link>
+            ))}
+
+            {/* Infinite scroll sentinel */}
+            {!loading && !errorMsg && hasMore && filteredPosts.length > 0 && (
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                {loadingMore && <div className="b-skeleton h-10 w-40 rounded-2xl" />}
+              </div>
+            )}
+
+            {!loading && !errorMsg && filteredPosts.length === 0 && (
+              <div
+                className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center"
+                style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
+              >
+                <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+                <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                  {t("home.noPostsFound")}
                 </div>
-              )}
-            </section>
+                <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  {searchText ? t("home.tryKeyword") : t("home.beFirst")}
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>

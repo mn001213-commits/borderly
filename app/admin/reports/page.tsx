@@ -12,6 +12,7 @@ import {
   EyeOff,
   Eye,
 } from "lucide-react";
+import { useT } from "@/app/components/LangProvider";
 
 type ReportRow = {
   id: string;
@@ -44,9 +45,9 @@ function cx(...arr: Array<string | false | null | undefined>) {
 }
 
 function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
+  const ts = new Date(iso).getTime();
   const now = Date.now();
-  const diff = Math.max(0, now - t);
+  const diff = Math.max(0, now - ts);
 
   const min = Math.floor(diff / 60000);
   if (min < 1) return "Just now";
@@ -69,6 +70,7 @@ function targetKey(targetType: "post" | "comment", targetId: string) {
 }
 
 export default function ReportsPage() {
+  const { t } = useT();
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
   const [hiddenMap, setHiddenMap] = useState<Record<string, boolean>>({});
@@ -254,6 +256,20 @@ export default function ReportsPage() {
     });
   }, [rows, profilesMap, reportCountMap, statusFilter, typeFilter, q]);
 
+  const logAudit = async (action: string, targetType: string, targetId: string, details?: Record<string, unknown>) => {
+    try {
+      const { data: au } = await supabase.auth.getUser();
+      if (!au.user?.id) return;
+      await supabase.from("audit_log").insert({
+        admin_id: au.user.id,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        details: details ?? {},
+      });
+    } catch {}
+  };
+
   const setResolved = async (id: string) => {
     setErr(null);
     setResolvingId(id);
@@ -275,6 +291,8 @@ export default function ReportsPage() {
         setErr(error.message);
         return;
       }
+
+      await logAudit("resolve_report", "report", id);
 
       setRows((prev) =>
         prev.map((r) =>
@@ -332,7 +350,7 @@ export default function ReportsPage() {
   const deleteReportOnly = async (id: string) => {
     if (deletingId) return;
 
-    const ok = confirm("Delete this report only?");
+    const ok = confirm(t("adminReports.confirmDeleteReport"));
     if (!ok) return;
 
     setErr(null);
@@ -346,6 +364,7 @@ export default function ReportsPage() {
         return;
       }
 
+      await logAudit("delete_report", "report", id);
       setRows((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setDeletingId(null);
@@ -355,7 +374,7 @@ export default function ReportsPage() {
   const deleteTargetAndReport = async (report: ReportView) => {
     if (deletingTargetId) return;
 
-    const ok = confirm(`Delete this ${report.target_type} and this report?`);
+    const ok = confirm(t("adminReports.confirmDeleteTarget"));
     if (!ok) return;
 
     setErr(null);
@@ -385,6 +404,7 @@ export default function ReportsPage() {
         return;
       }
 
+      await logAudit("delete_target", report.target_type, report.target_id, { report_id: report.id });
       setRows((prev) => prev.filter((r) => r.id !== report.id));
     } finally {
       setDeletingTargetId(null);
@@ -426,6 +446,8 @@ export default function ReportsPage() {
         }
       }
 
+      await logAudit(nextHidden ? "hide_content" : "unhide_content", report.target_type, report.target_id);
+
       setHiddenMap((prev) => ({
         ...prev,
         [key]: nextHidden,
@@ -436,98 +458,103 @@ export default function ReportsPage() {
   };
 
   if (!adminChecked) {
-    return <p className="p-6 text-gray-500">Loading...</p>;
+    return <div className="p-6"><div className="mx-auto max-w-[1100px] space-y-4">{Array.from({length:3}).map((_,i)=><div key={i} className="b-skeleton h-20 w-full"/>)}</div></div>;
   }
 
   if (!isAdmin) {
-    return <p className="p-6 text-gray-500">No permission.</p>;
+    return <p className="p-6" style={{ color: "var(--text-muted)" }}>{t("adminReports.noPermission")}</p>;
   }
 
   if (loading) {
-    return <p className="p-6 text-gray-500">Loading...</p>;
+    return <div className="p-6"><div className="mx-auto max-w-[1100px] space-y-4">{Array.from({length:3}).map((_,i)=><div key={i} className="b-skeleton h-20 w-full"/>)}</div></div>;
   }
 
   const pendingCount = rows.filter((r) => (r.status ?? "pending") === "pending").length;
   const resolvedCount = rows.filter((r) => (r.status ?? "pending") === "resolved").length;
 
   return (
-    <main className="min-h-screen bg-[#F0F7FF] px-4 py-6 text-gray-900">
-      <div className="mx-auto max-w-[1100px]">
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+    <main className="min-h-screen px-4 py-6" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-[1100px] b-animate-in">
+        <div className="b-card px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-xl font-bold">
                 <ShieldAlert size={20} className="text-red-500" />
-                Reports Admin
+                {t("adminReports.title")}
               </div>
-              <div className="mt-1 text-xs text-gray-500">
-                Pending {pendingCount} / Resolved {resolvedCount} / Total {rows.length}
+              <div className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                {t("adminReports.pending")} {pendingCount} / {t("adminReports.resolved")} {resolvedCount} / {t("adminReports.total")} {rows.length}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+                className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)]"
+                style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
               >
                 <ArrowLeft size={16} />
-                Home
+                {t("nav.home")}
               </Link>
 
               <button
                 type="button"
                 onClick={load}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF]"
+                className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)]"
+                style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
               >
                 <RefreshCw size={16} />
-                Refresh
+                {t("adminReports.refresh")}
               </button>
             </div>
           </div>
         </div>
 
         {err ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <b>Error:</b> {err}
+          <div className="mt-4 rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>
+            <b>{t("adminReports.error")}:</b> {err}
           </div>
         ) : null}
 
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+        <div className="b-card mt-4 px-5 py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "resolved")}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+                className="rounded-2xl px-3 py-2 text-sm outline-none"
+                style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--deep-navy)" }}
               >
-                <option value="pending">Pending</option>
-                <option value="resolved">Resolved</option>
-                <option value="all">All</option>
+                <option value="pending">{t("adminReports.pending")}</option>
+                <option value="resolved">{t("adminReports.resolved")}</option>
+                <option value="all">{t("common.all")}</option>
               </select>
 
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as "all" | "post" | "comment")}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+                className="rounded-2xl px-3 py-2 text-sm outline-none"
+                style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--deep-navy)" }}
               >
-                <option value="all">All types</option>
-                <option value="post">Post</option>
-                <option value="comment">Comment</option>
+                <option value="all">{t("adminReports.allTypes")}</option>
+                <option value="post">{t("adminReports.post")}</option>
+                <option value="comment">{t("adminReports.comment")}</option>
               </select>
             </div>
 
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search reason, detail, name, uuid"
-              className="min-w-0 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400 lg:w-[320px]"
+              placeholder={t("adminReports.searchPlaceholder")}
+              className="min-w-0 rounded-2xl px-4 py-2 text-sm outline-none lg:w-[320px]"
+              style={{ border: "1px solid var(--border-soft)", background: "var(--light-blue)", color: "var(--deep-navy)" }}
             />
           </div>
         </div>
 
         {list.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-gray-100 bg-white px-5 py-10 text-center shadow-sm">
-            <div className="text-base font-semibold text-gray-800">No reports found.</div>
+          <div className="b-card mt-4 px-5 py-10 text-center">
+            <div className="text-base font-semibold" style={{ color: "var(--deep-navy)" }}>{t("adminReports.noReports")}</div>
           </div>
         ) : (
           <div className="mt-4 grid gap-4">
@@ -545,13 +572,13 @@ export default function ReportsPage() {
                 <div
                   key={r.id}
                   className={cx(
-                    "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm",
+                    "b-card p-5",
                     isResolved && "opacity-90"
                   )}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
                         <span
                           className={cx(
                             "rounded-full px-3 py-1 font-semibold border",
@@ -560,7 +587,7 @@ export default function ReportsPage() {
                               : "border-yellow-200 bg-yellow-50 text-yellow-700"
                           )}
                         >
-                          {isResolved ? "Resolved" : "Pending"}
+                          {isResolved ? t("adminReports.resolved") : t("adminReports.pending")}
                         </span>
 
                         <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 font-semibold text-red-700">
@@ -570,63 +597,62 @@ export default function ReportsPage() {
                         <span
                           className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-semibold text-blue-700"
                         >
-                          {r.report_count} {r.report_count === 1 ? "report" : "reports"}
+                          {r.report_count} {r.report_count === 1 ? t("adminReports.report") : t("adminReports.reports")}
                         </span>
 
                         <span
                           className={cx(
                             "rounded-full px-3 py-1 font-semibold border",
-                            isHidden
-                              ? "border-gray-200 bg-gray-100 text-gray-700"
-                              : "border-green-200 bg-green-50 text-green-700"
+                            !isHidden && "border-green-200 bg-green-50 text-green-700"
                           )}
+                          style={isHidden ? { borderColor: "var(--border-soft)", background: "var(--light-blue)", color: "var(--text-secondary)" } : undefined}
                         >
-                          {isHidden ? "Hidden" : "Visible"}
+                          {isHidden ? t("adminReports.hidden") : t("adminReports.visible")}
                         </span>
 
                         <span>{formatRelative(r.created_at)}</span>
-                        <span className="text-gray-400">•</span>
+                        <span style={{ color: "var(--text-muted)" }}>•</span>
                         <span>{formatDateTime(r.created_at)}</span>
                       </div>
 
                       <div className="mt-4 grid gap-3">
                         <div>
-                          <div className="text-sm font-semibold text-gray-800">Reason</div>
-                          <div className="mt-1 rounded-xl border border-gray-200 bg-[#F0F7FF] px-3 py-2 text-sm text-gray-700">
+                          <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("adminReports.reason")}</div>
+                          <div className="mt-1 rounded-2xl px-3 py-2 text-sm" style={{ border: "1px solid var(--border-soft)", background: "var(--light-blue)", color: "var(--text-secondary)" }}>
                             {r.reason}
                           </div>
                         </div>
 
                         <div>
-                          <div className="text-sm font-semibold text-gray-800">Detail</div>
-                          <div className="mt-1 whitespace-pre-wrap rounded-xl border border-gray-200 bg-[#F0F7FF] px-3 py-2 text-sm text-gray-700">
-                            {r.detail?.trim() ? r.detail : "No detail"}
+                          <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("adminReports.detail")}</div>
+                          <div className="mt-1 whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm" style={{ border: "1px solid var(--border-soft)", background: "var(--light-blue)", color: "var(--text-secondary)" }}>
+                            {r.detail?.trim() ? r.detail : t("adminReports.noDetail")}
                           </div>
                         </div>
 
-                        <div className="grid gap-2 text-sm text-gray-600">
+                        <div className="grid gap-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                           <div>
-                            <b className="text-gray-800">Reporter:</b> {r.reporter_name}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.reporter")}:</b> {r.reporter_name}
                           </div>
                           <div>
-                            <b className="text-gray-800">Target:</b> {r.target_name}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.target")}:</b> {r.target_name}
                           </div>
                           <div>
-                            <b className="text-gray-800">Target type:</b> {r.target_type}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.targetType")}:</b> {r.target_type}
                           </div>
                           <div>
-                            <b className="text-gray-800">Report ID:</b> {r.id}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.reportId")}:</b> {r.id}
                           </div>
                           <div>
-                            <b className="text-gray-800">Reporter UUID:</b> {r.reporter_id}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.reporterUuid")}:</b> {r.reporter_id}
                           </div>
                           <div>
-                            <b className="text-gray-800">Target UUID:</b> {r.target_id}
+                            <b style={{ color: "var(--deep-navy)" }}>{t("adminReports.targetUuid")}:</b> {r.target_id}
                           </div>
 
                           {isResolved ? (
-                            <div className="text-xs text-gray-500">
-                              Resolved at: {formatDateTime(r.resolved_at)} / Resolved by: {resolverName}
+                            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                              {t("adminReports.resolvedAt")}: {formatDateTime(r.resolved_at)} / {t("adminReports.resolvedBy")}: {resolverName}
                             </div>
                           ) : null}
                         </div>
@@ -639,18 +665,20 @@ export default function ReportsPage() {
                           type="button"
                           onClick={() => setResolved(r.id)}
                           disabled={resolvingId === r.id}
-                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ background: "var(--primary)" }}
                         >
-                          {resolvingId === r.id ? "Resolving..." : "Mark resolved"}
+                          {resolvingId === r.id ? t("adminReports.resolving") : t("adminReports.markResolved")}
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => setPending(r.id)}
                           disabled={resolvingId === r.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)] disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                         >
-                          {resolvingId === r.id ? "Updating..." : "Set pending"}
+                          {resolvingId === r.id ? t("adminReports.updating") : t("adminReports.setPending")}
                         </button>
                       )}
 
@@ -659,42 +687,44 @@ export default function ReportsPage() {
                         onClick={() => toggleHidden(r)}
                         disabled={togglingHiddenId === r.id}
                         className={cx(
-                          "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60",
+                          "inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60",
                           isHidden
-                            ? "border border-gray-200 bg-white text-gray-700 hover:bg-[#F0F7FF]"
+                            ? "hover:bg-[var(--light-blue)]"
                             : "bg-yellow-500 text-white hover:bg-yellow-600"
                         )}
+                        style={isHidden ? { border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" } : undefined}
                       >
                         {isHidden ? <Eye size={16} /> : <EyeOff size={16} />}
                         {togglingHiddenId === r.id
-                          ? "Updating..."
+                          ? t("adminReports.updating")
                           : isHidden
-                          ? "Unhide target"
-                          : "Hide target"}
+                          ? t("adminReports.unhideTarget")
+                          : t("adminReports.hideTarget")}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => deleteReportOnly(r.id)}
                         disabled={deletingId === r.id || deletingTargetId === r.id}
-                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#F0F7FF] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-[var(--light-blue)] disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
                       >
                         <FileText size={16} />
-                        {deletingId === r.id ? "Deleting..." : "Delete report only"}
+                        {deletingId === r.id ? t("adminReports.deleting") : t("adminReports.deleteReportOnly")}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => deleteTargetAndReport(r)}
                         disabled={deletingTargetId === r.id || deletingId === r.id}
-                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Trash2 size={16} />
                         {deletingTargetId === r.id
-                          ? "Deleting..."
+                          ? t("adminReports.deleting")
                           : r.target_type === "post"
-                          ? "Delete post + report"
-                          : "Delete comment + report"}
+                          ? t("adminReports.deletePostReport")
+                          : t("adminReports.deleteCommentReport")}
                       </button>
                     </div>
                   </div>

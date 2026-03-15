@@ -1,19 +1,20 @@
 @import "tailwindcss";
 
-/* ── Antarctica / Ice Theme ── */
+/* ── Borderly Design System ── */
 :root {
-  --background: #F0F7FF;
-  --foreground: #1e293b;
+  --bg-snow: #F7FAFF;
+  --bg-card: #FFFFFF;
+  --primary: #4DA6FF;
+  --primary-hover: #3B95EE;
+  --light-blue: #EAF4FF;
+  --deep-navy: #1E2A38;
+  --text-secondary: #6B7F99;
+  --text-muted: #9BB0C7;
+  --border-soft: #DCE8F5;
+  --accent-yellow: #FFE066;
 
-  /* Ice palette */
-  --ice-50: #EFF8FF;
-  --ice-100: #DBEAFE;
-  --ice-200: #BFDBFE;
-  --ice-300: #93C5FD;
-  --ice-400: #60A5FA;
-  --ice-500: #3B82F6;
-  --ice-600: #2563EB;
-  --ice-700: #1D4ED8;
+  --background: var(--bg-snow);
+  --foreground: var(--deep-navy);
 }
 
 @theme inline {
@@ -23,58 +24,104 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-snow);
+  color: var(--deep-navy);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* ── Utility classes for Ice theme ── */
+/* ── Snow background texture ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 0%, rgba(77, 166, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 60% at 80% 100%, rgba(77, 166, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(180deg, #F7FAFF 0%, #EEF4FB 50%, #F7FAFF 100%);
+  pointer-events: none;
+}
 
-/* Primary button – ice blue */
-.btn-primary {
+/* ── Scrollbar ── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Borderly card base ── */
+.b-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(30, 42, 56, 0.04);
+}
+
+.b-card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.b-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 42, 56, 0.08);
+}
+
+/* ── Pills ── */
+.b-pill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 0.75rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--ice-500), var(--ice-600));
-  transition: opacity 0.15s, transform 0.15s;
-}
-.btn-primary:hover {
-  opacity: 0.92;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  gap: 6px;
 }
 
-/* Active pill / chip – ice blue */
-.pill-active {
-  background: var(--ice-600);
-  color: #ffffff;
+.b-pill-inactive {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+}
+.b-pill-inactive:hover {
+  background: var(--light-blue);
+  color: var(--deep-navy);
 }
 
-/* Frost header background */
-.frost-header {
-  background: linear-gradient(
-    180deg,
-    rgba(219, 234, 254, 0.85) 0%,
-    rgba(240, 247, 255, 0.90) 100%
-  );
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.b-pill-active {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #FFFFFF;
 }
 
-/* FAB – ice blue */
-.fab-primary {
-  background: linear-gradient(135deg, var(--ice-500), var(--ice-600));
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+/* ── Meet type colors ── */
+.b-meet-hangout { background: #FFF3E0; color: #EF6C00; }
+.b-meet-study { background: #E8F5E9; color: #2E7D32; }
+.b-meet-language { background: #F3E5F5; color: #8E24AA; }
+.b-meet-meal { background: #FFF8E1; color: #F57F17; }
+.b-meet-sports { background: #E3F2FD; color: #1565C0; }
+
+/* ── Fade-in animation ── */
+@keyframes b-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.b-animate-in {
+  animation: b-fade-up 0.35s ease-out both;
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes b-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.b-skeleton {
+  background: linear-gradient(90deg, var(--border-soft) 25%, var(--light-blue) 50%, var(--border-soft) 75%);
+  background-size: 200% 100%;
+  animation: b-shimmer 1.5s infinite;
+  border-radius: 20px;
 }

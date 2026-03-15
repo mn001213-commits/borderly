@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
+import { useT } from "@/app/components/LangProvider";
 
 type Post = {
   id: string;
@@ -30,6 +31,7 @@ function formatRelative(iso: string) {
 }
 
 export default function MyPostsPage() {
+  const { t } = useT();
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,10 +94,10 @@ export default function MyPostsPage() {
             href="/"
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            ← Home
+            ← {t("nav.home")}
           </Link>
 
-          <h1 className="text-xl font-bold">My Posts</h1>
+          <h1 className="text-xl font-bold">{t("myPage.myPosts")}</h1>
         </div>
 
         {/* Tabs */}
@@ -104,35 +106,35 @@ export default function MyPostsPage() {
             href="/my/followers"
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            Followers
+            {t("profile.followers")}
           </Link>
           <Link
             href="/my/following"
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            Following
+            {t("profile.following")}
           </Link>
           <Link
             href="/notifications"
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-[#F0F7FF]"
           >
-            Notifications
+            {t("myPage.notifications")}
           </Link>
         </div>
 
         {/* Counts */}
         <div className="mt-3 flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
           <div>
-            Followers <b className="text-gray-900">{followers}</b>
+            {t("profile.followers")} <b className="text-gray-900">{followers}</b>
           </div>
           <div>
-            Following <b className="text-gray-900">{following}</b>
+            {t("profile.following")} <b className="text-gray-900">{following}</b>
           </div>
         </div>
 
         {loading && (
           <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
-            Loading...
+            {t("common.loading")}
           </div>
         )}
 
@@ -146,13 +148,13 @@ export default function MyPostsPage() {
         <div className="mt-3 grid gap-3">
           {!loading && posts.length === 0 && (
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm text-gray-500">
-              You have no posts yet.
+              {t("myPage.noPosts")}
               <div className="mt-3">
                 <Link
                   href="/create"
                   className="inline-block rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
                 >
-                  Write your first post
+                  {t("myPage.writeFirstPost")}
                 </Link>
               </div>
             </div>
