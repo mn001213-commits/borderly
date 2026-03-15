@@ -80,24 +80,28 @@ async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: 
   const map = new Map<string, { likes: number; comments: number }>();
   if (postIds.length === 0) return map;
 
-  const [likesRes, commentsRes] = await Promise.all([
-    supabase.from("post_likes").select("post_id").in("post_id", postIds),
-    supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
-  ]);
-
   for (const id of postIds) map.set(id, { likes: 0, comments: 0 });
 
-  if (likesRes.data) {
-    for (const row of likesRes.data) {
-      const entry = map.get(row.post_id);
-      if (entry) entry.likes++;
+  try {
+    const [likesRes, commentsRes] = await Promise.all([
+      supabase.from("post_likes").select("post_id").in("post_id", postIds),
+      supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+    ]);
+
+    if (likesRes.data) {
+      for (const row of likesRes.data) {
+        const entry = map.get(row.post_id);
+        if (entry) entry.likes++;
+      }
     }
-  }
-  if (commentsRes.data) {
-    for (const row of commentsRes.data) {
-      const entry = map.get(row.post_id);
-      if (entry) entry.comments++;
+    if (commentsRes.data) {
+      for (const row of commentsRes.data) {
+        const entry = map.get(row.post_id);
+        if (entry) entry.comments++;
+      }
     }
+  } catch {
+    // Engagement fetch failed — show posts without counts
   }
   return map;
 }
