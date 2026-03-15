@@ -204,6 +204,13 @@ export default function CreatePage() {
       const imageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : null;
       const imageUrls = uploadedUrls.length > 0 ? uploadedUrls : null;
 
+      // Fetch display name from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
       const { data, error } = await supabase
         .from("posts")
         .insert({
@@ -211,7 +218,7 @@ export default function CreatePage() {
           content: c,
           category,
           user_id: user.id,
-          author_name: null,
+          author_name: profile?.display_name ?? null,
           image_url: imageUrl,
           image_urls: imageUrls,
         })
