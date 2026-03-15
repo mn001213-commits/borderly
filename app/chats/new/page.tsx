@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Search, X, Users, MessageCircle } from "lucide-react";
+import { ArrowLeft, Search, X, Users, MessageCircle, UserCheck, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { createGroupConversation, searchUsers } from "@/lib/groupChatService";
 import { useT } from "@/app/components/LangProvider";
@@ -11,6 +11,8 @@ type Profile = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  isMutual: boolean;
+  hasExistingDm: boolean;
 };
 
 type DirectConversation = {
@@ -38,7 +40,7 @@ export default function NewChatPage() {
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Auth + load users
+  // Auth + load following users
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -47,15 +49,67 @@ export default function NewChatPage() {
       if (!uid) { router.push("/login"); return; }
       setMe(uid);
 
-      const { data, error } = await supabase
+      // Get users I follow
+      const { data: followRows } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", uid);
+
+      const followingIds = (followRows ?? []).map((r: any) => r.following_id).filter(Boolean);
+
+      if (followingIds.length === 0) {
+        setProfiles([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get profiles of people I follow
+      const { data: profileData, error } = await supabase
         .from("profiles")
         .select("id, display_name, avatar_url")
-        .neq("id", uid)
-        .order("id", { ascending: false })
-        .limit(30);
+        .in("id", followingIds);
 
-      if (error) setErrorMsg(error.message);
-      setProfiles((data as Profile[] | null) ?? []);
+      if (error) { setErrorMsg(error.message); setLoading(false); return; }
+
+      // Check who follows me back (mutuals)
+      const { data: followBackRows } = await supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", uid)
+        .in("follower_id", followingIds);
+
+      const mutualIds = new Set((followBackRows ?? []).map((r: any) => r.follower_id));
+
+      // Check existing DMs
+      const dmChecks = await Promise.all(
+        followingIds.map(async (otherId: string) => {
+          const userLow = uid < otherId ? uid : otherId;
+          const userHigh = uid < otherId ? otherId : uid;
+          const { data } = await supabase
+            .from("direct_conversations")
+            .select("conversation_id")
+            .eq("user_low", userLow)
+            .eq("user_high", userHigh)
+            .maybeSingle();
+          return { id: otherId, exists: !!data };
+        })
+      );
+
+      const existingDmMap = new Map(dmChecks.map((d) => [d.id, d.exists]));
+
+      const enriched: Profile[] = (profileData ?? []).map((p: any) => ({
+        ...p,
+        isMutual: mutualIds.has(p.id),
+        hasExistingDm: existingDmMap.get(p.id) ?? false,
+      }));
+
+      // Sort: mutuals first, then others
+      enriched.sort((a, b) => {
+        if (a.isMutual !== b.isMutual) return a.isMutual ? -1 : 1;
+        return (a.display_name ?? "").localeCompare(b.display_name ?? "");
+      });
+
+      setProfiles(enriched);
       setLoading(false);
     })();
   }, [router]);
@@ -66,37 +120,29 @@ export default function NewChatPage() {
     if (!term) return profiles;
     return profiles.filter((p) => {
       const name = (p.display_name ?? "").toLowerCase();
-      return name.includes(term) || p.id.slice(0, 8).toLowerCase().includes(term);
+      return name.includes(term);
     });
   }, [profiles, q]);
 
-  // DM: search server
-  const refreshSearch = async () => {
-    if (!me) return;
-    setLoading(true);
-    setErrorMsg(null);
-    const term = q.trim();
-
-    const query = supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url")
-      .neq("id", me)
-      .limit(30);
-
-    const { data, error } = term
-      ? await query.ilike("display_name", `%${term}%`)
-      : await query.order("id", { ascending: false });
-
-    if (error) setErrorMsg(error.message);
-    setProfiles((data as Profile[] | null) ?? []);
-    setLoading(false);
+  // Can this user be messaged?
+  const canMessage = (p: Profile) => {
+    // Mutual: always allowed
+    if (p.isMutual) return true;
+    // Non-mutual: only if no existing DM
+    return !p.hasExistingDm;
   };
 
   // DM: create or find conversation
-  const getOrCreateConversation = async (otherId: string) => {
+  const getOrCreateConversation = async (other: Profile) => {
     if (!me) return;
     setErrorMsg(null);
 
+    if (!canMessage(other)) {
+      setErrorMsg(t("chat.dmLimitReached"));
+      return;
+    }
+
+    const otherId = other.id;
     const userLow = me < otherId ? me : otherId;
     const userHigh = me < otherId ? otherId : me;
 
@@ -225,7 +271,6 @@ export default function NewChatPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") refreshSearch(); }}
                   placeholder={t("chat.searchByName")}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
                   style={{ color: "var(--deep-navy)" }}
@@ -247,17 +292,26 @@ export default function NewChatPage() {
                   ))}
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="py-12 text-center text-sm" style={{ color: "var(--text-muted)" }}>
-                  {t("chat.noResults")}
+                <div className="flex flex-col items-center py-12 text-center">
+                  <Users className="h-10 w-10 mb-3" style={{ color: "var(--border-soft)" }} />
+                  <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                    {q ? t("chat.noResults") : t("chat.followToChat")}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                    {q ? "" : t("chat.followToChatDesc")}
+                  </div>
                 </div>
               ) : (
                 filtered.map((p) => {
                   const initial = ((p.display_name ?? "?")[0] ?? "?").toUpperCase();
+                  const allowed = canMessage(p);
+
                   return (
                     <button
                       key={p.id}
-                      onClick={() => getOrCreateConversation(p.id)}
-                      className="flex w-full items-center gap-3 rounded-2xl p-3.5 text-left transition hover:shadow-sm"
+                      onClick={() => allowed && getOrCreateConversation(p)}
+                      disabled={!allowed}
+                      className="flex w-full items-center gap-3 rounded-2xl p-3.5 text-left transition hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
                     >
                       {p.avatar_url ? (
@@ -277,14 +331,24 @@ export default function NewChatPage() {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
-                          {p.display_name ?? t("chat.unnamed")}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                            {p.display_name ?? t("chat.unnamed")}
+                          </span>
+                          {p.isMutual && (
+                            <UserCheck className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
+                          )}
                         </div>
                         <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                          @{p.id.slice(0, 8)}
+                          {p.isMutual ? t("chat.mutual") : t("chat.following")}
+                          {!allowed && ` · ${t("chat.dmSent")}`}
                         </div>
                       </div>
-                      <MessageCircle className="h-5 w-5 shrink-0" style={{ color: "var(--primary)" }} />
+                      {allowed ? (
+                        <MessageCircle className="h-5 w-5 shrink-0" style={{ color: "var(--primary)" }} />
+                      ) : (
+                        <Lock className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+                      )}
                     </button>
                   );
                 })
@@ -372,7 +436,7 @@ export default function NewChatPage() {
                   {groupSearchResults.map((user) => (
                     <button
                       key={user.id}
-                      onClick={() => addMember(user)}
+                      onClick={() => addMember(user as any)}
                       className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition"
                       style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
                     >
