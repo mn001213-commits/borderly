@@ -8,13 +8,13 @@
   "theme_color": "#111111",
   "icons": [
     {
-      "src": "/penguin2.png",
+      "src": "/BORDERLY2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/penguin2.png",
+      "src": "/BORDERLY2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
