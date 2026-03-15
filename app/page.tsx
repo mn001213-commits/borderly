@@ -32,6 +32,7 @@ type Post = {
   created_at: string;
   title: string;
   content: string;
+  user_id: string | null;
   author_name: string | null;
   like_count: number;
   comment_count: number;
@@ -39,6 +40,12 @@ type Post = {
   image_urls: string[] | null;
   category: Category | null;
   is_hidden?: boolean | null;
+};
+
+type AuthorProfile = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
 };
 
 function formatRelative(iso: string) {
@@ -72,6 +79,7 @@ export default function HomePage() {
   const { t } = useT();
   const catLabel = (k: string) => t(`cat.${k}`);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [profiles, setProfiles] = useState<Map<string, AuthorProfile>>(new Map());
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -79,13 +87,29 @@ export default function HomePage() {
   const [activeCat, setActiveCat] = useState<"all" | Category>("all");
   const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
 
+  const fetchProfiles = useCallback(async (userIds: string[]) => {
+    const ids = userIds.filter(Boolean);
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url")
+      .in("id", ids);
+    if (data) {
+      setProfiles((prev) => {
+        const next = new Map(prev);
+        for (const p of data) next.set(p.id, p as AuthorProfile);
+        return next;
+      });
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
 
     const { data, error } = await supabase
       .from("v_posts_engagement")
-      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -96,9 +120,13 @@ export default function HomePage() {
       return;
     }
 
-    setPosts((data ?? []) as Post[]);
+    const postsData = (data ?? []) as Post[];
+    setPosts(postsData);
     setLoading(false);
-  }, []);
+
+    const userIds = postsData.map((p) => p.user_id).filter(Boolean) as string[];
+    fetchProfiles([...new Set(userIds)]);
+  }, [fetchProfiles]);
 
   useEffect(() => {
     load();
@@ -119,7 +147,7 @@ export default function HomePage() {
     const lastPost = posts[posts.length - 1];
     const { data } = await supabase
       .from("v_posts_engagement")
-      .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+      .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
       .eq("is_hidden", false)
       .lt("created_at", lastPost.created_at)
       .order("created_at", { ascending: false })
@@ -127,6 +155,8 @@ export default function HomePage() {
 
     if (data && data.length > 0) {
       setPosts((prev) => [...prev, ...(data as Post[])]);
+      const userIds = (data as Post[]).map((p) => p.user_id).filter(Boolean) as string[];
+      fetchProfiles([...new Set(userIds)]);
     }
     if (!data || data.length < 20) setHasMore(false);
     setLoadingMore(false);
@@ -168,7 +198,7 @@ export default function HomePage() {
           if (!newId) return;
           supabase
             .from("v_posts_engagement")
-            .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+            .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
             .eq("id", newId)
             .maybeSingle()
             .then(({ data: p }) => {
@@ -185,7 +215,7 @@ export default function HomePage() {
           } else {
             supabase
               .from("v_posts_engagement")
-              .select("id,created_at,title,content,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
+              .select("id,created_at,title,content,user_id,author_name,like_count,comment_count,image_url,image_urls,category,is_hidden")
               .eq("id", updated.id)
               .maybeSingle()
               .then(({ data: p }) => {
@@ -416,14 +446,56 @@ export default function HomePage() {
               </div>
             )}
 
-            {!loading && !errorMsg && filteredPosts.map((p, idx) => (
+            {!loading && !errorMsg && filteredPosts.map((p, idx) => {
+              const profile = p.user_id ? profiles.get(p.user_id) : null;
+              const displayName = profile?.display_name || p.author_name || t("home.anonymous");
+              const avatarUrl = profile?.avatar_url;
+              const initial = (displayName?.[0] ?? "?").toUpperCase();
+
+              return (
               <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
                 <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
                   {/* Author + time */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                      {p.author_name ?? t("home.anonymous")}
-                    </span>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    {p.user_id ? (
+                      <Link
+                        href={`/u/${p.user_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2.5 no-underline text-inherit hover:opacity-80 transition"
+                      >
+                        {avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={avatarUrl}
+                            alt=""
+                            className="h-8 w-8 rounded-full object-cover"
+                            style={{ border: "2px solid var(--border-soft)" }}
+                          />
+                        ) : (
+                          <div
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                            style={{ background: "var(--primary)" }}
+                          >
+                            {initial}
+                          </div>
+                        )}
+                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                          {displayName}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                          style={{ background: "var(--text-muted)" }}
+                        >
+                          ?
+                        </div>
+                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                          {displayName}
+                        </span>
+                      </div>
+                    )}
                     <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
                       · {formatRelative(p.created_at)}
                     </span>
@@ -499,7 +571,8 @@ export default function HomePage() {
                   </div>
                 </article>
               </Link>
-            ))}
+              );
+            })}
 
             {/* Infinite scroll sentinel */}
             {!loading && !errorMsg && hasMore && filteredPosts.length > 0 && (
