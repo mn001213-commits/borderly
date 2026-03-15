@@ -203,25 +203,18 @@ export default function BrowsePage() {
       try {
         if (tab === "posts") {
           let query = supabase
-            .from("v_posts_engagement")
-            .select("id, created_at, title, content, author_name, category, like_count, comment_count")
+            .from("posts")
+            .select("id, created_at, title, content, author_name, category")
+            .eq("is_hidden", false)
             .limit(50);
 
           if (activeCat !== "all") query = query.eq("category", activeCat);
           if (keyword) query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
-
-          if (sortMode === "popular") {
-            query = query
-              .order("like_count", { ascending: false, nullsFirst: false })
-              .order("comment_count", { ascending: false, nullsFirst: false })
-              .order("created_at", { ascending: false });
-          } else {
-            query = query.order("created_at", { ascending: false });
-          }
+          query = query.order("created_at", { ascending: false });
 
           const { data, error } = await query;
           if (error) throw error;
-          setPosts((data ?? []) as PostRow[]);
+          setPosts((data ?? []).map((p: any) => ({ ...p, like_count: 0, comment_count: 0 })) as PostRow[]);
           setMeets([]);
           setNgos([]);
         }
