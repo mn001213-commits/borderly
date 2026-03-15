@@ -53,8 +53,8 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#F7FAFF" />
-        <link rel="icon" href="/penguin2.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/penguin2.png" />
+        <link rel="icon" href="/BORDERLY2.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/BORDERLY2.png" />
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("borderly-theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}` }} />
       </head>
       <body

@@ -15,7 +15,7 @@ export default function TopBar() {
       <div className="mx-auto flex h-[60px] items-center justify-between gap-4 px-4 sm:px-6 xl:mr-[340px]">
         <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/penguin2.png" alt="Borderly" className="h-8 w-8 rounded-xl object-cover" />
+          <img src="/BORDERLY.png" alt="Borderly" className="h-8 w-8 rounded-xl object-cover" />
           <div className="text-[16px] font-bold tracking-tight" style={{ color: "var(--deep-navy)" }}>
             BORDERLY
           </div>
