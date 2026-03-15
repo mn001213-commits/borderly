@@ -118,38 +118,33 @@ export default function HomePage() {
   const [activeCat, setActiveCat] = useState<"all" | Category>("all");
   const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
 
-  const fetchProfiles = useCallback(async (userIds: string[]) => {
-    const ids = [...new Set(userIds.filter(Boolean))];
-    if (ids.length === 0) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url")
-      .in("id", ids);
-    if (data) {
+  const enrichPosts = useCallback(async (rawPosts: any[]): Promise<Post[]> => {
+    const ids = rawPosts.map((p) => p.id);
+    const userIds = [...new Set(rawPosts.map((p) => p.user_id).filter(Boolean))] as string[];
+
+    // Fetch engagement counts and profiles in parallel
+    const [engagement, profilesRes] = await Promise.all([
+      fetchEngagement(ids),
+      userIds.length > 0
+        ? supabase.from("profiles").select("id, display_name, avatar_url").in("id", userIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    // Update profiles map
+    if (profilesRes.data && profilesRes.data.length > 0) {
       setProfiles((prev) => {
         const next = new Map(prev);
-        for (const p of data) next.set(p.id, p as AuthorProfile);
+        for (const p of profilesRes.data!) next.set(p.id, p as AuthorProfile);
         return next;
       });
     }
-  }, []);
 
-  const enrichPosts = useCallback(async (rawPosts: any[]): Promise<Post[]> => {
-    const ids = rawPosts.map((p) => p.id);
-    const engagement = await fetchEngagement(ids);
-
-    const enriched = rawPosts.map((p) => ({
+    return rawPosts.map((p) => ({
       ...p,
       like_count: engagement.get(p.id)?.likes ?? 0,
       comment_count: engagement.get(p.id)?.comments ?? 0,
     })) as Post[];
-
-    // Fetch profiles for authors
-    const userIds = enriched.map((p) => p.user_id).filter(Boolean) as string[];
-    fetchProfiles(userIds);
-
-    return enriched;
-  }, [fetchProfiles]);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
