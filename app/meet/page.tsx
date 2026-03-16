@@ -352,98 +352,101 @@ export default function MeetPage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Search bar */}
-        <div className="mb-6">
-          <div
-            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
-            style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
-          >
-            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t("meet.searchMeets")}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-              style={{ color: "var(--deep-navy)" }}
-            />
-            {q && (
-              <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-                {t("common.clear")}
-              </button>
-            )}
+        {/* Sticky search + filters */}
+        <div className="sticky top-0 z-20 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6" style={{ background: "var(--bg-snow)" }}>
+          {/* Search bar */}
+          <div className="mb-3 pt-1">
+            <div
+              className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
+            >
+              <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("meet.searchMeets")}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+                style={{ color: "var(--deep-navy)" }}
+              />
+              {q && (
+                <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                  {t("common.clear")}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Type tabs + sort */}
-        <div className="mb-6 flex flex-col gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {typeTabs.map((tab) => (
+          {/* Type tabs + sort */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {typeTabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveType(tab)}
+                  className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                >
+                  {meetTabLabel(tab)}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
-                key={tab}
                 type="button"
-                onClick={() => setActiveType(tab)}
-                className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                onClick={() => setSortMode("recommend")}
+                className="b-pill"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  background: sortMode === "recommend" ? "var(--deep-navy)" : "transparent",
+                  color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
+                  border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
+                }}
               >
-                {meetTabLabel(tab)}
+                <Star className="h-3.5 w-3.5" />
+                {t("common.recommended")}
               </button>
-            ))}
-          </div>
+              <button
+                type="button"
+                onClick={() => setSortMode("latest")}
+                className="b-pill"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                  color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
+                  border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
+                }}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {t("common.latest")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortMode("popular")}
+                className="b-pill"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
+                  color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
+                  border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
+                }}
+              >
+                <TrendingUp className="h-3.5 w-3.5" />
+                {t("common.popular")}
+              </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSortMode("recommend")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "recommend" ? "var(--deep-navy)" : "transparent",
-                color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Star className="h-3.5 w-3.5" />
-              {t("common.recommended")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("latest")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
-                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {t("common.latest")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("popular")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
-                color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              {t("common.popular")}
-            </button>
-
-            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-              {filtered.length} {t("common.meets")}
-              {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
-              {q.trim() && <> · &quot;{q.trim()}&quot;</>}
-            </span>
+              <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                {filtered.length} {t("common.meets")}
+                {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
+                {q.trim() && <> · &quot;{q.trim()}&quot;</>}
+              </span>
+            </div>
           </div>
         </div>
 
