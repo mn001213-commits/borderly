@@ -14,6 +14,12 @@ import {
   MapPin,
   X,
   Users,
+  LayoutGrid,
+  Info,
+  HelpCircle,
+  Sun,
+  Briefcase,
+  MoreHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
@@ -132,6 +138,15 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    general: { icon: MessageCircle, color: "#7EC8E3" },
+    info: { icon: Info, color: "#95E1D3" },
+    question: { icon: HelpCircle, color: "#F9D56E" },
+    daily: { icon: Sun, color: "#F3A683" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+  };
   const cats = useMemo(
     () => [
       { id: "all" },
@@ -392,6 +407,7 @@ export default function BrowsePage() {
                   border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
                 }}
               >
+                {(() => { const ci = catIcon[c.id]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
                 {t("cat." + c.id)}
               </button>
             ))}
