@@ -109,10 +109,10 @@ async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: 
 
 export default function HomePage() {
   const { t } = useT();
-  const catEmoji: Record<string, string> = {
-    all: "📋", general: "💬", info: "ℹ️", question: "❓", daily: "☀️", jobs: "💼", other: "📌",
+  const catDot: Record<string, string> = {
+    all: "#4DA6FF", general: "#7EC8E3", info: "#95E1D3", question: "#F9D56E", daily: "#F3A683", jobs: "#AA96DA", other: "#C4C4C4",
   };
-  const catLabel = (k: string) => `${catEmoji[k] ?? ""} ${t(`cat.${k}`)}`;
+  const catLabel = (k: string) => t(`cat.${k}`);
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Map<string, AuthorProfile>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -378,6 +378,7 @@ export default function HomePage() {
                 onClick={() => setActiveCat(k)}
                 className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
+                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: catDot[k] ?? "#C4C4C4" }} />
                 {catLabel(k)}
               </button>
             ))}

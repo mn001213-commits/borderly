@@ -44,11 +44,11 @@ export default function NGOPage() {
   const [activeCat, setActiveCat] = useState<NgoCat>("all");
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
 
+  const catDot: Record<string, string> = {
+    all: "#4DA6FF", jobs: "#AA96DA", housing: "#7EC8E3", legal: "#F9D56E", education: "#95E1D3", health: "#F3A683", other: "#C4C4C4",
+  };
   const catLabel = (k: NgoCat) => {
-    const emoji: Record<string, string> = {
-      all: "📋", jobs: "💼", housing: "🏠", legal: "⚖️", education: "🎓", health: "🏥", other: "📌",
-    };
-    if (k === "all") return `${emoji.all} ${t("common.all")}`;
+    if (k === "all") return t("common.all");
     const map: Record<string, string> = {
       jobs: t("cat.jobs"),
       housing: t("ngo.housing"),
@@ -57,7 +57,7 @@ export default function NGOPage() {
       health: t("ngo.health"),
       other: t("cat.other"),
     };
-    return `${emoji[k] ?? ""} ${map[k] ?? k}`;
+    return map[k] ?? k;
   };
 
   useEffect(() => {
@@ -182,6 +182,7 @@ export default function NGOPage() {
                 onClick={() => setActiveCat(k)}
                 className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
+                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: catDot[k] ?? "#C4C4C4" }} />
                 {catLabel(k)}
               </button>
             ))}
