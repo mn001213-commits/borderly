@@ -386,7 +386,7 @@ export default function MeetPage() {
 
           {/* Type tabs + sort */}
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex flex-wrap items-center gap-2 pb-1">
               {typeTabs.map((tab) => (
                 <button
                   key={tab}
