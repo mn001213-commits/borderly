@@ -399,7 +399,7 @@ export default function MeetPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setSortMode("recommend")}
@@ -448,12 +448,11 @@ export default function MeetPage() {
                 <TrendingUp className="h-3.5 w-3.5" />
                 {t("common.popular")}
               </button>
-
-              <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-                {filtered.length} {t("common.meets")}
-                {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
-                {q.trim() && <> · &quot;{q.trim()}&quot;</>}
-              </span>
+            </div>
+            <div className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              {filtered.length} {t("common.meets")}
+              {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
+              {q.trim() && <> · &quot;{q.trim()}&quot;</>}
             </div>
           </div>
         </div>
