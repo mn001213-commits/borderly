@@ -353,107 +353,103 @@ export default function MeetPage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Sticky search + filters */}
-        <div className="sticky top-0 z-20 pb-4" style={{ background: "var(--bg-snow)" }}>
-          {/* Search bar + Create button */}
-          <div className="mb-3 pt-1 flex items-center gap-2">
-            <div
-              className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
-              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
-            >
-              <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("meet.searchMeets")}
-                className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-                style={{ color: "var(--deep-navy)" }}
-              />
-              {q && (
-                <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-                  {t("common.clear")}
-                </button>
-              )}
-            </div>
-            <Link
-              href="/meet/new"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
-              style={{ background: "var(--primary)" }}
-            >
-              <Plus className="h-5 w-5" />
-            </Link>
+        {/* Search bar + Create button */}
+        <div className="mb-6 flex items-center gap-2">
+          <div
+            className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
+            style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
+          >
+            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t("meet.searchMeets")}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+              style={{ color: "var(--deep-navy)" }}
+            />
+            {q && (
+              <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                {t("common.clear")}
+              </button>
+            )}
+          </div>
+          <Link
+            href="/meet/new"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
+            style={{ background: "var(--primary)" }}
+          >
+            <Plus className="h-5 w-5" />
+          </Link>
+        </div>
+
+        {/* Type tabs + sort */}
+        <div className="mb-6 flex flex-col gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {typeTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveType(tab)}
+                className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+              >
+                {meetTabLabel(tab)}
+              </button>
+            ))}
           </div>
 
-          {/* Type tabs + sort */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 pb-1">
-              {typeTabs.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveType(tab)}
-                  className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
-                >
-                  {meetTabLabel(tab)}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSortMode("recommend")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "recommend" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <Star className="h-3.5 w-3.5" />
+              {t("common.recommended")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("latest")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {t("common.latest")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("popular")}
+              className="b-pill"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                fontSize: 13,
+                background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
+                color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
+                border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
+              }}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              {t("common.popular")}
+            </button>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSortMode("recommend")}
-                className="b-pill"
-                style={{
-                  height: 36,
-                  padding: "0 14px",
-                  fontSize: 13,
-                  background: sortMode === "recommend" ? "var(--deep-navy)" : "transparent",
-                  color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
-                  border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
-                }}
-              >
-                <Star className="h-3.5 w-3.5" />
-                {t("common.recommended")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSortMode("latest")}
-                className="b-pill"
-                style={{
-                  height: 36,
-                  padding: "0 14px",
-                  fontSize: 13,
-                  background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
-                  color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                  border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-                }}
-              >
-                <Clock className="h-3.5 w-3.5" />
-                {t("common.latest")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSortMode("popular")}
-                className="b-pill"
-                style={{
-                  height: 36,
-                  padding: "0 14px",
-                  fontSize: 13,
-                  background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
-                  color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
-                  border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
-                }}
-              >
-                <TrendingUp className="h-3.5 w-3.5" />
-                {t("common.popular")}
-              </button>
-            </div>
-            <div className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+            <span className="ml-auto text-xs font-medium whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
               {filtered.length} {t("common.meets")}
-              {activeType !== "all" && <> · {meetTabLabel(activeType)}</>}
-              {q.trim() && <> · &quot;{q.trim()}&quot;</>}
-            </div>
+            </span>
           </div>
         </div>
 
