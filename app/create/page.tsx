@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowLeft, ImagePlus, Film, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, Film, X, MessageCircle, Info, HelpCircle, Sun, Briefcase, MoreHorizontal } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
 const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
@@ -74,13 +74,13 @@ async function compressImage(
 
 type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
-const CATEGORY_OPTIONS: Array<{ value: Category; color: string }> = [
-  { value: "general", color: "bg-[#EAF4FF] text-[#4DA6FF]" },
-  { value: "info", color: "bg-[#E8F5E9] text-[#43A047]" },
-  { value: "question", color: "bg-[#FFF3E0] text-[#EF6C00]" },
-  { value: "daily", color: "bg-[#F3E5F5] text-[#8E24AA]" },
-  { value: "jobs", color: "bg-[#FFF8E1] text-[#F9A825]" },
-  { value: "other", color: "bg-[#ECEFF1] text-[#546E7A]" },
+const CATEGORY_OPTIONS: Array<{ value: Category; color: string; icon: React.ElementType; iconColor: string }> = [
+  { value: "general", color: "bg-[#EAF4FF] text-[#4DA6FF]", icon: MessageCircle, iconColor: "#7EC8E3" },
+  { value: "info", color: "bg-[#E8F5E9] text-[#43A047]", icon: Info, iconColor: "#95E1D3" },
+  { value: "question", color: "bg-[#FFF3E0] text-[#EF6C00]", icon: HelpCircle, iconColor: "#F9D56E" },
+  { value: "daily", color: "bg-[#F3E5F5] text-[#8E24AA]", icon: Sun, iconColor: "#F3A683" },
+  { value: "jobs", color: "bg-[#FFF8E1] text-[#F9A825]", icon: Briefcase, iconColor: "#AA96DA" },
+  { value: "other", color: "bg-[#ECEFF1] text-[#546E7A]", icon: MoreHorizontal, iconColor: "#C4C4C4" },
 ];
 
 export default function CreatePage() {
@@ -400,6 +400,7 @@ export default function CreatePage() {
                     : { background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }
                 }
               >
+                <o.icon className="h-3.5 w-3.5 shrink-0" style={{ color: category === o.value ? undefined : o.iconColor }} />
                 {t("cat." + o.value)}
               </button>
             ))}
