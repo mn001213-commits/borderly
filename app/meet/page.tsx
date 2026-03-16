@@ -354,7 +354,7 @@ export default function MeetPage() {
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
         {/* Sticky search + filters */}
-        <div className="sticky top-0 z-20 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6" style={{ background: "var(--bg-snow)" }}>
+        <div className="sticky top-[60px] z-20 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6" style={{ background: "var(--bg-snow)" }}>
           {/* Search bar + Create button */}
           <div className="mb-3 pt-1 flex items-center gap-2">
             <div
