@@ -109,7 +109,10 @@ async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: 
 
 export default function HomePage() {
   const { t } = useT();
-  const catLabel = (k: string) => t(`cat.${k}`);
+  const catEmoji: Record<string, string> = {
+    all: "📋", general: "💬", info: "ℹ️", question: "❓", daily: "☀️", jobs: "💼", other: "📌",
+  };
+  const catLabel = (k: string) => `${catEmoji[k] ?? ""} ${t(`cat.${k}`)}`;
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Map<string, AuthorProfile>>(new Map());
   const [loading, setLoading] = useState(true);

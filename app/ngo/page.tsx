@@ -45,7 +45,10 @@ export default function NGOPage() {
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
 
   const catLabel = (k: NgoCat) => {
-    if (k === "all") return t("common.all");
+    const emoji: Record<string, string> = {
+      all: "📋", jobs: "💼", housing: "🏠", legal: "⚖️", education: "🎓", health: "🏥", other: "📌",
+    };
+    if (k === "all") return `${emoji.all} ${t("common.all")}`;
     const map: Record<string, string> = {
       jobs: t("cat.jobs"),
       housing: t("ngo.housing"),
@@ -54,7 +57,7 @@ export default function NGOPage() {
       health: t("ngo.health"),
       other: t("cat.other"),
     };
-    return map[k] ?? k;
+    return `${emoji[k] ?? ""} ${map[k] ?? k}`;
   };
 
   useEffect(() => {
