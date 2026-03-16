@@ -13,6 +13,7 @@ import {
   FileText,
   Clock,
   TrendingUp,
+  Plus,
 } from "lucide-react";
 
 const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
@@ -334,10 +335,10 @@ export default function HomePage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Search bar */}
-        <div className="mb-6">
+        {/* Search bar + Create button */}
+        <div className="mb-6 flex items-center gap-2">
           <div
-            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
             style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
           >
             <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
@@ -355,6 +356,13 @@ export default function HomePage() {
               </button>
             )}
           </div>
+          <Link
+            href="/create"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
+            style={{ background: "var(--primary)" }}
+          >
+            <Plus className="h-5 w-5" />
+          </Link>
         </div>
 
         {/* Category tabs + sort */}
