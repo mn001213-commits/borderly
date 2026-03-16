@@ -238,12 +238,15 @@ export default function MeetPage() {
     "sports",
   ];
 
+  const typeDot: Record<string, string> = {
+    all: "#4DA6FF", hangout: "#7EC8E3", study: "#95E1D3", language: "#F9D56E", meal: "#F3A683", sports: "#AA96DA",
+  };
   const meetTypeLabel = (type: MeetType) => {
     return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
   };
   const meetTabLabel = (type: "all" | MeetType) => {
     if (type === "all") return t("common.all");
-    return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
+    return t(`meet.${type}`);
   };
 
   const filtered = useMemo(() => {
@@ -392,6 +395,7 @@ export default function MeetPage() {
                 onClick={() => setActiveType(tab)}
                 className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
+                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: typeDot[tab] ?? "#C4C4C4" }} />
                 {meetTabLabel(tab)}
               </button>
             ))}
