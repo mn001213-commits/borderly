@@ -11,7 +11,7 @@ export default function TopBar() {
   const { user } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+    <header className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md" style={{ borderBottom: "1px solid var(--border-soft)" }}>
       <div className="mx-auto flex h-[60px] items-center justify-between gap-4 px-4 sm:px-6 xl:mr-[340px]">
         <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
