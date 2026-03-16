@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Handshake, MessageCircle, Compass, Settings } from "lucide-react";
+import { Home, Users, Handshake, MessageCircle, Compass } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "./AuthProvider";
@@ -71,7 +71,6 @@ export default function BottomNav() {
     { href: "/meet", icon: Handshake, label: t("nav.meet") },
     { href: "/chats", icon: MessageCircle, label: t("nav.chats"), badge: unread },
     { href: "/browse", icon: Compass, label: t("nav.explore") },
-    { href: "/settings", icon: Settings, label: t("common.settings") },
   ];
 
   return (
@@ -79,7 +78,7 @@ export default function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md xl:hidden"
       style={{ borderTop: "1px solid var(--border-soft)", boxShadow: "0 -2px 12px rgba(30,42,56,0.04)" }}
     >
-      <div className="mx-auto grid h-[72px] max-w-lg grid-cols-6">
+      <div className="mx-auto grid h-[72px] max-w-lg grid-cols-5">
         {items.map(({ href, icon: Icon, label, badge }) => {
           const on = isActive(href);
           return (

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
 import { countryName } from "@/lib/countries";
-import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark } from "lucide-react";
+import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark, Menu } from "lucide-react";
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 
@@ -158,14 +158,23 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
         <header className="flex items-center justify-between gap-3 py-3">
           <h1 className="text-xl font-bold">{t("profile.title")}</h1>
-          <Link
-            href="/profile/edit"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-semibold no-underline transition hover:opacity-80"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
-          >
-            <Pencil className="h-4 w-4" />
-            {t("common.edit")}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/profile/edit"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-semibold no-underline transition hover:opacity-80"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+            >
+              <Pencil className="h-4 w-4" />
+              {t("common.edit")}
+            </Link>
+            <Link
+              href="/settings"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl no-underline transition hover:opacity-80"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+            >
+              <Menu className="h-5 w-5" />
+            </Link>
+          </div>
         </header>
 
         <div className="mt-4 space-y-4">
