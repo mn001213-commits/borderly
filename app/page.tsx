@@ -14,6 +14,12 @@ import {
   Clock,
   TrendingUp,
   Plus,
+  LayoutGrid,
+  Info,
+  HelpCircle,
+  Sun,
+  Briefcase,
+  MoreHorizontal,
 } from "lucide-react";
 
 const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
@@ -109,8 +115,14 @@ async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: 
 
 export default function HomePage() {
   const { t } = useT();
-  const catDot: Record<string, string> = {
-    all: "#4DA6FF", general: "#7EC8E3", info: "#95E1D3", question: "#F9D56E", daily: "#F3A683", jobs: "#AA96DA", other: "#C4C4C4",
+  const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    general: { icon: MessageCircle, color: "#7EC8E3" },
+    info: { icon: Info, color: "#95E1D3" },
+    question: { icon: HelpCircle, color: "#F9D56E" },
+    daily: { icon: Sun, color: "#F3A683" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
   };
   const catLabel = (k: string) => t(`cat.${k}`);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -378,7 +390,7 @@ export default function HomePage() {
                 onClick={() => setActiveCat(k)}
                 className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
-                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: catDot[k] ?? "#C4C4C4" }} />
+                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
                 {catLabel(k)}
               </button>
             ))}

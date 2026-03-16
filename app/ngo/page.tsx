@@ -15,6 +15,13 @@ import {
   ClipboardList,
   Clock,
   TrendingUp,
+  LayoutGrid,
+  Briefcase,
+  Home,
+  Scale,
+  GraduationCap,
+  HeartPulse,
+  MoreHorizontal,
 } from "lucide-react";
 
 type NgoCat = "all" | "jobs" | "housing" | "legal" | "education" | "health" | "other";
@@ -44,8 +51,14 @@ export default function NGOPage() {
   const [activeCat, setActiveCat] = useState<NgoCat>("all");
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
 
-  const catDot: Record<string, string> = {
-    all: "#4DA6FF", jobs: "#AA96DA", housing: "#7EC8E3", legal: "#F9D56E", education: "#95E1D3", health: "#F3A683", other: "#C4C4C4",
+  const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    housing: { icon: Home, color: "#7EC8E3" },
+    legal: { icon: Scale, color: "#F9D56E" },
+    education: { icon: GraduationCap, color: "#95E1D3" },
+    health: { icon: HeartPulse, color: "#F3A683" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
   };
   const catLabel = (k: NgoCat) => {
     if (k === "all") return t("common.all");
@@ -182,7 +195,7 @@ export default function NGOPage() {
                 onClick={() => setActiveCat(k)}
                 className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
-                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: catDot[k] ?? "#C4C4C4" }} />
+                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
                 {catLabel(k)}
               </button>
             ))}

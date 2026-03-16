@@ -17,6 +17,12 @@ import {
   TrendingUp,
   Star,
   Plus,
+  LayoutGrid,
+  Handshake,
+  BookOpen,
+  MessageSquare,
+  UtensilsCrossed,
+  Dumbbell,
 } from "lucide-react";
 
 type MeetType =
@@ -238,8 +244,13 @@ export default function MeetPage() {
     "sports",
   ];
 
-  const typeDot: Record<string, string> = {
-    all: "#4DA6FF", hangout: "#7EC8E3", study: "#95E1D3", language: "#F9D56E", meal: "#F3A683", sports: "#AA96DA",
+  const typeIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    hangout: { icon: Handshake, color: "#7EC8E3" },
+    study: { icon: BookOpen, color: "#95E1D3" },
+    language: { icon: MessageSquare, color: "#F9D56E" },
+    meal: { icon: UtensilsCrossed, color: "#F3A683" },
+    sports: { icon: Dumbbell, color: "#AA96DA" },
   };
   const meetTypeLabel = (type: MeetType) => {
     return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
@@ -395,7 +406,7 @@ export default function MeetPage() {
                 onClick={() => setActiveType(tab)}
                 className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
-                <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: typeDot[tab] ?? "#C4C4C4" }} />
+                {(() => { const ci = typeIcon[tab]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
                 {meetTabLabel(tab)}
               </button>
             ))}
