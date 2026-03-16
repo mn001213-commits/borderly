@@ -69,7 +69,7 @@ export default function ProfilePage() {
   const [originCountry, setOriginCountry] = useState<string | null>(null);
   const [languages, setLanguages] = useState<string[]>([]);
   const [showQR, setShowQR] = useState(false);
-  const [tab, setTab] = useState<"posts" | "about">("posts");
+  const [tab, setTab] = useState<"posts" | "about">("about");
 
   useEffect(() => {
     const load = async () => {
@@ -263,17 +263,6 @@ export default function ProfilePage() {
           {/* Tabs */}
           <div className="flex" style={{ borderBottom: "1px solid var(--border-soft)" }}>
             <button
-              onClick={() => setTab("posts")}
-              className="flex-1 py-3 text-sm font-semibold text-center transition"
-              style={{
-                borderBottom: tab === "posts" ? "2px solid var(--primary)" : "2px solid transparent",
-                color: tab === "posts" ? "var(--primary)" : "var(--text-muted)",
-              }}
-            >
-              <FileText className="mx-auto mb-1 h-5 w-5" />
-              {t("profile.posts")}
-            </button>
-            <button
               onClick={() => setTab("about")}
               className="flex-1 py-3 text-sm font-semibold text-center transition"
               style={{
@@ -283,6 +272,17 @@ export default function ProfilePage() {
             >
               <User className="mx-auto mb-1 h-5 w-5" />
               {t("profile.about")}
+            </button>
+            <button
+              onClick={() => setTab("posts")}
+              className="flex-1 py-3 text-sm font-semibold text-center transition"
+              style={{
+                borderBottom: tab === "posts" ? "2px solid var(--primary)" : "2px solid transparent",
+                color: tab === "posts" ? "var(--primary)" : "var(--text-muted)",
+              }}
+            >
+              <FileText className="mx-auto mb-1 h-5 w-5" />
+              {t("profile.posts")}
             </button>
           </div>
 
