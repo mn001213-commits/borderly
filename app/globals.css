@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html, body {
+  overflow-x: hidden;
+}
+
 /* ── Borderly Design System ── */
 :root {
   --bg-snow: #F7FAFF;
