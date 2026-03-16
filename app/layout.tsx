@@ -67,7 +67,7 @@ export default function RootLayout({
           <AuthProvider>
             <TopBar />
 
-            <main className="min-h-screen pb-[80px] xl:mr-[340px]">
+            <main className="min-h-screen pt-[60px] pb-[80px] xl:mr-[340px]">
               {children}
             </main>
 
