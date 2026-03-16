@@ -16,6 +16,7 @@ import {
   Clock,
   TrendingUp,
   Star,
+  Plus,
 } from "lucide-react";
 
 type MeetType =
@@ -354,10 +355,10 @@ export default function MeetPage() {
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
         {/* Sticky search + filters */}
         <div className="sticky top-0 z-20 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6" style={{ background: "var(--bg-snow)" }}>
-          {/* Search bar */}
-          <div className="mb-3 pt-1">
+          {/* Search bar + Create button */}
+          <div className="mb-3 pt-1 flex items-center gap-2">
             <div
-              className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+              className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
               style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
             >
               <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
@@ -374,6 +375,13 @@ export default function MeetPage() {
                 </button>
               )}
             </div>
+            <Link
+              href="/meet/new"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
+              style={{ background: "var(--primary)" }}
+            >
+              <Plus className="h-5 w-5" />
+            </Link>
           </div>
 
           {/* Type tabs + sort */}
