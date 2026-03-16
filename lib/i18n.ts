@@ -29,7 +29,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "common.results": { en: "results", ko: "결과", ja: "件" },
   "common.latest": { en: "Latest", ko: "최신", ja: "最新" },
   "common.popular": { en: "Popular", ko: "인기", ja: "人気" },
-  "common.recommended": { en: "Recommended", ko: "추천", ja: "おすすめ" },
+  "common.recommended": { en: "Picks", ko: "추천", ja: "おすすめ" },
   "common.posts": { en: "posts", ko: "게시글", ja: "件" },
   "common.meets": { en: "meets", ko: "모임", ja: "件" },
   "common.account": { en: "Account", ko: "계정", ja: "アカウント" },
