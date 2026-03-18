@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { ShieldAlert, X, CheckCircle } from "lucide-react";
 
 type Props = {
   reporterId: string;
@@ -20,6 +21,7 @@ export default function ReportUserButton({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const submit = async () => {
     setMsg(null);
@@ -52,22 +54,26 @@ export default function ReportUserButton({
       return;
     }
 
-    setReason("");
-    setOpen(false);
+    setSuccess(true);
     onDone?.();
-    alert("Report submitted successfully.");
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setMsg(null);
+    setReason("");
+    setSuccess(false);
   };
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
+        className="rounded-xl px-3 py-2 text-sm font-medium transition hover:opacity-80"
         style={{
-          padding: "8px 12px",
-          borderRadius: 10,
-          border: "1px solid #ddd",
-          background: "white",
-          cursor: "pointer",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-soft)",
+          color: "var(--text-secondary)",
         }}
       >
         Report
@@ -75,77 +81,114 @@ export default function ReportUserButton({
 
       {open && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+          onClick={handleClose}
         >
           <div
-            style={{
-              width: 420,
-              maxWidth: "90vw",
-              background: "white",
-              borderRadius: 14,
-              padding: 16,
-              border: "1px solid #eee",
-            }}
+            className="b-animate-in w-full max-w-md rounded-2xl p-6"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: 0 }}>Report Reason</h3>
+            {!success ? (
+              <>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-full"
+                      style={{ background: "#FEE2E2" }}
+                    >
+                      <ShieldAlert className="h-5 w-5" style={{ color: "#DC2626" }} />
+                    </div>
+                    <div className="text-base font-bold" style={{ color: "var(--deep-navy)" }}>
+                      Report User
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="rounded-full p-1.5 transition hover:opacity-70"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
 
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={5}
-              placeholder="e.g. harassment, spam, scam, etc."
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 10,
-                border: "1px solid #ddd",
-                resize: "vertical",
-              }}
-            />
+                <div className="mb-4">
+                  <div className="text-sm font-medium mb-2" style={{ color: "var(--deep-navy)" }}>
+                    Reason
+                  </div>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={4}
+                    placeholder="e.g. harassment, spam, scam, etc."
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none"
+                    style={{
+                      background: "var(--light-blue)",
+                      border: "1px solid var(--border-soft)",
+                      color: "var(--deep-navy)",
+                    }}
+                  />
+                </div>
 
-            {msg && <p style={{ margin: "8px 0", color: "#b00020" }}>{msg}</p>}
+                {msg && (
+                  <div
+                    className="mb-4 rounded-xl px-4 py-3 text-sm"
+                    style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}
+                  >
+                    {msg}
+                  </div>
+                )}
 
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  setMsg(null);
-                }}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
-                  background: "white",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={submit}
-                disabled={loading}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #111",
-                  background: "#111",
-                  color: "white",
-                  cursor: "pointer",
-                  opacity: loading ? 0.6 : 1,
-                }}
-              >
-                {loading ? "Submitting..." : "Submit Report"}
-              </button>
-            </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="flex-1 rounded-2xl py-3 text-sm font-medium transition hover:opacity-80"
+                    style={{
+                      background: "var(--bg-card)",
+                      border: "1px solid var(--border-soft)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submit}
+                    disabled={loading}
+                    className="flex-1 rounded-2xl py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: "#DC2626" }}
+                  >
+                    {loading ? "Submitting..." : "Submit Report"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center py-4">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full mb-4"
+                  style={{ background: "#DCFCE7" }}
+                >
+                  <CheckCircle className="h-7 w-7" style={{ color: "#16A34A" }} />
+                </div>
+                <div className="text-base font-bold mb-1" style={{ color: "var(--deep-navy)" }}>
+                  Report submitted
+                </div>
+                <div className="text-sm text-center mb-5" style={{ color: "var(--text-secondary)" }}>
+                  We'll review this report and take appropriate action.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-2xl px-8 py-3 text-sm font-medium text-white transition hover:opacity-90"
+                  style={{ background: "var(--primary)" }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

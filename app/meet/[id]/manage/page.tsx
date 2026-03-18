@@ -151,23 +151,35 @@ export default function MeetManagePage() {
     // Skip if already subscribed (StrictMode/HMR guard)
     if (chRef.current) return;
 
+    let cancelled = false;
+
     const refetchSoon = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => init(), 200);
+      timerRef.current = setTimeout(() => { if (!cancelled) init(); }, 200);
     };
 
-    const ch = supabase
-      .channel(`meet-manage-${id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "meet_participants", filter: `meet_id=eq.${id}` },
-        refetchSoon
-      )
-      .subscribe();
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
 
-    chRef.current = ch;
+      const ch = supabase
+        .channel(`meet-manage-${id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "meet_participants", filter: `meet_id=eq.${id}` },
+          refetchSoon
+        )
+        .subscribe();
+
+      chRef.current = ch;
+    };
+
+    start();
 
     return () => {
+      cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
 
       // Delay cleanup slightly to avoid "closed before established" warning

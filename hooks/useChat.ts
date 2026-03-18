@@ -166,27 +166,58 @@ export function useChat(conversationId?: string) {
         // 1:1 DM logic
         setIsGroup(false);
 
-        const { data, error } = await supabase
-          .from("messages")
+        // Try to find other user from conversation_members first
+        const { data: members } = await supabase
+          .from("conversation_members")
           .select("user_id")
           .eq("conversation_id", conversationId)
-          .neq("user_id", me)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: true })
-          .limit(1);
+          .neq("user_id", me);
 
         if (!alive) return;
-        if (error) return;
 
-        const oid = data?.[0]?.user_id ?? null;
+        let oid = members?.[0]?.user_id ?? null;
+
+        // Fallback: check direct_conversations table
+        if (!oid) {
+          const { data: dc } = await supabase
+            .from("direct_conversations")
+            .select("user_low, user_high")
+            .eq("conversation_id", conversationId)
+            .maybeSingle();
+
+          if (!alive) return;
+          if (dc) {
+            oid = dc.user_low === me ? dc.user_high : dc.user_low;
+          }
+        }
+
+        // Last fallback: check messages
+        if (!oid) {
+          const { data: msgData } = await supabase
+            .from("messages")
+            .select("user_id")
+            .eq("conversation_id", conversationId)
+            .neq("user_id", me)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: true })
+            .limit(1);
+
+          if (!alive) return;
+          oid = msgData?.[0]?.user_id ?? null;
+        }
+
         setOtherId(oid);
 
         if (oid) {
-          setOther({
-            id: oid,
-            display_name: null,
-            avatar_url: null,
-          });
+          // Load profile for the other user
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("id, display_name, avatar_url")
+            .eq("id", oid)
+            .maybeSingle();
+
+          if (!alive) return;
+          setOther(prof ? { id: prof.id, display_name: prof.display_name, avatar_url: prof.avatar_url } : { id: oid, display_name: null, avatar_url: null });
         }
       }
     })();
@@ -276,6 +307,11 @@ export function useChat(conversationId?: string) {
       await cleanup();
 
       if (blockedEither) return;
+
+      // Set auth token for realtime
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
 
       const ch = supabase.channel(`chat:${conversationId}`);
 

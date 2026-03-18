@@ -158,7 +158,18 @@ export default function NewChatPage() {
     let conversationId = (existing as DirectConversation | null)?.conversation_id ?? null;
 
     if (!conversationId) {
-      conversationId = crypto.randomUUID();
+      // 1) Create conversation record first
+      const { data: conv, error: convErr } = await supabase
+        .from("conversations")
+        .insert({ type: "direct" })
+        .select("id")
+        .single();
+
+      if (convErr || !conv) { setErrorMsg(convErr?.message ?? "Failed to create conversation"); return; }
+
+      conversationId = conv.id;
+
+      // 2) Link in direct_conversations
       const { error: insErr } = await supabase.from("direct_conversations").insert({
         conversation_id: conversationId,
         user_low: userLow,

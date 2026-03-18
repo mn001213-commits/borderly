@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "./components/AuthProvider";
 import { useT } from "./components/LangProvider";
 import {
   Heart,
@@ -114,7 +116,25 @@ async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: 
 }
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useT();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    } else if (!authLoading && user) {
+      router.replace("/browse");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="b-skeleton h-10 w-40 rounded-2xl" />
+      </div>
+    );
+  }
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
     all: { icon: LayoutGrid, color: "#4DA6FF" },
     general: { icon: MessageCircle, color: "#7EC8E3" },
@@ -390,7 +410,7 @@ export default function HomePage() {
                 onClick={() => setActiveCat(k)}
                 className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
               >
-                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
+                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === k ? "#fff" : ci.color }} />; })()}
                 {catLabel(k)}
               </button>
             ))}
@@ -405,12 +425,12 @@ export default function HomePage() {
                 height: 36,
                 padding: "0 14px",
                 fontSize: 13,
-                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                background: sortMode === "latest" ? "var(--primary)" : "transparent",
                 color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
               }}
             >
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-3.5 w-3.5" style={{ color: sortMode === "latest" ? "#fff" : "var(--text-muted)" }} />
               {t("common.latest")}
             </button>
             <button
@@ -421,12 +441,12 @@ export default function HomePage() {
                 height: 36,
                 padding: "0 14px",
                 fontSize: 13,
-                background: sortMode === "likes" ? "var(--deep-navy)" : "transparent",
+                background: sortMode === "likes" ? "var(--primary)" : "transparent",
                 color: sortMode === "likes" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "likes" ? "none" : "1px solid var(--border-soft)",
               }}
             >
-              <TrendingUp className="h-3.5 w-3.5" />
+              <TrendingUp className="h-3.5 w-3.5" style={{ color: sortMode === "likes" ? "#fff" : "var(--text-muted)" }} />
               {t("common.popular")}
             </button>
 
@@ -438,7 +458,7 @@ export default function HomePage() {
         </div>
 
         {/* Feed */}
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Trending */}
             {!loading && !errorMsg && trendingTop3.length > 0 && (
               <section className="b-card p-5">

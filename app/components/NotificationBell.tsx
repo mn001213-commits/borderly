@@ -65,38 +65,51 @@ export default function NotificationBell({ className }: NotificationBellProps) {
 
   useEffect(() => {
     if (!me) return;
+    let cancelled = false;
 
     const refreshSoon = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {
         try {
           const unread = await getUnreadCount();
-          setCount(unread);
+          if (!cancelled) setCount(unread);
         } catch (error) {
           console.error("NotificationBell refresh error:", error);
         }
       }, 120);
     };
 
-    const ch = supabase
-      .channel(`notifications-badge:${me}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${me}`,
-        },
-        () => {
-          refreshSoon();
-        }
-      )
-      .subscribe();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      ch = supabase
+        .channel(`notifications-badge:${me}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${me}`,
+          },
+          () => {
+            refreshSoon();
+          }
+        )
+        .subscribe();
+    };
+
+    start();
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
   }, [me]);
 

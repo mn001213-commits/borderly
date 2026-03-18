@@ -248,11 +248,11 @@ export default function OnlineSidebar() {
         </div>
         <div className="space-y-1">
           {[
+            { href: "/browse", label: t("sidebar.exploreAll") },
             { href: "/", label: t("sidebar.communityFeed") },
-            { href: "/ngo", label: t("sidebar.ngoDirectory") },
             { href: "/meet", label: t("sidebar.iceBreaking") },
             { href: "/chats", label: t("sidebar.chats") },
-            { href: "/browse", label: t("sidebar.exploreAll") },
+            { href: "/ngo", label: t("sidebar.ngoDirectory") },
           ].map((item) => (
             <Link
               key={item.href}

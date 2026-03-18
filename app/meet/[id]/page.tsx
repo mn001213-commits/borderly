@@ -107,6 +107,7 @@ export default function MeetDetailPage() {
 
   const [myStatus, setMyStatus] = useState<MyStatus>("none");
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [joinMsg, setJoinMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
 
   // Detect approval transition + banner
   const prevStatusRef = useRef<MyStatus>("none");
@@ -261,29 +262,41 @@ export default function MeetDetailPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!meetId) return;
+    let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
 
     const refetchSoon = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => loadAll(), 200);
+      timerRef.current = setTimeout(() => { if (!cancelled) loadAll(); }, 200);
     };
 
-    const ch = supabase
-      .channel(`meet-detail-${meetId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "meet_participants", filter: `meet_id=eq.${meetId}` },
-        refetchSoon
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "meet_posts", filter: `id=eq.${meetId}` },
-        refetchSoon
-      )
-      .subscribe();
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      ch = supabase
+        .channel(`meet-detail-${meetId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "meet_participants", filter: `meet_id=eq.${meetId}` },
+          refetchSoon
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "meet_posts", filter: `id=eq.${meetId}` },
+          refetchSoon
+        )
+        .subscribe();
+    };
+
+    start();
 
     return () => {
+      cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
   }, [meetId, loadAll]);
 
@@ -322,6 +335,7 @@ export default function MeetDetailPage() {
     if (!meet || !meId) return;
 
     setJoining(true);
+    setJoinMsg(null);
 
     // Check user_type and slot availability
     if (meet.max_foreigners != null && meet.max_locals != null) {
@@ -334,37 +348,57 @@ export default function MeetDetailPage() {
       const myType = myProfile?.user_type;
 
       if (myType === "foreigner" && isForeignerFull) {
-        alert(t("meetDetail.foreignerSlotsFull"));
+        setJoinMsg({ type: "error", text: t("meetDetail.foreignerSlotsFull") });
         setJoining(false);
         return;
       }
       if (myType === "local" && isLocalFull) {
-        alert(t("meetDetail.localSlotsFull"));
+        setJoinMsg({ type: "error", text: t("meetDetail.localSlotsFull") });
         setJoining(false);
         return;
       }
       if (!myType || (myType !== "foreigner" && myType !== "local")) {
-        if (confirm(t("meetDetail.setUserType"))) {
-          router.push("/settings");
-        }
+        setJoinMsg({ type: "info", text: t("meetDetail.setUserType") });
         setJoining(false);
         return;
       }
     }
 
-    const ins = await supabase.from("meet_participants").insert({
+    // Check for existing participation first
+    const { data: existing } = await supabase
+      .from("meet_participants")
+      .select("user_id,status")
+      .eq("meet_id", meet.id)
+      .eq("user_id", meId)
+      .maybeSingle();
+
+    if (existing) {
+      setJoinMsg({ type: "info", text: t("meetDetail.alreadyRequested") });
+      setJoining(false);
+      loadAll();
+      return;
+    }
+
+    const { error } = await supabase.from("meet_participants").insert({
       meet_id: meet.id,
       user_id: meId,
       status: "pending",
     } as any);
 
-    if (ins.error) {
-      await supabase.from("meet_participants").insert({
-        meet_id: meet.id,
-        user_id: meId,
-      } as any);
+    if (error) {
+      const msg = error.message || "";
+      if (msg.includes("full") || msg.includes("capacity")) {
+        setJoinMsg({ type: "error", text: t("meetDetail.meetFull") });
+      } else if (msg.includes("unique") || msg.includes("duplicate")) {
+        setJoinMsg({ type: "info", text: t("meetDetail.alreadyRequested") });
+      } else {
+        setJoinMsg({ type: "error", text: msg });
+      }
+      setJoining(false);
+      return;
     }
 
+    setJoinMsg({ type: "info", text: t("meetDetail.requestSent") });
     setJoining(false);
     loadAll();
   }
@@ -685,6 +719,29 @@ export default function MeetDetailPage() {
                   primaryButtonText()
                 )}
               </button>
+            )}
+
+            {joinMsg && (
+              <div
+                className="rounded-xl px-4 py-3 text-sm font-medium"
+                style={{
+                  background: joinMsg.type === "error" ? "#FEF2F2" : "var(--light-blue)",
+                  border: joinMsg.type === "error" ? "1px solid #FECACA" : "1px solid var(--border-soft)",
+                  color: joinMsg.type === "error" ? "#B91C1C" : "var(--deep-navy)",
+                }}
+              >
+                {joinMsg.text}
+                {joinMsg.type === "info" && joinMsg.text === t("meetDetail.setUserType") && (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/settings")}
+                    className="ml-2 underline font-semibold"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {t("common.settings")}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

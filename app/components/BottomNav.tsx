@@ -18,6 +18,7 @@ export default function BottomNav() {
   useEffect(() => {
     if (!user) return;
     let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     async function fetchUnread() {
       const { data } = await supabase
@@ -35,30 +36,39 @@ export default function BottomNav() {
       }
     }
 
-    // Fetch once on mount
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchUnread();
+    async function start() {
+      // Set auth token for realtime
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (!mounted) return;
+
+      // Fetch once on mount
+      if (!fetchedRef.current) {
+        fetchedRef.current = true;
+        fetchUnread();
+      }
+
+      channel = supabase
+        .channel(`bottom-nav-unread:${user!.id}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          () => fetchUnread(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "message_read_receipts" },
+          () => fetchUnread(),
+        )
+        .subscribe();
     }
 
-    // Only use realtime, no polling
-    const channel = supabase
-      .channel("bottom-nav-unread")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => fetchUnread(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "message_read_receipts" },
-        () => fetchUnread(),
-      )
-      .subscribe();
+    start();
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -66,11 +76,11 @@ export default function BottomNav() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const items = [
+    { href: "/browse", icon: Compass, label: t("nav.explore") },
     { href: "/", icon: Home, label: t("nav.home") },
-    { href: "/ngo", icon: Users, label: t("nav.ngo") },
     { href: "/meet", icon: Handshake, label: t("nav.meet") },
     { href: "/chats", icon: MessageCircle, label: t("nav.chats"), badge: unread },
-    { href: "/browse", icon: Compass, label: t("nav.explore") },
+    { href: "/ngo", icon: Users, label: t("nav.ngo") },
   ];
 
   return (

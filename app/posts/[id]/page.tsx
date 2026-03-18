@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import { createReport } from "@/lib/reportService";
 import NotificationBell from "@/app/components/NotificationBell";
+import ReportModal from "@/app/components/ReportModal";
 import { useT } from "@/app/components/LangProvider";
 
 import {
@@ -101,6 +102,8 @@ export default function PostDetailPage() {
 
   const [reportingPost, setReportingPost] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(null);
 
   const [myId, setMyId] = useState<string | null>(null);
 
@@ -574,28 +577,8 @@ export default function PostDetailPage() {
       return;
     }
 
-    const reason = prompt(t("post.reportReasonPrompt"));
-    if (!reason) return;
-
-    const detail = prompt(t("post.reportDetailPrompt")) ?? "";
-
-    setReportingPost(true);
-    setErrorMsg(null);
-
-    try {
-      await createReport({
-        targetType: "post",
-        targetId: postId,
-        reason,
-        detail,
-      });
-
-      alert(t("post.reportSubmitted"));
-    } catch (error: any) {
-      setErrorMsg(error?.message ?? t("post.reportFailed"));
-    } finally {
-      setReportingPost(false);
-    }
+    setReportTarget({ type: "post", id: postId });
+    setReportModalOpen(true);
   };
 
   const reportComment = async (commentId: string) => {
@@ -610,27 +593,28 @@ export default function PostDetailPage() {
       return;
     }
 
-    const reason = prompt(t("post.reportReasonPrompt"));
-    if (!reason) return;
+    setReportTarget({ type: "comment", id: commentId });
+    setReportModalOpen(true);
+  };
 
-    const detail = prompt(t("post.reportDetailPrompt")) ?? "";
+  const handleReportSubmit = async (reason: string, detail: string) => {
+    if (!reportTarget) return;
 
-    setReportingCommentId(commentId);
+    if (reportTarget.type === "post") setReportingPost(true);
+    else setReportingCommentId(reportTarget.id);
+
     setErrorMsg(null);
 
     try {
       await createReport({
-        targetType: "comment",
-        targetId: commentId,
+        targetType: reportTarget.type,
+        targetId: reportTarget.id,
         reason,
         detail,
       });
-
-      alert(t("post.reportSubmitted"));
-    } catch (error: any) {
-      setErrorMsg(error?.message ?? t("post.reportFailed"));
     } finally {
-      setReportingCommentId(null);
+      if (reportTarget.type === "post") setReportingPost(false);
+      else setReportingCommentId(null);
     }
   };
 
@@ -709,13 +693,22 @@ export default function PostDetailPage() {
     setBookmarking(true);
     try {
       if (bookmarkedByMe) {
-        await supabase.from("post_bookmarks").delete().eq("post_id", postId).eq("user_id", user.id);
+        const { error: delErr } = await supabase.from("post_bookmarks").delete().eq("post_id", postId).eq("user_id", user.id);
+        if (delErr) console.error("bookmark delete error:", delErr);
+        setBookmarkedByMe(false);
       } else {
         const { error } = await supabase.from("post_bookmarks").insert({ post_id: postId, user_id: user.id });
-        if (error && (error as any)?.code === "23505") { /* duplicate, ignore */ }
-        else if (error) throw error;
+        if (error && (error as any)?.code === "23505") {
+          // Already bookmarked (duplicate), just set state
+          setBookmarkedByMe(true);
+        } else if (error) {
+          console.error("bookmark insert error:", error);
+        } else {
+          setBookmarkedByMe(true);
+        }
       }
-      await loadBookmarkState(postId, user.id);
+    } catch (err) {
+      console.error("toggleBookmark error:", err);
     } finally {
       setBookmarking(false);
     }
@@ -1188,10 +1181,12 @@ export default function PostDetailPage() {
 
           <div className="mt-4 grid gap-3">
             {rootComments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--light-blue)" }}>
-                <FileText className="mb-3 h-10 w-10" style={{ color: "var(--text-muted)" }} />
-                <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.noComments")}</div>
-                <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("post.beFirstComment")}</div>
+              <div className="flex flex-col items-center justify-center rounded-2xl px-6 py-12 text-center" style={{ background: "linear-gradient(135deg, var(--light-blue) 0%, var(--bg-card) 100%)", border: "1px solid var(--border-soft)" }}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full mb-4" style={{ background: "var(--primary)", opacity: 0.12 }}>
+                  <MessageCircle className="h-7 w-7" style={{ color: "var(--primary)" }} />
+                </div>
+                <div className="text-[15px] font-bold" style={{ color: "var(--deep-navy)" }}>{t("post.noComments")}</div>
+                <div className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{t("post.beFirstComment")}</div>
               </div>
             ) : (
               rootComments.map((comment) => renderCommentNode(comment))
@@ -1237,6 +1232,13 @@ export default function PostDetailPage() {
           {t("post.linkCopied")}
         </div>
       )}
+
+      <ReportModal
+        open={reportModalOpen}
+        onClose={() => { setReportModalOpen(false); setReportTarget(null); }}
+        onSubmit={handleReportSubmit}
+        t={t}
+      />
     </div>
   );
 }
