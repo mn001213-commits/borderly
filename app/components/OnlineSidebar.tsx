@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useAuth } from "./AuthProvider";
-import { User, Users, Search, Globe, ChevronRight, Plus, Settings } from "lucide-react";
+import { User, Users, Home, Search, CalendarHeart, MessageCircle, ShieldCheck, Globe, ChevronRight, Plus, Settings } from "lucide-react";
 import { countryName } from "@/lib/countries";
 import { useT } from "./LangProvider";
 
@@ -248,11 +248,11 @@ export default function OnlineSidebar() {
         </div>
         <div className="space-y-1">
           {[
-            { href: "/browse", label: t("sidebar.exploreAll") },
-            { href: "/", label: t("sidebar.communityFeed") },
-            { href: "/meet", label: t("sidebar.iceBreaking") },
-            { href: "/chats", label: t("sidebar.chats") },
-            { href: "/ngo", label: t("sidebar.ngoDirectory") },
+            { href: "/", icon: Home, label: t("sidebar.communityFeed") },
+            { href: "/browse", icon: Search, label: t("sidebar.exploreAll") },
+            { href: "/meet", icon: CalendarHeart, label: t("sidebar.iceBreaking") },
+            { href: "/chats", icon: MessageCircle, label: t("sidebar.chats") },
+            { href: "/ngo", icon: ShieldCheck, label: t("sidebar.ngoDirectory") },
           ].map((item) => (
             <Link
               key={item.href}
@@ -262,7 +262,10 @@ export default function OnlineSidebar() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--light-blue)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              {item.label}
+              <span className="flex items-center gap-2">
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </span>
               <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
             </Link>
           ))}
