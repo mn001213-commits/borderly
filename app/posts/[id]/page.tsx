@@ -1181,12 +1181,12 @@ export default function PostDetailPage() {
 
           <div className="mt-4 grid gap-3">
             {rootComments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl px-6 py-12 text-center" style={{ background: "linear-gradient(135deg, var(--light-blue) 0%, var(--bg-card) 100%)", border: "1px solid var(--border-soft)" }}>
-                <div className="flex h-14 w-14 items-center justify-center rounded-full mb-4" style={{ background: "var(--primary)", opacity: 0.12 }}>
-                  <MessageCircle className="h-7 w-7" style={{ color: "var(--primary)" }} />
+              <div className="flex items-center gap-3 rounded-2xl px-4 py-4" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+                <MessageCircle className="h-5 w-5 shrink-0" style={{ color: "var(--text-muted)" }} />
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.noComments")}</div>
+                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>{t("post.beFirstComment")}</div>
                 </div>
-                <div className="text-[15px] font-bold" style={{ color: "var(--deep-navy)" }}>{t("post.noComments")}</div>
-                <div className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{t("post.beFirstComment")}</div>
               </div>
             ) : (
               rootComments.map((comment) => renderCommentNode(comment))

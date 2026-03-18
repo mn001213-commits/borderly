@@ -123,8 +123,6 @@ export default function HomePage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/login");
-    } else if (!authLoading && user) {
-      router.replace("/browse");
     }
   }, [authLoading, user, router]);
 
