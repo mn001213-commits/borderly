@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShieldCheck, CalendarHeart, MessageCircle, Search } from "lucide-react";
+import { Home, ShieldCheck, CalendarHeart, MessageCircle, FileText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "./AuthProvider";
@@ -76,8 +76,8 @@ export default function BottomNav() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const items = [
-    { href: "/", icon: Home, label: t("nav.home") },
-    { href: "/browse", icon: Search, label: t("nav.explore") },
+    { href: "/browse", icon: Home, label: t("nav.explore") },
+    { href: "/", icon: FileText, label: t("nav.home") },
     { href: "/meet", icon: CalendarHeart, label: t("nav.meet") },
     { href: "/chats", icon: MessageCircle, label: t("nav.chats"), badge: unread },
     { href: "/ngo", icon: ShieldCheck, label: t("nav.ngo") },
