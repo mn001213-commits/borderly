@@ -105,10 +105,10 @@ export default function BookmarksPage() {
 
       const postIds = bookmarks.map((b) => b.post_id);
 
-      // Fetch the actual posts
+      // Fetch the actual posts (without like_count/comment_count - those aren't columns)
       const { data: postsData } = await supabase
         .from("posts")
-        .select("id, created_at, title, content, author_name, like_count, comment_count, image_url, category")
+        .select("id, created_at, title, content, author_name, image_url, category")
         .in("id", postIds)
         .eq("is_hidden", false);
 
@@ -118,8 +118,25 @@ export default function BookmarksPage() {
         return;
       }
 
+      // Fetch engagement counts
+      const [likesRes, commentsRes] = await Promise.all([
+        supabase.from("post_likes").select("post_id").in("post_id", postIds),
+        supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+      ]);
+
+      const likeCounts = new Map<string, number>();
+      const commentCounts = new Map<string, number>();
+      for (const r of likesRes.data ?? []) likeCounts.set(r.post_id, (likeCounts.get(r.post_id) ?? 0) + 1);
+      for (const r of commentsRes.data ?? []) commentCounts.set(r.post_id, (commentCounts.get(r.post_id) ?? 0) + 1);
+
+      const enriched = postsData.map((p: any) => ({
+        ...p,
+        like_count: likeCounts.get(p.id) ?? 0,
+        comment_count: commentCounts.get(p.id) ?? 0,
+      }));
+
       // Reorder to match bookmark order
-      const postMap = new Map(postsData.map((p) => [p.id, p]));
+      const postMap = new Map(enriched.map((p: any) => [p.id, p]));
       const ordered = postIds
         .map((id) => postMap.get(id))
         .filter(Boolean) as Post[];
