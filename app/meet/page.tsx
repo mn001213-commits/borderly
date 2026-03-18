@@ -318,6 +318,7 @@ export default function MeetPage() {
   const joinMeet = async (meetId: string) => {
     if (!myUid) return;
     setBusyKey(meetId, true);
+    setJoinError(null);
 
     setJoinedSet((prev) => new Set(prev).add(meetId));
     setMeets((prev) =>
@@ -325,7 +326,11 @@ export default function MeetPage() {
     );
 
     try {
-      const { error } = await supabase.rpc("join_meet", { p_meet_id: meetId });
+      const { error } = await supabase.from("meet_participants").insert({
+        meet_id: meetId,
+        user_id: myUid,
+        status: "pending",
+      } as any);
 
       if (error) {
         const msg = String(error.message ?? error);
@@ -341,8 +346,8 @@ export default function MeetPage() {
           )
         );
 
-        if (msg.includes("MEET_FULL")) setJoinError(t("meetDetail.meetFull"));
-        else if (msg.includes("MEET_CLOSED")) setJoinError(t("meet.closed"));
+        if (msg.includes("full") || msg.includes("capacity")) setJoinError(t("meetDetail.meetFull"));
+        else if (msg.includes("unique") || msg.includes("duplicate") || msg.includes("23505")) setJoinError(t("meetDetail.alreadyRequested"));
         else setJoinError(msg);
 
         await load();
@@ -368,7 +373,11 @@ export default function MeetPage() {
     );
 
     try {
-      const { error } = await supabase.rpc("leave_meet", { p_meet_id: meetId });
+      const { error } = await supabase
+        .from("meet_participants")
+        .delete()
+        .eq("meet_id", meetId)
+        .eq("user_id", myUid);
       if (error) {
         await load();
       }
