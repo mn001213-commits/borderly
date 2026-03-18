@@ -258,7 +258,7 @@ export default function ChatsPage() {
                 height: 36,
                 padding: "0 14px",
                 fontSize: 13,
-                background: tab === tb.key ? "var(--deep-navy)" : "transparent",
+                background: tab === tb.key ? "var(--primary)" : "transparent",
                 color: tab === tb.key ? "#fff" : "var(--text-secondary)",
                 border: tab === tb.key ? "none" : "1px solid var(--border-soft)",
               }}

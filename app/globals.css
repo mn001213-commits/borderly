@@ -136,6 +136,12 @@ body::before {
 .b-meet-language { background: #F3E5F5; color: #8E24AA; }
 .b-meet-meal { background: #FFF8E1; color: #F57F17; }
 .b-meet-sports { background: #E3F2FD; color: #1565C0; }
+.b-meet-skill { background: #E0F7FA; color: #00838F; }
+.b-meet-party { background: #FCE4EC; color: #C2185B; }
+.b-meet-project { background: #E8EAF6; color: #283593; }
+.b-meet-culture { background: #FFF8E1; color: #FF8F00; }
+.b-meet-volunteer { background: #E8F5E9; color: #388E3C; }
+.b-meet-other { background: #ECEFF1; color: #546E7A; }
 
 /* ── Fade-in animation ── */
 @keyframes b-fade-up {
