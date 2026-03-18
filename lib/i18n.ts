@@ -69,6 +69,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "signup.createAccount": { en: "Create Account", ko: "계정 만들기", ja: "アカウント作成" },
   "signup.noUserInfo": { en: "Sign up succeeded but could not retrieve user info.", ko: "가입은 완료되었지만 사용자 정보를 가져올 수 없습니다.", ja: "登録は完了しましたが、ユーザー情報を取得できませんでした。" },
   "signup.accountCreated": { en: "Account created! Redirecting...", ko: "계정이 생성되었습니다! 이동 중...", ja: "アカウントが作成されました！リダイレクト中..." },
+  "signup.pwRequirements": { en: "Must be 8+ characters with at least one uppercase letter, one lowercase letter, and one number", ko: "8자 이상, 대문자·소문자·숫자를 각각 1개 이상 포함해야 합니다", ja: "8文字以上で、大文字・小文字・数字をそれぞれ1つ以上含む必要があります" },
+  "signup.pwStrong": { en: "Strong password", ko: "안전한 비밀번호입니다", ja: "安全なパスワードです" },
 
   // Reset Password
   "resetPw.title": { en: "Reset Password", ko: "비밀번호 재설정", ja: "パスワードリセット" },
@@ -253,6 +255,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "meetDetail.localSlotsFull": { en: "Local slots are full for this meet.", ko: "이 모임의 현지인 자리가 마감되었습니다.", ja: "このミートのローカル枠は満員です。" },
   "meetDetail.setUserType": { en: "You need to set your user type (foreigner/local) in settings first. Go to settings now?", ko: "먼저 설정에서 사용자 유형(외국인/현지인)을 설정해야 합니다. 지금 설정으로 이동하시겠습니까?", ja: "まず設定でユーザータイプ（外国人/ローカル）を設定する必要があります。今すぐ設定に移動しますか？" },
   "meetDetail.deleteConfirm": { en: "Are you sure you want to delete this meetup? This action cannot be undone.", ko: "이 모임을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.", ja: "このミートアップを削除してもよろしいですか？この操作は元に戻せません。" },
+  "meetDetail.alreadyRequested": { en: "You have already requested to join this meet.", ko: "이미 참가 요청을 보냈습니다.", ja: "すでに参加リクエストを送信しています。" },
+  "meetDetail.meetFull": { en: "This meet is full.", ko: "이 모임은 마감되었습니다.", ja: "このミートは定員に達しました。" },
+  "meetDetail.requestSent": { en: "Request sent! Waiting for host approval.", ko: "참가 요청을 보냈습니다! 호스트의 승인을 기다려 주세요.", ja: "リクエストを送信しました！ホストの承認をお待ちください。" },
 
   // Meet Manage
   "meetManage.backToMeetup": { en: "Back to Meetup", ko: "모임으로 돌아가기", ja: "ミートアップに戻る" },
@@ -626,6 +631,14 @@ const translations: Record<string, Record<Locale, string>> = {
   "post.reportDetailPrompt": { en: "Additional details? (optional)", ko: "추가 설명? (선택)", ja: "追加の詳細は？ (任意)" },
   "post.reportSubmitted": { en: "Report submitted.", ko: "신고가 접수되었습니다.", ja: "報告が送信されました。" },
   "post.reportFailed": { en: "Failed to submit report.", ko: "신고 접수에 실패했습니다.", ja: "報告の送信に失敗しました。" },
+  "report.subtitle": { en: "Help us keep the community safe", ko: "안전한 커뮤니티를 만들어 주세요", ja: "コミュニティの安全にご協力ください" },
+  "report.reasonLabel": { en: "Reason for report", ko: "신고 사유", ja: "報告理由" },
+  "report.selectReason": { en: "Please select a reason.", ko: "신고 사유를 선택해 주세요.", ja: "報告理由を選択してください。" },
+  "report.detailLabel": { en: "Additional details (optional)", ko: "추가 설명 (선택)", ja: "追加の詳細 (任意)" },
+  "report.detailPlaceholder": { en: "Describe the issue in more detail...", ko: "문제를 자세히 설명해 주세요...", ja: "問題の詳細を記入してください..." },
+  "report.submit": { en: "Submit Report", ko: "신고하기", ja: "報告する" },
+  "report.thankYou": { en: "We'll review this report and take appropriate action.", ko: "신고 내용을 검토 후 적절한 조치를 취하겠습니다.", ja: "報告を確認し、適切な対応を行います。" },
+  "report.close": { en: "Close", ko: "닫기", ja: "閉じる" },
   "post.showReplies": { en: "Show replies", ko: "답글 보기", ja: "返信を表示" },
   "post.hideReplies": { en: "Hide replies", ko: "답글 숨기기", ja: "返信を非表示" },
   "post.deleting": { en: "Deleting...", ko: "삭제 중...", ja: "削除中..." },

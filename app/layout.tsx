@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { LangProvider } from "./components/LangProvider";
 import { AuthProvider } from "./components/AuthProvider";
-import TopBar from "./components/TopBar";
-import BottomNav from "./components/BottomNav";
-import OnlineSidebar from "./components/OnlineSidebar";
+import AuthLayout from "./components/AuthLayout";
 import PWAInstall from "./components/PWAInstall";
 import "./globals.css";
 
@@ -65,14 +63,7 @@ export default function RootLayout({
       >
         <LangProvider>
           <AuthProvider>
-            <TopBar />
-
-            <main className="min-h-screen pt-[60px] pb-[80px] xl:mr-[340px]">
-              {children}
-            </main>
-
-            <OnlineSidebar />
-            <BottomNav />
+            <AuthLayout>{children}</AuthLayout>
             <PWAInstall />
           </AuthProvider>
         </LangProvider>

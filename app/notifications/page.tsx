@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import {
   listNotifications,
   markAllRead,
   markRead,
   type NotificationRow,
 } from "@/lib/notificationService";
+import { useAuth } from "@/app/components/AuthProvider";
 import { useT } from "@/app/components/LangProvider";
 
 function formatRelative(iso: string, tr?: (key: string) => string) {
@@ -48,11 +50,13 @@ function typeLabel(type: NotificationRow["type"], tr?: (key: string) => string) 
 
 export default function NotificationsPage() {
   const { t } = useT();
+  const { user } = useAuth();
   const router = useRouter();
 
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -70,6 +74,55 @@ export default function NotificationsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Realtime: auto-refresh when notifications change
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
+    const refreshSoon = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        if (cancelled) return;
+        try {
+          const list = await listNotifications(80);
+          if (!cancelled) setRows(list);
+        } catch (error) {
+          console.error("notifications realtime refresh error:", error);
+        }
+      }, 200);
+    };
+
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      ch = supabase
+        .channel(`notifications-page:${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => refreshSoon()
+        )
+        .subscribe();
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (ch) supabase.removeChannel(ch);
+    };
+  }, [user]);
 
   const unreadCount = useMemo(() => {
     return rows.filter((row) => !row.is_read).length;

@@ -136,6 +136,7 @@ export default function MeetPage() {
   const [sortMode, setSortMode] = useState<"recommend" | "latest" | "popular">("recommend");
 
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,23 +209,35 @@ export default function MeetPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
     const refetchSoon = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => load(), 250);
+      timerRef.current = setTimeout(() => { if (!cancelled) load(); }, 250);
     };
 
-    const ch = supabase
-      .channel("meet-list-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "meets" }, refetchSoon)
-      .on("postgres_changes", { event: "*", schema: "public", table: "meet_participants" }, refetchSoon)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, refetchSoon)
-      .subscribe();
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      ch = supabase
+        .channel(`meet-list-realtime:${myUid ?? "anon"}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "meets" }, refetchSoon)
+        .on("postgres_changes", { event: "*", schema: "public", table: "meet_participants" }, refetchSoon)
+        .subscribe();
+    };
+
+    start();
 
     return () => {
+      cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
-  }, [load]);
+  }, [load, myUid]);
 
   // Run reminder check once per session
   const reminderChecked = useRef(false);
@@ -328,9 +341,9 @@ export default function MeetPage() {
           )
         );
 
-        if (msg.includes("MEET_FULL")) alert("This meet is full.");
-        else if (msg.includes("MEET_CLOSED")) alert("This meet is closed.");
-        else alert("Something went wrong.");
+        if (msg.includes("MEET_FULL")) setJoinError(t("meetDetail.meetFull"));
+        else if (msg.includes("MEET_CLOSED")) setJoinError(t("meet.closed"));
+        else setJoinError(msg);
 
         await load();
       }
@@ -481,6 +494,16 @@ export default function MeetPage() {
           {errorMsg && (
             <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
               {errorMsg}
+            </div>
+          )}
+
+          {joinError && (
+            <div
+              className="rounded-xl px-4 py-3 text-sm font-medium mb-3"
+              style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}
+              onClick={() => setJoinError(null)}
+            >
+              {joinError}
             </div>
           )}
 

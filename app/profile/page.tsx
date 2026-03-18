@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
 import { countryName } from "@/lib/countries";
 import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark, Menu } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 
@@ -453,15 +454,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-4 flex justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                  typeof window !== "undefined"
-                    ? `${window.location.origin}/u/${meId}`
-                    : `/u/${meId}`
-                )}`}
-                alt="QR Code"
-                className="h-48 w-48 rounded-xl"
+              <QRCodeSVG
+                value={typeof window !== "undefined" ? `${window.location.origin}/u/${meId}` : `/u/${meId}`}
+                size={192}
+                bgColor="#ffffff"
+                fgColor="#1E2A38"
+                level="M"
+                className="rounded-xl"
               />
             </div>
 

@@ -104,36 +104,50 @@ export default function ChatRoomPage() {
   // Realtime subscription for reactions
   useEffect(() => {
     if (!conversationId) return;
-    const channel = supabase
-      .channel(`reactions:${conversationId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "message_reactions" },
-        (payload) => {
-          const r = payload.new as Reaction;
-          setReactions((prev) => ({
-            ...prev,
-            [r.message_id]: [...(prev[r.message_id] ?? []), r],
-          }));
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "message_reactions" },
-        (payload) => {
-          const old = payload.old as { id: string; message_id: string };
-          setReactions((prev) => {
-            const list = (prev[old.message_id] ?? []).filter((x) => x.id !== old.id);
-            const next = { ...prev };
-            if (list.length === 0) delete next[old.message_id];
-            else next[old.message_id] = list;
-            return next;
-          });
-        }
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`reactions:${conversationId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "message_reactions" },
+          (payload) => {
+            const r = payload.new as Reaction;
+            setReactions((prev) => ({
+              ...prev,
+              [r.message_id]: [...(prev[r.message_id] ?? []), r],
+            }));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "message_reactions" },
+          (payload) => {
+            const old = payload.old as { id: string; message_id: string };
+            setReactions((prev) => {
+              const list = (prev[old.message_id] ?? []).filter((x) => x.id !== old.id);
+              const next = { ...prev };
+              if (list.length === 0) delete next[old.message_id];
+              else next[old.message_id] = list;
+              return next;
+            });
+          }
+        )
+        .subscribe();
+    };
+
+    start();
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [conversationId]);
 

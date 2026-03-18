@@ -150,60 +150,76 @@ export default function ChatsPage() {
 
   useEffect(() => {
     if (!me) return;
-    const ch = supabase
-      .channel("chat_notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
-        const msg = payload.new as any;
-        if (!msg || prevMessageIds.current.has(msg.id) || msg.user_id === me) return;
-        prevMessageIds.current.add(msg.id);
-        try {
-          await createNotification({ userId: me, type: "dm", title: "New message", body: msg.body ?? "You received a new message", link: `/chats/${msg.conversation_id}`, meta: { conversation_id: msg.conversation_id } });
-        } catch {}
+    let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
 
-        // Update only the affected DM row instead of full reload
-        setRows((prev) => {
-          const idx = prev.findIndex((r) => r.conversation_id === msg.conversation_id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = {
-              ...updated[idx],
-              last_message_content: msg.body ?? null,
-              last_message_image_url: msg.image_url ?? null,
-              last_message_at: msg.created_at,
-              unread_count: (updated[idx].unread_count ?? 0) + 1,
-            };
-            updated.sort((a, b) => {
-              const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-              const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-              return tb - ta;
-            });
-            return updated;
-          }
-          return prev;
-        });
+    const start = async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
 
-        // Update group rows too
-        setGroupRows((prev) => {
-          const idx = prev.findIndex((g) => g.conversation_id === msg.conversation_id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = {
-              ...updated[idx],
-              last_message_content: msg.body ?? null,
-              last_message_at: msg.created_at,
-            };
-            updated.sort((a, b) => {
-              const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-              const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-              return tb - ta;
-            });
-            return updated;
-          }
-          return prev;
-        });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+      ch = supabase
+        .channel(`chat_notifications:${me}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+          const msg = payload.new as any;
+          if (!msg || prevMessageIds.current.has(msg.id) || msg.user_id === me) return;
+          prevMessageIds.current.add(msg.id);
+          try {
+            await createNotification({ userId: me, type: "dm", title: "New message", body: msg.body ?? "You received a new message", link: `/chats/${msg.conversation_id}`, meta: { conversation_id: msg.conversation_id } });
+          } catch {}
+
+          // Update only the affected DM row instead of full reload
+          setRows((prev) => {
+            const idx = prev.findIndex((r) => r.conversation_id === msg.conversation_id);
+            if (idx >= 0) {
+              const updated = [...prev];
+              updated[idx] = {
+                ...updated[idx],
+                last_message_content: msg.body ?? null,
+                last_message_image_url: msg.image_url ?? null,
+                last_message_at: msg.created_at,
+                unread_count: (updated[idx].unread_count ?? 0) + 1,
+              };
+              updated.sort((a, b) => {
+                const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                return tb - ta;
+              });
+              return updated;
+            }
+            return prev;
+          });
+
+          // Update group rows too
+          setGroupRows((prev) => {
+            const idx = prev.findIndex((g) => g.conversation_id === msg.conversation_id);
+            if (idx >= 0) {
+              const updated = [...prev];
+              updated[idx] = {
+                ...updated[idx],
+                last_message_content: msg.body ?? null,
+                last_message_at: msg.created_at,
+              };
+              updated.sort((a, b) => {
+                const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                return tb - ta;
+              });
+              return updated;
+            }
+            return prev;
+          });
+        })
+        .subscribe();
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      if (ch) supabase.removeChannel(ch);
+    };
   }, [me]);
 
   const ngoGroups = groupRows.filter((g) => g.type === "ngo");
