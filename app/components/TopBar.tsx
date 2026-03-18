@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import NotificationBell from "./NotificationBell";
 import { User } from "lucide-react";
 import { useT } from "./LangProvider";
 
+const HIDE_LOGIN_PATHS = ["/login", "/signup", "/reset-password", "/update-password"];
+
 export default function TopBar() {
   const { t } = useT();
   const { user } = useAuth();
+  const pathname = usePathname();
+  const hideLoginBtn = HIDE_LOGIN_PATHS.some((p) => pathname.startsWith(p));
 
   return (
     <header className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md" style={{ borderBottom: "1px solid var(--border-soft)" }}>
@@ -57,7 +62,7 @@ export default function TopBar() {
                 </span>
               </Link>
             </>
-          ) : (
+          ) : !hideLoginBtn ? (
             <Link
               href="/login"
               className="inline-flex h-10 items-center rounded-2xl px-5 text-sm font-semibold text-white no-underline transition hover:opacity-90"
@@ -65,7 +70,7 @@ export default function TopBar() {
             >
               {t("common.login")}
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
