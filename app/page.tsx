@@ -120,29 +120,6 @@ export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useT();
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login");
-    }
-  }, [authLoading, user, router]);
-
-  if (authLoading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="b-skeleton h-10 w-40 rounded-2xl" />
-      </div>
-    );
-  }
-  const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    general: { icon: MessageCircle, color: "#7EC8E3" },
-    info: { icon: Info, color: "#95E1D3" },
-    question: { icon: HelpCircle, color: "#F9D56E" },
-    daily: { icon: Sun, color: "#F3A683" },
-    jobs: { icon: Briefcase, color: "#AA96DA" },
-    other: { icon: MoreHorizontal, color: "#C4C4C4" },
-  };
-  const catLabel = (k: string) => t(`cat.${k}`);
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Map<string, AuthorProfile>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -362,6 +339,31 @@ export default function HomePage() {
 
     return arr;
   }, [posts, searchText, activeCat, sortMode]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="b-skeleton h-10 w-40 rounded-2xl" />
+      </div>
+    );
+  }
+
+  const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    general: { icon: MessageCircle, color: "#7EC8E3" },
+    info: { icon: Info, color: "#95E1D3" },
+    question: { icon: HelpCircle, color: "#F9D56E" },
+    daily: { icon: Sun, color: "#F3A683" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+  };
+  const catLabel = (k: string) => t(`cat.${k}`);
 
   const catTabs: Array<"all" | Category> = ["all", "general", "info", "question", "daily", "jobs", "other"];
 
