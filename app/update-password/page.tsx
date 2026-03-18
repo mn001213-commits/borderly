@@ -57,7 +57,7 @@ export default function UpdatePasswordPage() {
     }
 
     setDone(true);
-    setTimeout(() => router.push("/"), 2000);
+    setTimeout(() => router.push("/browse"), 2000);
   };
 
   if (!ready) {
