@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowLeft, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 import LangSwitcher from "@/app/components/LangSwitcher";
 
@@ -76,15 +76,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-4">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition hover:opacity-80"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("nav.home")}
-          </Link>
+        <div className="flex justify-end">
           <LangSwitcher />
         </div>
 
