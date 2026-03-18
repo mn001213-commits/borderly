@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
 import { countryName } from "@/lib/countries";
 import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark, Menu } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import dynamic from "next/dynamic";
+const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), { ssr: false });
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 
