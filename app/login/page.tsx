@@ -74,13 +74,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
-      <div className="mx-auto w-full max-w-md px-4 pb-24 pt-4">
-        <div className="flex justify-end">
+    <div className="flex h-screen items-center justify-center overflow-hidden" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
+      <div className="mx-auto w-full max-w-md px-4">
+        <div className="flex justify-end mb-4">
           <LangSwitcher />
         </div>
 
-        <div className="b-card b-animate-in mt-6 p-6">
+        <div className="b-card b-animate-in p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--light-blue)" }}>
               <LogIn className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
