@@ -252,7 +252,7 @@ export default function NewChatPage() {
               onClick={() => { setTab(tb.key); setErrorMsg(null); }}
               className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition"
               style={{
-                background: tab === tb.key ? "var(--deep-navy)" : "var(--bg-card)",
+                background: tab === tb.key ? "var(--primary)" : "var(--bg-card)",
                 color: tab === tb.key ? "#fff" : "var(--text-secondary)",
                 border: tab === tb.key ? "none" : "1px solid var(--border-soft)",
               }}

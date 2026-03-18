@@ -82,6 +82,9 @@ const MEET_TYPE_CLASSES: Record<string, string> = {
   language: "b-meet-language",
   meal: "b-meet-meal",
   sports: "b-meet-sports",
+  skill: "b-meet-skill",
+  party: "b-meet-party",
+  project: "b-meet-project",
   culture: "b-meet-culture",
   volunteer: "b-meet-volunteer",
   other: "b-meet-other",
@@ -120,6 +123,17 @@ function formatDateTime(iso?: string | null, fallback = "Schedule TBD") {
   const min = String(d.getMinutes()).padStart(2, "0");
   return `${y}.${m}.${day} ${h}:${min}`;
 }
+
+const MEET_TYPE_LABELS: Record<string, string> = {
+  hangout: "meet.hangout",
+  study: "meet.study",
+  skill: "meetDetail.skillExchange",
+  language: "meetDetail.languageExchange",
+  meal: "meetDetail.mealBuddy",
+  party: "meetDetail.party",
+  project: "meetDetail.teamRecruit",
+  sports: "meet.sports",
+};
 
 export default function BrowsePage() {
   const { t } = useT();
@@ -377,7 +391,7 @@ export default function BrowsePage() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    background: tab === tb ? "var(--deep-navy)" : "transparent",
+                    background: tab === tb ? "var(--primary)" : "transparent",
                     color: tab === tb ? "#fff" : "var(--text-secondary)",
                     border: tab === tb ? "none" : "1px solid var(--border-soft)",
                   }}
@@ -402,7 +416,7 @@ export default function BrowsePage() {
                   height: 36,
                   padding: "0 14px",
                   fontSize: 13,
-                  background: activeCat === c.id ? "var(--deep-navy)" : "transparent",
+                  background: activeCat === c.id ? "var(--primary)" : "transparent",
                   color: activeCat === c.id ? "#fff" : "var(--text-secondary)",
                   border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
                 }}
@@ -418,20 +432,20 @@ export default function BrowsePage() {
         <div className="mt-3 flex items-center gap-3">
           {tab === "posts" && (
             <>
-              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "latest" ? "var(--deep-navy)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "latest" ? "var(--primary)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
                 <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("common.latest")}
               </button>
-              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "popular" ? "var(--deep-navy)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "popular" ? "var(--primary)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
                 <Sparkles className="mr-1 inline h-3.5 w-3.5" />{t("common.popular")}
               </button>
             </>
           )}
           {tab === "meets" && (
             <>
-              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "newest" ? "var(--deep-navy)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "newest" ? "var(--primary)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
                 <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("browse.newest")}
               </button>
-              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "soonest" ? "var(--deep-navy)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "soonest" ? "var(--primary)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
                 <CalendarDays className="mr-1 inline h-3.5 w-3.5" />{t("browse.soonest")}
               </button>
             </>
@@ -499,7 +513,7 @@ export default function BrowsePage() {
               </div>
               <div className="mt-4 flex gap-2">
                 <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/create" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.writePost")}</Link>
+                <Link href="/create" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.writePost")}</Link>
               </div>
             </div>
           )}
@@ -513,7 +527,7 @@ export default function BrowsePage() {
               </div>
               <div className="mt-4 flex gap-2">
                 <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/meet" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
+                <Link href="/meet" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
               </div>
             </div>
           )}
@@ -527,7 +541,7 @@ export default function BrowsePage() {
               </div>
               <div className="mt-4 flex gap-2">
                 <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/ngo" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--deep-navy)", color: "#fff" }}>{t("browse.viewNgo")}</Link>
+                <Link href="/ngo" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewNgo")}</Link>
               </div>
             </div>
           )}
@@ -582,7 +596,7 @@ export default function BrowsePage() {
                           <div className="truncate text-sm font-semibold">{m.title}</div>
                           {m.type && (
                             <span className={`shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${typeClass}`}>
-                              {m.type}
+                              {MEET_TYPE_LABELS[m.type] ? t(MEET_TYPE_LABELS[m.type]) : m.type}
                             </span>
                           )}
                           {m.is_closed && (

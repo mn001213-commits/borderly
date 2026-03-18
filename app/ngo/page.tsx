@@ -210,7 +210,7 @@ export default function NGOPage() {
                 height: 36,
                 padding: "0 14px",
                 fontSize: 13,
-                background: sortMode === "latest" ? "var(--deep-navy)" : "transparent",
+                background: sortMode === "latest" ? "var(--primary)" : "transparent",
                 color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
               }}
@@ -226,7 +226,7 @@ export default function NGOPage() {
                 height: 36,
                 padding: "0 14px",
                 fontSize: 13,
-                background: sortMode === "popular" ? "var(--deep-navy)" : "transparent",
+                background: sortMode === "popular" ? "var(--primary)" : "transparent",
                 color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
               }}
