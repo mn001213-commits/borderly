@@ -12,7 +12,7 @@ import {
   getFollowerCount,
   getFollowingCount,
 } from "@/lib/followService";
-import { ArrowLeft, User, MessageCircle, FileText, MapPin } from "lucide-react";
+import { ArrowLeft, User, MessageCircle, FileText, MapPin, CalendarHeart } from "lucide-react";
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 
@@ -32,6 +32,16 @@ type Post = {
   title: string;
   content: string;
   image_url: string | null;
+};
+
+type MeetPost = {
+  id: string;
+  created_at: string;
+  title: string;
+  type: string;
+  city: string | null;
+  start_at: string | null;
+  is_closed: boolean;
 };
 
 function formatRelative(iso: string) {
@@ -65,7 +75,8 @@ export default function UserProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const [tab, setTab] = useState<"posts" | "about">("posts");
+  const [meets, setMeets] = useState<MeetPost[]>([]);
+  const [tab, setTab] = useState<"posts" | "meets" | "about">("posts");
 
   const profileId = p?.id ?? userId;
   const isMe = me === profileId;
@@ -107,15 +118,24 @@ export default function UserProfilePage() {
         setIsFollowed(state);
       }
 
-      // Posts
-      const { data: postData } = await supabase
-        .from("posts")
-        .select("id, created_at, title, content, image_url")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      // Posts + Meets
+      const [postsRes, meetsRes] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("id, created_at, title, content, image_url")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("meet_posts")
+          .select("id,created_at,title,type,city,start_at,is_closed")
+          .eq("host_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
 
-      setPosts((postData ?? []) as Post[]);
+      setPosts((postsRes.data ?? []) as Post[]);
+      setMeets((meetsRes.data ?? []) as MeetPost[]);
       setLoading(false);
     })();
   }, [userId]);
@@ -160,8 +180,6 @@ export default function UserProfilePage() {
       router.push(`/chats/new?to=${profileId}`);
     }
   };
-
-  const postImages = useMemo(() => posts.filter((p) => p.image_url), [posts]);
 
   if (loading) {
     return (
@@ -250,7 +268,7 @@ export default function UserProfilePage() {
 
               <div className="flex flex-1 justify-around text-center">
                 <div>
-                  <div className="text-lg font-bold" style={{ color: "var(--deep-navy)" }}>{posts.length}</div>
+                  <div className="text-lg font-bold" style={{ color: "var(--deep-navy)" }}>{posts.length + meets.length}</div>
                   <div className="text-xs" style={{ color: "var(--text-muted)" }}>{t("profile.posts")}</div>
                 </div>
                 <div>
@@ -327,6 +345,18 @@ export default function UserProfilePage() {
             {t("profile.posts")}
           </button>
           <button
+            onClick={() => setTab("meets")}
+            className="flex-1 py-3 text-sm font-semibold text-center transition"
+            style={
+              tab === "meets"
+                ? { borderBottom: "2px solid var(--primary)", color: "var(--primary)" }
+                : { color: "var(--text-muted)" }
+            }
+          >
+            <CalendarHeart className="mx-auto mb-1 h-5 w-5" />
+            Meets
+          </button>
+          <button
             onClick={() => setTab("about")}
             className="flex-1 py-3 text-sm font-semibold text-center transition"
             style={
@@ -381,6 +411,55 @@ export default function UserProfilePage() {
                         </p>
                       </div>
                     </article>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Meets Tab */}
+        {tab === "meets" && (
+          <div className="mt-4">
+            {meets.length === 0 ? (
+              <div
+                className="b-card b-animate-in flex flex-col items-center justify-center px-6 py-12 text-center"
+                style={{ borderStyle: "dashed" }}
+              >
+                <CalendarHeart className="mb-3 h-10 w-10" style={{ color: "var(--text-muted)" }} />
+                <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>No meets yet</div>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {meets.map((m, i) => (
+                  <Link key={m.id} href={`/meet/${m.id}`} className="block no-underline text-inherit">
+                    <div
+                      className="b-card b-card-hover b-animate-in flex items-center gap-3 px-4 py-3"
+                      style={{ animationDelay: `${i * 0.04}s` }}
+                    >
+                      <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold shrink-0 b-meet-${m.type}`}>
+                        {m.type}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate" style={{ color: "var(--deep-navy)" }}>
+                          {m.title}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {m.city && <span>{m.city}</span>}
+                          {m.start_at && (
+                            <span>{new Date(m.start_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                          )}
+                        </div>
+                      </div>
+                      {m.is_closed && (
+                        <span className="shrink-0 inline-flex h-5 items-center rounded-full px-2 text-[10px] font-medium" style={{ background: "var(--border-soft)", color: "var(--text-muted)" }}>
+                          Closed
+                        </span>
+                      )}
+                      <span className="shrink-0 text-xs" style={{ color: "var(--text-muted)" }}>
+                        {formatRelative(m.created_at)}
+                      </span>
+                    </div>
                   </Link>
                 ))}
               </div>
