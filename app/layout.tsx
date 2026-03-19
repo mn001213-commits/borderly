@@ -33,8 +33,8 @@ export const metadata: Metadata = {
     "help",
   ],
   icons: {
-    icon: "/BORDERLY3.png",
-    apple: "/BORDERLY3.png",
+    icon: "/borderly-icon.png",
+    apple: "/borderly-icon.png",
   },
   openGraph: {
     title: "Borderly",
