@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getFollowerCount, getFollowingCount } from "@/lib/followService";
 import { countryName } from "@/lib/countries";
-import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark, Menu } from "lucide-react";
+import { User, FileText, Mail, Trash2, QrCode, X, Pencil, MapPin, Bookmark, Menu, CalendarHeart } from "lucide-react";
 import dynamic from "next/dynamic";
 const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), { ssr: false });
 import { langLabel } from "@/lib/languages";
@@ -29,6 +29,16 @@ type Post = {
   content: string;
   author_name: string | null;
   image_url: string | null;
+};
+
+type MeetPost = {
+  id: string;
+  created_at: string;
+  title: string;
+  type: string;
+  city: string | null;
+  start_at: string | null;
+  is_closed: boolean;
 };
 
 function formatRelative(iso: string) {
@@ -64,6 +74,7 @@ export default function ProfilePage() {
   const [following, setFollowing] = useState(0);
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [meets, setMeets] = useState<MeetPost[]>([]);
 
   const [bio, setBio] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -71,7 +82,7 @@ export default function ProfilePage() {
   const [originCountry, setOriginCountry] = useState<string | null>(null);
   const [languages, setLanguages] = useState<string[]>([]);
   const [showQR, setShowQR] = useState(false);
-  const [tab, setTab] = useState<"posts" | "about">("about");
+  const [tab, setTab] = useState<"posts" | "meets" | "about">("about");
 
   useEffect(() => {
     const load = async () => {
@@ -114,21 +125,30 @@ export default function ProfilePage() {
       setFollowers(fc);
       setFollowing(fg);
 
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id,created_at,title,content,author_name,image_url")
-        .eq("user_id", myId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const [postsRes, meetsRes] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("id,created_at,title,content,author_name,image_url")
+          .eq("user_id", myId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("meet_posts")
+          .select("id,created_at,title,type,city,start_at,is_closed")
+          .eq("host_id", myId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
 
-      if (error) {
-        setMsg(error.message);
+      if (postsRes.error) {
+        setMsg(postsRes.error.message);
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      setPosts((data ?? []) as Post[]);
+      setPosts((postsRes.data ?? []) as Post[]);
+      setMeets((meetsRes.data ?? []) as MeetPost[]);
       setLoading(false);
     };
 
@@ -216,7 +236,7 @@ export default function ProfilePage() {
 
                   <div className="flex flex-1 justify-around text-center">
                     <div>
-                      <div className="text-lg font-bold" style={{ color: "var(--deep-navy)" }}>{posts.length}</div>
+                      <div className="text-lg font-bold" style={{ color: "var(--deep-navy)" }}>{posts.length + meets.length}</div>
                       <div className="text-xs" style={{ color: "var(--text-muted)" }}>{t("profile.posts")}</div>
                     </div>
                     <Link href="/profile/followers" className="no-underline text-inherit hover:opacity-70 transition">
@@ -285,6 +305,17 @@ export default function ProfilePage() {
             >
               <FileText className="mx-auto mb-1 h-5 w-5" />
               {t("profile.posts")}
+            </button>
+            <button
+              onClick={() => setTab("meets")}
+              className="flex-1 py-3 text-sm font-semibold text-center transition"
+              style={{
+                borderBottom: tab === "meets" ? "2px solid var(--primary)" : "2px solid transparent",
+                color: tab === "meets" ? "var(--primary)" : "var(--text-muted)",
+              }}
+            >
+              <CalendarHeart className="mx-auto mb-1 h-5 w-5" />
+              Meets
             </button>
           </div>
 
@@ -368,6 +399,69 @@ export default function ProfilePage() {
                           </p>
                         </div>
                       </article>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Meets Tab */}
+          {tab === "meets" && (
+            <section>
+              {!loading && !msg && meets.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-12 text-center b-animate-in"
+                  style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
+                >
+                  <CalendarHeart className="mb-3 h-10 w-10" style={{ color: "var(--border-soft)" }} />
+                  <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>No meets yet</div>
+                  <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                    Create your first meet event
+                  </div>
+                  <Link
+                    href="/meet/new"
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-medium text-white transition hover:opacity-90 no-underline"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    Create Meet
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {meets.map((m, idx) => (
+                    <Link
+                      key={m.id}
+                      href={`/meet/${m.id}`}
+                      className="block no-underline text-inherit"
+                    >
+                      <div
+                        className="b-card b-card-hover b-animate-in flex items-center gap-3 px-4 py-3"
+                        style={{ animationDelay: `${idx * 0.04}s` }}
+                      >
+                        <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold shrink-0 b-meet-${m.type}`}>
+                          {m.type}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate" style={{ color: "var(--deep-navy)" }}>
+                            {m.title}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                            {m.city && <span>{m.city}</span>}
+                            {m.start_at && (
+                              <span>{new Date(m.start_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                            )}
+                          </div>
+                        </div>
+                        {m.is_closed && (
+                          <span className="shrink-0 inline-flex h-5 items-center rounded-full px-2 text-[10px] font-medium" style={{ background: "var(--border-soft)", color: "var(--text-muted)" }}>
+                            Closed
+                          </span>
+                        )}
+                        <span className="shrink-0 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {formatRelative(m.created_at)}
+                        </span>
+                      </div>
                     </Link>
                   ))}
                 </div>

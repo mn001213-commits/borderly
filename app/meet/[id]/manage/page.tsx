@@ -213,6 +213,17 @@ export default function MeetManagePage() {
       if (upsert.error) console.error(upsert.error);
     }
 
+    // Notify the approved participant
+    if (!up.error) {
+      createNotification({
+        userId,
+        type: "meet",
+        title: "Request approved",
+        body: `Your request to join "${meetTitle}" has been approved. You can now enter the group chat!`,
+        link: `/meet/${id}`,
+      });
+    }
+
     // Check if a quota slot just filled up → notify host
     if (!up.error && maxForeigners != null && maxLocals != null) {
       const approvedUser = participants.find((p) => p.user_id === userId);
@@ -279,6 +290,17 @@ export default function MeetManagePage() {
         .eq("user_id", userId);
 
       if (del.error) console.error(del.error);
+    }
+
+    // Notify the rejected participant
+    if (!up.error) {
+      createNotification({
+        userId,
+        type: "meet",
+        title: "Request declined",
+        body: `Your request to join "${meetTitle}" was declined.`,
+        link: `/meet/${id}`,
+      });
     }
 
     setBusyKey(userId, false);

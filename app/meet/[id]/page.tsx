@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Edit3, Trash2 } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 import { supabase } from "@/lib/supabaseClient";
+import { createNotification } from "@/lib/notificationService";
 
 type MeetType =
   | "hangout"
@@ -397,6 +398,22 @@ export default function MeetDetailPage() {
       setJoining(false);
       return;
     }
+
+    // Notify the host about the join request
+    const { data: myProf } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", meId)
+      .maybeSingle();
+    const requesterName = myProf?.display_name ?? "Someone";
+
+    createNotification({
+      userId: meet.host_id,
+      type: "meet",
+      title: "New join request",
+      body: `${requesterName} wants to join "${meet.title}"`,
+      link: `/meet/${meet.id}/manage`,
+    });
 
     setJoinMsg({ type: "info", text: t("meetDetail.requestSent") });
     setJoining(false);
