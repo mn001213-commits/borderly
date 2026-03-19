@@ -20,6 +20,18 @@ import {
   Sun,
   Briefcase,
   MoreHorizontal,
+  Handshake,
+  BookOpen,
+  Languages,
+  UtensilsCrossed,
+  Dumbbell,
+  Wrench,
+  PartyPopper,
+  Rocket,
+  Home,
+  Scale,
+  GraduationCap,
+  HeartPulse,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
@@ -139,6 +151,8 @@ export default function BrowsePage() {
   const { t } = useT();
   const [tab, setTab] = useState<SearchTab>("posts");
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [activeMeetType, setActiveMeetType] = useState<string>("all");
+  const [activeNgoCat, setActiveNgoCat] = useState<string>("all");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -176,11 +190,72 @@ export default function BrowsePage() {
 
   const catBadge = (k: string) => t(`cat.${k}`);
 
+  const meetTypeIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    hangout: { icon: Handshake, color: "#EF6C00" },
+    study: { icon: BookOpen, color: "#2E7D32" },
+    language: { icon: Languages, color: "#8E24AA" },
+    meal: { icon: UtensilsCrossed, color: "#F57F17" },
+    sports: { icon: Dumbbell, color: "#1565C0" },
+    skill: { icon: Wrench, color: "#00838F" },
+    party: { icon: PartyPopper, color: "#C2185B" },
+    project: { icon: Rocket, color: "#283593" },
+  };
+  const meetTypes = useMemo(
+    () => ["all", "hangout", "study", "language", "meal", "sports", "skill", "party", "project"],
+    []
+  );
+
+  const ngoCatIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    housing: { icon: Home, color: "#7EC8E3" },
+    legal: { icon: Scale, color: "#F9D56E" },
+    education: { icon: GraduationCap, color: "#95E1D3" },
+    health: { icon: HeartPulse, color: "#F3A683" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+  };
+  const ngoCats = useMemo(
+    () => ["all", "jobs", "housing", "legal", "education", "health", "other"],
+    []
+  );
+  const NGO_CAT_KEYWORDS: Record<string, string[]> = {
+    jobs: ["job", "employment", "career", "work", "hiring", "recruit", "internship"],
+    housing: ["housing", "shelter", "accommodation", "rent", "apartment", "home", "residence"],
+    legal: ["legal", "lawyer", "asylum", "visa", "immigration", "rights", "court", "permit"],
+    education: ["education", "school", "training", "course", "learn", "language", "class", "workshop", "scholarship"],
+    health: ["health", "medical", "clinic", "doctor", "mental", "therapy", "hospital", "care", "wellness"],
+  };
+  function detectNgoCat(title: string, description: string): string {
+    const text = `${title} ${description}`.toLowerCase();
+    for (const [cat, keywords] of Object.entries(NGO_CAT_KEYWORDS)) {
+      if (keywords.some((kw) => text.includes(kw))) return cat;
+    }
+    return "other";
+  }
+  const ngoCatLabel = (k: string) => {
+    const map: Record<string, string> = {
+      all: t("common.all"),
+      jobs: t("cat.jobs"),
+      housing: t("ngo.housing") || "Housing",
+      legal: t("ngo.legal") || "Legal",
+      education: t("ngo.education") || "Education",
+      health: t("ngo.health") || "Health",
+      other: t("cat.other"),
+    };
+    return map[k] ?? k;
+  };
+
+  const filteredNgos = useMemo(() => {
+    if (activeNgoCat === "all") return ngos;
+    return ngos.filter((n) => detectNgoCat(n.title, n.description) === activeNgoCat);
+  }, [ngos, activeNgoCat]);
+
   const resultCount = useMemo(() => {
     if (tab === "posts") return posts.length;
-    if (tab === "ngo") return ngos.length;
+    if (tab === "ngo") return filteredNgos.length;
     return meets.length;
-  }, [tab, posts.length, meets.length, ngos.length]);
+  }, [tab, posts.length, meets.length, filteredNgos.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -254,6 +329,7 @@ export default function BrowsePage() {
             .select("id, created_at, title, description, city, start_at, type, is_closed")
             .limit(50);
 
+          if (activeMeetType !== "all") query = query.eq("type", activeMeetType);
           if (keyword) {
             query = query.or(
               `title.ilike.%${keyword}%,description.ilike.%${keyword}%,city.ilike.%${keyword}%`
@@ -305,12 +381,14 @@ export default function BrowsePage() {
     };
 
     load();
-  }, [tab, activeCat, sortMode, debouncedQ]);
+  }, [tab, activeCat, activeMeetType, activeNgoCat, sortMode, debouncedQ]);
 
   const applyRecentSearch = (item: RecentSearchItem) => {
     setTab(item.tab);
     setQ(item.keyword);
     setActiveCat("all");
+    setActiveMeetType("all");
+    setActiveNgoCat("all");
     if (item.tab === "posts") setSortMode("latest");
     if (item.tab === "meets") setSortMode("newest");
     if (item.tab === "ngo") setSortMode("latest");
@@ -327,6 +405,8 @@ export default function BrowsePage() {
   const resetSearch = () => {
     setQ("");
     setActiveCat("all");
+    setActiveMeetType("all");
+    setActiveNgoCat("all");
     if (tab === "posts") setSortMode("latest");
     if (tab === "meets") setSortMode("newest");
     if (tab === "ngo") setSortMode("latest");
@@ -379,6 +459,8 @@ export default function BrowsePage() {
                   onClick={() => {
                     setTab(tb);
                     setActiveCat("all");
+                    setActiveMeetType("all");
+                    setActiveNgoCat("all");
                     if (tb === "posts") setSortMode("latest");
                     if (tb === "meets") setSortMode("newest");
                     if (tb === "ngo") setSortMode("latest");
@@ -425,6 +507,62 @@ export default function BrowsePage() {
                 {t("cat." + c.id)}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Meet type pills */}
+        {tab === "meets" && (
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {meetTypes.map((mt) => {
+              const mi = meetTypeIcon[mt];
+              const Icon = mi?.icon;
+              return (
+                <button
+                  key={mt}
+                  onClick={() => setActiveMeetType(mt)}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 36,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    background: activeMeetType === mt ? "var(--primary)" : "transparent",
+                    color: activeMeetType === mt ? "#fff" : "var(--text-secondary)",
+                    border: activeMeetType === mt ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeMeetType === mt ? "#fff" : mi.color }} />}
+                  {mt === "all" ? t("common.all") : (MEET_TYPE_LABELS[mt] ? t(MEET_TYPE_LABELS[mt]) : mt)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* NGO category pills */}
+        {tab === "ngo" && (
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {ngoCats.map((nc) => {
+              const ni = ngoCatIcon[nc];
+              const Icon = ni?.icon;
+              return (
+                <button
+                  key={nc}
+                  onClick={() => setActiveNgoCat(nc)}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 36,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    background: activeNgoCat === nc ? "var(--primary)" : "transparent",
+                    color: activeNgoCat === nc ? "#fff" : "var(--text-secondary)",
+                    border: activeNgoCat === nc ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeNgoCat === nc ? "#fff" : ni.color }} />}
+                  {ngoCatLabel(nc)}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -532,7 +670,7 @@ export default function BrowsePage() {
             </div>
           )}
 
-          {!loading && !errorMsg && tab === "ngo" && ngos.length === 0 && (
+          {!loading && !errorMsg && tab === "ngo" && filteredNgos.length === 0 && (
             <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
               <ShieldCheck className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("browse.noNgoFound")}</div>
@@ -624,7 +762,7 @@ export default function BrowsePage() {
           {/* NGO results */}
           {!loading &&
             tab === "ngo" &&
-            ngos.map((n, idx) => (
+            filteredNgos.map((n, idx) => (
               <Link key={n.id} href={`/ngo/${n.id}`} className="block no-underline text-inherit">
                 <article
                   className="b-card b-card-hover b-animate-in p-5"
