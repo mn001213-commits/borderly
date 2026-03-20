@@ -69,7 +69,7 @@ export default function LoginPage() {
     }
 
     setAttempts(0);
-    router.push("/browse");
+    router.push("/");
     router.refresh();
   };
 
