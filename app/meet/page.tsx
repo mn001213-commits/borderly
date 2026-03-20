@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { checkAndSendMeetReminders } from "@/lib/meetReminderService";
+import { createNotification } from "@/lib/notificationService";
 import { useT } from "../components/LangProvider";
 import {
   Users,
@@ -124,7 +125,7 @@ export default function MeetPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [myUid, setMyUid] = useState<string | null>(null);
-  const [joinedSet, setJoinedSet] = useState<Set<string>>(new Set());
+  const [statusMap, setStatusMap] = useState<Map<string, string>>(new Map());
 
   const [prefs, setPrefs] = useState<{ topTypes: string[]; topCities: string[] }>({
     topTypes: [],
@@ -168,10 +169,11 @@ export default function MeetPage() {
     setMeets(list);
 
     if (uid) {
-      const r = await supabase.from("meet_participants").select("meet_id").eq("user_id", uid);
+      const r = await supabase.from("meet_participants").select("meet_id,status").eq("user_id", uid);
 
-      const meetIds = (r.data ?? []).map((x: any) => x.meet_id).filter(Boolean);
-      setJoinedSet(new Set(meetIds));
+      const rows = (r.data ?? []) as Array<{ meet_id: string; status: string }>;
+      const meetIds = rows.map((x) => x.meet_id).filter(Boolean);
+      setStatusMap(new Map(rows.map((x) => [x.meet_id, x.status ?? "approved"])));
 
       if (meetIds.length > 0) {
         const { data: joinedMeets } = await supabase.from("meet_posts").select("id,type,city").in("id", meetIds);
@@ -187,7 +189,7 @@ export default function MeetPage() {
         setPrefs({ topTypes: [], topCities: [] });
       }
     } else {
-      setJoinedSet(new Set());
+      setStatusMap(new Map());
       setPrefs({ topTypes: [], topCities: [] });
     }
 
@@ -320,10 +322,7 @@ export default function MeetPage() {
     setBusyKey(meetId, true);
     setJoinError(null);
 
-    setJoinedSet((prev) => new Set(prev).add(meetId));
-    setMeets((prev) =>
-      prev.map((m) => (m.id === meetId ? { ...m, participant_count: (m.participant_count ?? 0) + 1 } : m))
-    );
+    setStatusMap((prev) => new Map(prev).set(meetId, "pending"));
 
     try {
       const { error } = await supabase.from("meet_participants").insert({
@@ -335,22 +334,36 @@ export default function MeetPage() {
       if (error) {
         const msg = String(error.message ?? error);
 
-        setJoinedSet((prev) => {
-          const n = new Set(prev);
+        setStatusMap((prev) => {
+          const n = new Map(prev);
           n.delete(meetId);
           return n;
         });
-        setMeets((prev) =>
-          prev.map((m) =>
-            m.id === meetId ? { ...m, participant_count: Math.max(0, (m.participant_count ?? 0) - 1) } : m
-          )
-        );
 
         if (msg.includes("full") || msg.includes("capacity")) setJoinError(t("meetDetail.meetFull"));
         else if (msg.includes("unique") || msg.includes("duplicate") || msg.includes("23505")) setJoinError(t("meetDetail.alreadyRequested"));
         else setJoinError(msg);
 
         await load();
+      } else {
+        // Notify host about the join request
+        const meetData = meets.find((m) => m.id === meetId);
+        if (meetData) {
+          const { data: myProf } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", myUid)
+            .maybeSingle();
+          const requesterName = myProf?.display_name ?? "Someone";
+
+          createNotification({
+            userId: meetData.host_id,
+            type: "meet",
+            title: "New join request",
+            body: `${requesterName} wants to join "${meetData.title}"`,
+            link: `/meet/${meetId}/manage`,
+          });
+        }
       }
     } finally {
       setBusyKey(meetId, false);
@@ -361,16 +374,11 @@ export default function MeetPage() {
     if (!myUid) return;
     setBusyKey(meetId, true);
 
-    setJoinedSet((prev) => {
-      const n = new Set(prev);
+    setStatusMap((prev) => {
+      const n = new Map(prev);
       n.delete(meetId);
       return n;
     });
-    setMeets((prev) =>
-      prev.map((m) =>
-        m.id === meetId ? { ...m, participant_count: Math.max(0, (m.participant_count ?? 0) - 1) } : m
-      )
-    );
 
     try {
       const { error } = await supabase
@@ -531,7 +539,9 @@ export default function MeetPage() {
                     : `${m.participant_count} / ${m.max_people}`;
 
               const isFull = m.max_people != null && m.participant_count >= m.max_people;
-              const joined = joinedSet.has(m.id);
+              const myStatus = statusMap.get(m.id) ?? "none";
+              const joined = myStatus !== "none";
+              const isPending = myStatus === "pending";
 
               const joinDisabled = !myUid || ended || m.is_closed || isFull || busy[m.id];
 
@@ -539,6 +549,7 @@ export default function MeetPage() {
               if (ended) statusLabel = t("meet.ended");
               else if (m.is_closed) statusLabel = t("meet.closed");
               else if (isFull) statusLabel = t("meet.full");
+              else if (isPending) statusLabel = t("meetManage.pendingApproval");
               else if (joined) statusLabel = t("meet.joined");
 
               return (
@@ -568,8 +579,8 @@ export default function MeetPage() {
                       <span
                         className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
                         style={{
-                          background: joined ? "var(--primary)" : "var(--light-blue)",
-                          color: joined ? "#fff" : (ended || m.is_closed || isFull) ? "var(--text-muted)" : "var(--text-secondary)",
+                          background: isPending ? "#FEF9C3" : joined ? "var(--primary)" : "var(--light-blue)",
+                          color: isPending ? "#854D0E" : joined ? "#fff" : (ended || m.is_closed || isFull) ? "var(--text-muted)" : "var(--text-secondary)",
                         }}
                       >
                         {statusLabel}
@@ -644,6 +655,21 @@ export default function MeetPage() {
                         <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                           {t("meet.signInToJoin")}
                         </span>
+                      ) : isPending ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            leaveMeet(m.id);
+                          }}
+                          disabled={busy[m.id]}
+                          className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ background: "#FEF9C3", color: "#854D0E", border: "1px solid #FDE68A" }}
+                        >
+                          <Clock className="h-4 w-4" />
+                          {t("meetDetail.pendingCancel")}
+                        </button>
                       ) : joined ? (
                         <button
                           type="button"
