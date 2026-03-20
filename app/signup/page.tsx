@@ -268,7 +268,7 @@ export default function SignupPage() {
 
     setBusy(false);
     setOkMsg(t("signup.accountCreated"));
-    router.push("/browse");
+    router.push("/");
   };
 
   return (

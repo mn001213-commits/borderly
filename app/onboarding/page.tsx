@@ -221,7 +221,7 @@ export default function OnboardingPage() {
         .single();
 
       if (profile?.use_purpose) {
-        router.replace("/browse");
+        router.replace("/");
         return;
       }
 
@@ -275,7 +275,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    router.replace("/browse");
+    router.replace("/");
   };
 
   if (loading) {

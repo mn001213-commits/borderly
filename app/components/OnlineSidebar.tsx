@@ -22,8 +22,8 @@ export default function OnlineSidebar() {
 
   const getPageInfo = (p: string) => {
     const map: Record<string, { titleKey: string; descKey: string }> = {
-      "/": { titleKey: "pageInfo.home.title", descKey: "pageInfo.home.desc" },
-      "/browse": { titleKey: "pageInfo.browse.title", descKey: "pageInfo.browse.desc" },
+      "/": { titleKey: "pageInfo.browse.title", descKey: "pageInfo.browse.desc" },
+      "/browse": { titleKey: "pageInfo.home.title", descKey: "pageInfo.home.desc" },
       "/meet": { titleKey: "pageInfo.meet.title", descKey: "pageInfo.meet.desc" },
       "/ngo": { titleKey: "pageInfo.ngo.title", descKey: "pageInfo.ngo.desc" },
       "/chats": { titleKey: "pageInfo.chats.title", descKey: "pageInfo.chats.desc" },
@@ -248,8 +248,8 @@ export default function OnlineSidebar() {
         </div>
         <div className="space-y-1">
           {[
-            { href: "/browse", icon: Home, label: t("sidebar.exploreAll") },
-            { href: "/", icon: FileText, label: t("sidebar.communityFeed") },
+            { href: "/", icon: Home, label: t("sidebar.exploreAll") },
+            { href: "/browse", icon: FileText, label: t("sidebar.communityFeed") },
             { href: "/meet", icon: CalendarHeart, label: t("sidebar.iceBreaking") },
             { href: "/chats", icon: MessageCircle, label: t("sidebar.chats") },
             { href: "/ngo", icon: ShieldCheck, label: t("sidebar.ngoDirectory") },

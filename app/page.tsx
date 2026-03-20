@@ -1,358 +1,170 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "./components/AuthProvider";
-import { useT } from "./components/LangProvider";
 import {
+  Search,
+  FileText,
+  CalendarDays,
+  ShieldCheck,
+  Clock3,
+  Sparkles,
   Heart,
   MessageCircle,
-  Search,
-  Flame,
-  ChevronRight,
-  FileText,
-  Clock,
-  TrendingUp,
-  Plus,
+  MapPin,
+  X,
+  Users,
   LayoutGrid,
   Info,
   HelpCircle,
   Sun,
   Briefcase,
   MoreHorizontal,
+  Handshake,
+  BookOpen,
+  Languages,
+  UtensilsCrossed,
+  Dumbbell,
+  Wrench,
+  PartyPopper,
+  Rocket,
+  Home,
+  Scale,
+  GraduationCap,
+  HeartPulse,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
+import { useT } from "@/app/components/LangProvider";
 
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
-function isVideoUrl(url: string) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
-  } catch {
-    return false;
-  }
-}
+type SearchTab = "posts" | "meets" | "ngo";
+type SortMode = "latest" | "popular" | "newest" | "soonest";
 
-type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
+type RecentSearchItem = {
+  keyword: string;
+  tab: SearchTab;
+};
 
-type Post = {
+type PostRow = {
   id: string;
   created_at: string;
   title: string;
   content: string;
-  user_id: string | null;
   author_name: string | null;
-  like_count: number;
-  comment_count: number;
-  image_url: string | null;
-  image_urls: string[] | null;
-  category: Category | null;
-  is_hidden?: boolean | null;
+  category: string;
+  like_count: number | null;
+  comment_count: number | null;
 };
 
-type AuthorProfile = {
+type MeetRow = {
   id: string;
-  display_name: string | null;
-  avatar_url: string | null;
+  created_at: string;
+  title: string;
+  description: string;
+  city: string | null;
+  start_at: string | null;
+  type: string | null;
+  is_closed: boolean | null;
 };
 
-function formatRelative(iso: string) {
+type NgoRow = {
+  id: string;
+  created_at: string;
+  title: string;
+  description: string;
+  location: string | null;
+  ngo_name: string | null;
+  ngo_verified: boolean;
+  application_count: number | null;
+  is_closed: boolean | null;
+};
+
+const CAT_COLORS: Record<string, { bg: string; color: string }> = {
+  general: { bg: "#E3F2FD", color: "#1565C0" },
+  info: { bg: "#FFF3E0", color: "#EF6C00" },
+  question: { bg: "#F3E5F5", color: "#8E24AA" },
+  daily: { bg: "#E8F5E9", color: "#2E7D32" },
+  jobs: { bg: "#FFF8E1", color: "#F57F17" },
+  other: { bg: "#F5F5F5", color: "#616161" },
+};
+
+const MEET_TYPE_CLASSES: Record<string, string> = {
+  hangout: "b-meet-hangout",
+  study: "b-meet-study",
+  language: "b-meet-language",
+  meal: "b-meet-meal",
+  sports: "b-meet-sports",
+  skill: "b-meet-skill",
+  party: "b-meet-party",
+  project: "b-meet-project",
+  culture: "b-meet-culture",
+  volunteer: "b-meet-volunteer",
+  other: "b-meet-other",
+};
+
+function formatRelative(iso?: string | null) {
+  if (!iso) return "";
   const t = new Date(iso).getTime();
   const now = Date.now();
   const diff = Math.max(0, now - t);
 
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-
   const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
   if (min < 60) return `${min}m ago`;
 
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
 
   const day = Math.floor(hr / 24);
-  return `${day}d ago`;
+  if (day < 30) return `${day}d ago`;
+
+  const month = Math.floor(day / 30);
+  if (month < 12) return `${month}mo ago`;
+
+  const year = Math.floor(month / 12);
+  return `${year}y ago`;
 }
 
-const CAT_COLOR: Record<Category, string> = {
-  general: "bg-[#EAF4FF] text-[#4DA6FF]",
-  info: "bg-[#E8F5E9] text-[#43A047]",
-  question: "bg-[#FFF3E0] text-[#EF6C00]",
-  daily: "bg-[#F3E5F5] text-[#8E24AA]",
-  jobs: "bg-[#FFF8E1] text-[#F9A825]",
-  other: "bg-[#ECEFF1] text-[#546E7A]",
+function formatDateTime(iso?: string | null, fallback = "Schedule TBD") {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const h = d.getHours();
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${y}.${m}.${day} ${h}:${min}`;
+}
+
+const MEET_TYPE_LABELS: Record<string, string> = {
+  hangout: "meet.hangout",
+  study: "meet.study",
+  skill: "meetDetail.skillExchange",
+  language: "meetDetail.languageExchange",
+  meal: "meetDetail.mealBuddy",
+  party: "meetDetail.party",
+  project: "meetDetail.teamRecruit",
+  sports: "meet.sports",
 };
 
-// Fetch like & comment counts for a list of post IDs
-async function fetchEngagement(postIds: string[]): Promise<Map<string, { likes: number; comments: number }>> {
-  const map = new Map<string, { likes: number; comments: number }>();
-  if (postIds.length === 0) return map;
-
-  for (const id of postIds) map.set(id, { likes: 0, comments: 0 });
-
-  try {
-    const [likesRes, commentsRes] = await Promise.all([
-      supabase.from("post_likes").select("post_id").in("post_id", postIds),
-      supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
-    ]);
-
-    if (likesRes.data) {
-      for (const row of likesRes.data) {
-        const entry = map.get(row.post_id);
-        if (entry) entry.likes++;
-      }
-    }
-    if (commentsRes.data) {
-      for (const row of commentsRes.data) {
-        const entry = map.get(row.post_id);
-        if (entry) entry.comments++;
-      }
-    }
-  } catch {
-    // Engagement fetch failed — show posts without counts
-  }
-  return map;
-}
-
-export default function HomePage() {
-  const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+export default function BrowsePage() {
   const { t } = useT();
+  const [tab, setTab] = useState<SearchTab>("posts");
+  const [activeCat, setActiveCat] = useState<string>("all");
+  const [activeMeetType, setActiveMeetType] = useState<string>("all");
+  const [activeNgoCat, setActiveNgoCat] = useState<string>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("latest");
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [profiles, setProfiles] = useState<Map<string, AuthorProfile>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [meets, setMeets] = useState<MeetRow[]>([]);
+  const [ngos, setNgos] = useState<NgoRow[]>([]);
+
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
+
+  const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchText, setSearchText] = useState("");
-  const [activeCat, setActiveCat] = useState<"all" | Category>("all");
-  const [sortMode, setSortMode] = useState<"latest" | "likes">("latest");
-
-  const enrichPosts = useCallback(async (rawPosts: any[]): Promise<Post[]> => {
-    const ids = rawPosts.map((p) => p.id);
-    const userIds = [...new Set(rawPosts.map((p) => p.user_id).filter(Boolean))] as string[];
-
-    // Fetch engagement counts and profiles in parallel
-    const [engagement, profilesRes] = await Promise.all([
-      fetchEngagement(ids),
-      userIds.length > 0
-        ? supabase.from("profiles").select("id, display_name, avatar_url").in("id", userIds)
-        : Promise.resolve({ data: [] }),
-    ]);
-
-    // Update profiles map
-    if (profilesRes.data && profilesRes.data.length > 0) {
-      setProfiles((prev) => {
-        const next = new Map(prev);
-        for (const p of profilesRes.data!) next.set(p.id, p as AuthorProfile);
-        return next;
-      });
-    }
-
-    return rawPosts.map((p) => ({
-      ...p,
-      like_count: engagement.get(p.id)?.likes ?? 0,
-      comment_count: engagement.get(p.id)?.comments ?? 0,
-    })) as Post[];
-  }, []);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setErrorMsg(null);
-
-    const { data, error } = await supabase
-      .from("posts")
-      .select("id,created_at,title,content,user_id,author_name,image_url,image_urls,category,is_hidden")
-      .eq("is_hidden", false)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      setErrorMsg(error.message);
-      setLoading(false);
-      return;
-    }
-
-    const enriched = await enrichPosts(data ?? []);
-    setPosts(enriched);
-    setLoading(false);
-  }, [enrichPosts]);
-
-  useEffect(() => {
-    load();
-
-    return () => {};
-  }, [load]);
-
-  const startedRef = useRef(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // Load more posts (infinite scroll)
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore || posts.length === 0) return;
-    setLoadingMore(true);
-
-    const lastPost = posts[posts.length - 1];
-    const { data } = await supabase
-      .from("posts")
-      .select("id,created_at,title,content,user_id,author_name,image_url,image_urls,category,is_hidden")
-      .eq("is_hidden", false)
-      .lt("created_at", lastPost.created_at)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (data && data.length > 0) {
-      const enriched = await enrichPosts(data);
-      setPosts((prev) => [...prev, ...enriched]);
-    }
-    if (!data || data.length < 20) setHasMore(false);
-    setLoadingMore(false);
-  }, [posts, loadingMore, hasMore, enrichPosts]);
-
-  // Intersection observer for infinite scroll
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(); },
-      { rootMargin: "200px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMore]);
-
-  // Realtime: incremental updates instead of full refetch
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-
-    let ch: ReturnType<typeof supabase.channel> | null = null;
-    let cancelled = false;
-
-    const start = async () => {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) supabase.realtime.setAuth(token);
-
-      if (cancelled) return;
-
-      ch = supabase
-        .channel("home:realtime")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
-          const newPost = payload.new as any;
-          if (!newPost?.id || newPost.is_hidden) return;
-          enrichPosts([newPost]).then((enriched) => {
-            if (enriched.length > 0) {
-              setPosts((prev) => [enriched[0], ...prev.filter((x) => x.id !== enriched[0].id)]);
-            }
-          });
-        })
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts" }, (payload) => {
-          const updated = payload.new as any;
-          if (!updated?.id) return;
-          if (updated.is_hidden) {
-            setPosts((prev) => prev.filter((p) => p.id !== updated.id));
-          } else {
-            enrichPosts([updated]).then((enriched) => {
-              if (enriched.length > 0) {
-                setPosts((prev) => prev.map((x) => (x.id === enriched[0].id ? enriched[0] : x)));
-              }
-            });
-          }
-        })
-        .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts" }, (payload) => {
-          const oldId = (payload.old as any)?.id;
-          if (oldId) setPosts((prev) => prev.filter((p) => p.id !== oldId));
-        })
-        .subscribe();
-    };
-
-    start();
-
-    return () => {
-      cancelled = true;
-      startedRef.current = false;
-      if (ch) supabase.removeChannel(ch);
-    };
-  }, [enrichPosts]);
-
-  const handleSearch = useCallback(() => {
-    setSearchText(searchInput.trim());
-  }, [searchInput]);
-
-  const clearSearch = useCallback(() => {
-    setSearchInput("");
-    setSearchText("");
-  }, []);
-
-  const trendingTop3 = useMemo(() => {
-    const now = Date.now();
-    const cutoff = now - 72 * 60 * 60 * 1000;
-
-    const cand = posts.filter((p) => {
-      const t = new Date(p.created_at).getTime();
-      return Number.isFinite(t) && t >= cutoff;
-    });
-
-    const score = (p: Post) => (p.like_count ?? 0) * 2 + (p.comment_count ?? 0);
-
-    return cand
-      .slice()
-      .sort((a, b) => {
-        const d = score(b) - score(a);
-        if (d !== 0) return d;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      })
-      .slice(0, 3);
-  }, [posts]);
-
-  const filteredPosts = useMemo(() => {
-    let arr = posts;
-
-    if (activeCat !== "all") {
-      arr = arr.filter((p) => (p.category ?? "general") === activeCat);
-    }
-
-    const s = searchText.trim().toLowerCase();
-    if (s) {
-      arr = arr.filter((p) => {
-        const title = (p.title ?? "").toLowerCase();
-        const content = (p.content ?? "").toLowerCase();
-        const author = (p.author_name ?? "").toLowerCase();
-        return title.includes(s) || content.includes(s) || author.includes(s);
-      });
-    }
-
-    arr = arr.slice().sort((a, b) => {
-      if (sortMode === "likes") {
-        const scoreA = (a.like_count ?? 0) + (a.comment_count ?? 0);
-        const scoreB = (b.like_count ?? 0) + (b.comment_count ?? 0);
-        const diff = scoreB - scoreA;
-        if (diff !== 0) return diff;
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-
-    return arr;
-  }, [posts, searchText, activeCat, sortMode]);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login");
-    }
-  }, [authLoading, user, router]);
-
-  if (authLoading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="b-skeleton h-10 w-40 rounded-2xl" />
-      </div>
-    );
-  }
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
     all: { icon: LayoutGrid, color: "#4DA6FF" },
@@ -363,312 +175,625 @@ export default function HomePage() {
     jobs: { icon: Briefcase, color: "#AA96DA" },
     other: { icon: MoreHorizontal, color: "#C4C4C4" },
   };
-  const catLabel = (k: string) => t(`cat.${k}`);
+  const cats = useMemo(
+    () => [
+      { id: "all" },
+      { id: "general" },
+      { id: "info" },
+      { id: "question" },
+      { id: "daily" },
+      { id: "jobs" },
+      { id: "other" },
+    ],
+    []
+  );
 
-  const catTabs: Array<"all" | Category> = ["all", "general", "info", "question", "daily", "jobs", "other"];
+  const catBadge = (k: string) => t(`cat.${k}`);
+
+  const meetTypeIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    hangout: { icon: Handshake, color: "#EF6C00" },
+    study: { icon: BookOpen, color: "#2E7D32" },
+    language: { icon: Languages, color: "#8E24AA" },
+    meal: { icon: UtensilsCrossed, color: "#F57F17" },
+    sports: { icon: Dumbbell, color: "#1565C0" },
+    skill: { icon: Wrench, color: "#00838F" },
+    party: { icon: PartyPopper, color: "#C2185B" },
+    project: { icon: Rocket, color: "#283593" },
+  };
+  const meetTypes = useMemo(
+    () => ["all", "hangout", "study", "language", "meal", "sports", "skill", "party", "project"],
+    []
+  );
+
+  const ngoCatIcon: Record<string, { icon: React.ElementType; color: string }> = {
+    all: { icon: LayoutGrid, color: "#4DA6FF" },
+    jobs: { icon: Briefcase, color: "#AA96DA" },
+    housing: { icon: Home, color: "#7EC8E3" },
+    legal: { icon: Scale, color: "#F9D56E" },
+    education: { icon: GraduationCap, color: "#95E1D3" },
+    health: { icon: HeartPulse, color: "#F3A683" },
+    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+  };
+  const ngoCats = useMemo(
+    () => ["all", "jobs", "housing", "legal", "education", "health", "other"],
+    []
+  );
+  const NGO_CAT_KEYWORDS: Record<string, string[]> = {
+    jobs: ["job", "employment", "career", "work", "hiring", "recruit", "internship"],
+    housing: ["housing", "shelter", "accommodation", "rent", "apartment", "home", "residence"],
+    legal: ["legal", "lawyer", "asylum", "visa", "immigration", "rights", "court", "permit"],
+    education: ["education", "school", "training", "course", "learn", "language", "class", "workshop", "scholarship"],
+    health: ["health", "medical", "clinic", "doctor", "mental", "therapy", "hospital", "care", "wellness"],
+  };
+  function detectNgoCat(title: string, description: string): string {
+    const text = `${title} ${description}`.toLowerCase();
+    for (const [cat, keywords] of Object.entries(NGO_CAT_KEYWORDS)) {
+      if (keywords.some((kw) => text.includes(kw))) return cat;
+    }
+    return "other";
+  }
+  const ngoCatLabel = (k: string) => {
+    const map: Record<string, string> = {
+      all: t("common.all"),
+      jobs: t("cat.jobs"),
+      housing: t("ngo.housing") || "Housing",
+      legal: t("ngo.legal") || "Legal",
+      education: t("ngo.education") || "Education",
+      health: t("ngo.health") || "Health",
+      other: t("cat.other"),
+    };
+    return map[k] ?? k;
+  };
+
+  const filteredNgos = useMemo(() => {
+    if (activeNgoCat === "all") return ngos;
+    return ngos.filter((n) => detectNgoCat(n.title, n.description) === activeNgoCat);
+  }, [ngos, activeNgoCat]);
+
+  const resultCount = useMemo(() => {
+    if (tab === "posts") return posts.length;
+    if (tab === "ngo") return filteredNgos.length;
+    return meets.length;
+  }, [tab, posts.length, meets.length, filteredNgos.length]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQ(q.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [q]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("borderly_recent_searches");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as RecentSearchItem[];
+      if (Array.isArray(parsed)) {
+        setRecentSearches(parsed.slice(0, 8));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        "borderly_recent_searches",
+        JSON.stringify(recentSearches.slice(0, 8))
+      );
+    } catch {}
+  }, [recentSearches]);
+
+  useEffect(() => {
+    const keyword = debouncedQ.trim();
+    if (!keyword) return;
+    setRecentSearches((prev) => {
+      const deduped = prev.filter(
+        (item) =>
+          !(item.keyword.toLowerCase() === keyword.toLowerCase() && item.tab === tab)
+      );
+      return [{ keyword, tab }, ...deduped].slice(0, 8);
+    });
+  }, [debouncedQ, tab]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setErrorMsg(null);
+      const keyword = debouncedQ;
+
+      try {
+        if (tab === "posts") {
+          let query = supabase
+            .from("posts")
+            .select("id, created_at, title, content, author_name, category")
+            .eq("is_hidden", false)
+            .limit(50);
+
+          if (activeCat !== "all") query = query.eq("category", activeCat);
+          if (keyword) query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
+          query = query.order("created_at", { ascending: false });
+
+          const { data, error } = await query;
+          if (error) throw error;
+          setPosts((data ?? []).map((p: any) => ({ ...p, like_count: 0, comment_count: 0 })) as PostRow[]);
+          setMeets([]);
+          setNgos([]);
+        }
+
+        if (tab === "meets") {
+          let query = supabase
+            .from("meet_posts")
+            .select("id, created_at, title, description, city, start_at, type, is_closed")
+            .limit(50);
+
+          if (activeMeetType !== "all") query = query.eq("type", activeMeetType);
+          if (keyword) {
+            query = query.or(
+              `title.ilike.%${keyword}%,description.ilike.%${keyword}%,city.ilike.%${keyword}%`
+            );
+          }
+
+          if (sortMode === "soonest") {
+            query = query.order("start_at", { ascending: true, nullsFirst: false });
+          } else {
+            query = query.order("created_at", { ascending: false });
+          }
+
+          const { data, error } = await query;
+          if (error) throw error;
+          setMeets((data ?? []) as MeetRow[]);
+          setPosts([]);
+          setNgos([]);
+        }
+
+        if (tab === "ngo") {
+          let query = supabase
+            .from("v_ngo_posts")
+            .select("id, created_at, title, description, location, ngo_name, ngo_verified, application_count, is_closed")
+            .limit(50);
+
+          if (keyword) {
+            query = query.or(
+              `title.ilike.%${keyword}%,description.ilike.%${keyword}%,location.ilike.%${keyword}%,ngo_name.ilike.%${keyword}%`
+            );
+          }
+
+          query = query.order("created_at", { ascending: false });
+
+          const { data, error } = await query;
+          if (error) throw error;
+          setNgos((data ?? []) as NgoRow[]);
+          setPosts([]);
+          setMeets([]);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load data.";
+        setErrorMsg(message);
+        setPosts([]);
+        setMeets([]);
+        setNgos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [tab, activeCat, activeMeetType, activeNgoCat, sortMode, debouncedQ]);
+
+  const applyRecentSearch = (item: RecentSearchItem) => {
+    setTab(item.tab);
+    setQ(item.keyword);
+    setActiveCat("all");
+    setActiveMeetType("all");
+    setActiveNgoCat("all");
+    if (item.tab === "posts") setSortMode("latest");
+    if (item.tab === "meets") setSortMode("newest");
+    if (item.tab === "ngo") setSortMode("latest");
+  };
+
+  const removeRecentSearch = (target: RecentSearchItem) => {
+    setRecentSearches((prev) =>
+      prev.filter((item) => !(item.keyword === target.keyword && item.tab === target.tab))
+    );
+  };
+
+  const clearRecentSearches = () => setRecentSearches([]);
+
+  const resetSearch = () => {
+    setQ("");
+    setActiveCat("all");
+    setActiveMeetType("all");
+    setActiveNgoCat("all");
+    if (tab === "posts") setSortMode("latest");
+    if (tab === "meets") setSortMode("newest");
+    if (tab === "ngo") setSortMode("latest");
+  };
+
+  const tabIcon = (tb: SearchTab) => {
+    if (tb === "posts") return <FileText className="h-3.5 w-3.5" />;
+    if (tb === "ngo") return <ShieldCheck className="h-3.5 w-3.5" />;
+    return <CalendarDays className="h-3.5 w-3.5" />;
+  };
+
+  const tabLabel = (tb: SearchTab) => {
+    if (tb === "posts") return t("browse.posts");
+    if (tb === "ngo") return t("browse.ngo");
+    return t("browse.meets");
+  };
 
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Search bar + Create button */}
-        <div className="mb-6 flex items-center gap-2">
-          <div
-            className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
-            style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
-          >
-            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
-            <input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-              placeholder={t("home.searchPosts")}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-              style={{ color: "var(--deep-navy)" }}
-            />
-            {searchInput && (
-              <button type="button" onClick={clearSearch} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-                {t("common.clear")}
-              </button>
-            )}
+        {/* Search bar */}
+        <div className="sticky top-2 z-20">
+          <div className="b-card p-3" style={{ backdropFilter: "blur(12px)" }}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("browse.searchAll")}
+                className="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm outline-none"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded-full transition hover:opacity-70"
+                  style={{ background: "var(--border-soft)" }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="mt-3 flex items-center gap-3">
+              {(["posts", "meets", "ngo"] as SearchTab[]).map((tb) => (
+                <button
+                  key={tb}
+                  onClick={() => {
+                    setTab(tb);
+                    setActiveCat("all");
+                    setActiveMeetType("all");
+                    setActiveNgoCat("all");
+                    if (tb === "posts") setSortMode("latest");
+                    if (tb === "meets") setSortMode("newest");
+                    if (tb === "ngo") setSortMode("latest");
+                  }}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 34,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: tab === tb ? "var(--primary)" : "transparent",
+                    color: tab === tb ? "#fff" : "var(--text-secondary)",
+                    border: tab === tb ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {tabIcon(tb)}
+                  {tabLabel(tb)}
+                </button>
+              ))}
+            </div>
           </div>
-          <Link
-            href="/create"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
-          >
-            <Plus className="h-5 w-5" />
-          </Link>
         </div>
 
-        {/* Category tabs + sort */}
-        <div className="mb-6 flex flex-col gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {catTabs.map((k) => (
+        {/* Category pills (posts only) */}
+        {tab === "posts" && (
+          <div className="mt-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
+            {cats.map((c) => (
               <button
-                key={k}
-                type="button"
-                onClick={() => setActiveCat(k)}
-                className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                key={c.id}
+                onClick={() => setActiveCat(c.id)}
+                className="b-pill shrink-0"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  background: activeCat === c.id ? "var(--primary)" : "transparent",
+                  color: activeCat === c.id ? "#fff" : "var(--text-secondary)",
+                  border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
+                }}
               >
-                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === k ? "#fff" : ci.color }} />; })()}
-                {catLabel(k)}
+                {(() => { const ci = catIcon[c.id]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
+                {t("cat." + c.id)}
               </button>
             ))}
           </div>
+        )}
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSortMode("latest")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "latest" ? "var(--primary)" : "transparent",
-                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" style={{ color: sortMode === "latest" ? "#fff" : "var(--text-muted)" }} />
-              {t("common.latest")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("likes")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "likes" ? "var(--primary)" : "transparent",
-                color: sortMode === "likes" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "likes" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <TrendingUp className="h-3.5 w-3.5" style={{ color: sortMode === "likes" ? "#fff" : "var(--text-muted)" }} />
-              {t("common.popular")}
-            </button>
-
-            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-              {filteredPosts.length} {t("common.posts")}
-              {searchText && <> · &quot;{searchText}&quot;</>}
-            </span>
+        {/* Meet type pills */}
+        {tab === "meets" && (
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {meetTypes.map((mt) => {
+              const mi = meetTypeIcon[mt];
+              const Icon = mi?.icon;
+              return (
+                <button
+                  key={mt}
+                  onClick={() => setActiveMeetType(mt)}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 36,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    background: activeMeetType === mt ? "var(--primary)" : "transparent",
+                    color: activeMeetType === mt ? "#fff" : "var(--text-secondary)",
+                    border: activeMeetType === mt ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeMeetType === mt ? "#fff" : mi.color }} />}
+                  {mt === "all" ? t("common.all") : (MEET_TYPE_LABELS[mt] ? t(MEET_TYPE_LABELS[mt]) : mt)}
+                </button>
+              );
+            })}
           </div>
+        )}
+
+        {/* NGO category pills */}
+        {tab === "ngo" && (
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {ngoCats.map((nc) => {
+              const ni = ngoCatIcon[nc];
+              const Icon = ni?.icon;
+              return (
+                <button
+                  key={nc}
+                  onClick={() => setActiveNgoCat(nc)}
+                  className="b-pill shrink-0"
+                  style={{
+                    height: 36,
+                    padding: "0 14px",
+                    fontSize: 13,
+                    background: activeNgoCat === nc ? "var(--primary)" : "transparent",
+                    color: activeNgoCat === nc ? "#fff" : "var(--text-secondary)",
+                    border: activeNgoCat === nc ? "none" : "1px solid var(--border-soft)",
+                  }}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeNgoCat === nc ? "#fff" : ni.color }} />}
+                  {ngoCatLabel(nc)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Sort pills */}
+        <div className="mt-3 flex items-center gap-3">
+          {tab === "posts" && (
+            <>
+              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "latest" ? "var(--primary)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
+                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("common.latest")}
+              </button>
+              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "popular" ? "var(--primary)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
+                <Sparkles className="mr-1 inline h-3.5 w-3.5" />{t("common.popular")}
+              </button>
+            </>
+          )}
+          {tab === "meets" && (
+            <>
+              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "newest" ? "var(--primary)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
+                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("browse.newest")}
+              </button>
+              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "soonest" ? "var(--primary)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />{t("browse.soonest")}
+              </button>
+            </>
+          )}
+
+          {/* Result count */}
+          {!loading && !errorMsg && (
+            <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+              {resultCount} {tab === "posts" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : tab === "ngo" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : (resultCount === 1 ? t("browse.meet") : t("browse.meets"))}
+            </span>
+          )}
         </div>
 
-        {/* Feed */}
-        <div className="space-y-8">
-            {/* Trending */}
-            {!loading && !errorMsg && trendingTop3.length > 0 && (
-              <section className="b-card p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-base font-semibold" style={{ color: "var(--deep-navy)" }}>
-                    <Flame className="h-5 w-5 text-orange-400" />
-                    {t("home.trending")}
-                  </div>
-                  <Link
-                    href="/browse"
-                    className="inline-flex items-center gap-1 text-sm font-medium no-underline transition hover:opacity-70"
-                    style={{ color: "var(--text-secondary)" }}
+        {/* Recent searches */}
+        {recentSearches.length > 0 && !debouncedQ && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{t("browse.recent")}</span>
+              <button onClick={clearRecentSearches} className="text-[11px] font-medium transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>{t("common.clear")}</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {recentSearches.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => applyRecentSearch(item)}
+                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition hover:opacity-80"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+                >
+                  {tabIcon(item.tab)}
+                  {item.keyword}
+                  <span
+                    onClick={(e) => { e.stopPropagation(); removeRecentSearch(item); }}
+                    className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full opacity-40 hover:opacity-100"
                   >
-                    {t("home.seeAll")} <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
+                    <X className="h-2.5 w-2.5" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div className="grid gap-3">
-                  {trendingTop3.map((p, idx) => (
-                    <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
-                      <div
-                        className="flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:shadow-sm"
-                        style={{ background: "var(--light-blue)" }}
-                      >
-                        <div className="w-6 text-center text-sm font-bold" style={{ color: "var(--primary)" }}>
-                          {idx + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
-                            {p.title}
-                          </div>
-                          <div className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
-                            {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
-                          <Heart className="h-3.5 w-3.5" />
-                          <span className="text-xs font-medium">{p.like_count ?? 0}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
+        {/* Results */}
+        <div className="mt-5 space-y-6">
+          {errorMsg && (
+            <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>
+          )}
 
-            {/* Post cards */}
-            {loading && (
-              <div className="space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="b-skeleton h-48" />
-                ))}
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="b-skeleton h-48" />
+              ))}
+            </div>
+          )}
+
+          {/* Empty states */}
+          {!loading && !errorMsg && tab === "posts" && posts.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noPostsFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `Nothing matched "${debouncedQ}". Try another keyword.` : "There are no posts in this section yet."}
               </div>
-            )}
-
-            {errorMsg && (
-              <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-                {errorMsg}
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/create" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.writePost")}</Link>
               </div>
-            )}
+            </div>
+          )}
 
-            {!loading && !errorMsg && filteredPosts.map((p, idx) => {
-              const profile = p.user_id ? profiles.get(p.user_id) : null;
-              const displayName = profile?.display_name || p.author_name || t("home.anonymous");
-              const avatarUrl = profile?.avatar_url;
-              const initial = (displayName?.[0] ?? "?").toUpperCase();
+          {!loading && !errorMsg && tab === "meets" && meets.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <CalendarDays className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noMeetsFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `No meets matched "${debouncedQ}". Try a city or keyword.` : "No meet results yet."}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/meet" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
+              </div>
+            </div>
+          )}
 
+          {!loading && !errorMsg && tab === "ngo" && filteredNgos.length === 0 && (
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+              <ShieldCheck className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold">{t("browse.noNgoFound")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                {debouncedQ ? `No partner posts matched "${debouncedQ}".` : "No partner posts yet."}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/ngo" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewNgo")}</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Post results */}
+          {!loading &&
+            tab === "posts" &&
+            posts.map((p, idx) => {
+              const cc = CAT_COLORS[p.category] ?? CAT_COLORS.other;
               return (
-              <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
-                <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
-                  {/* Author + time */}
-                  <div className="flex items-center gap-2.5 mb-3">
-                    {p.user_id ? (
-                      <Link
-                        href={`/u/${p.user_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2.5 no-underline text-inherit hover:opacity-80 transition"
-                      >
-                        {avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={avatarUrl}
-                            alt=""
-                            className="h-8 w-8 rounded-full object-cover"
-                            style={{ border: "2px solid var(--border-soft)" }}
-                          />
-                        ) : (
-                          <div
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-                            style={{ background: "var(--primary)" }}
+                <Link key={p.id} href={`/posts/${p.id}`} className="block no-underline text-inherit">
+                  <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-sm font-semibold">{p.title}</div>
+                          <span
+                            className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
+                            style={{ background: cc.bg, color: cc.color }}
                           >
-                            {initial}
-                          </div>
-                        )}
-                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                          {displayName}
-                        </span>
-                      </Link>
-                    ) : (
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-                          style={{ background: "var(--text-muted)" }}
-                        >
-                          ?
+                            {catBadge(p.category)}
+                          </span>
                         </div>
-                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                          {displayName}
-                        </span>
+                        <div className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {p.content}
+                        </div>
+                        <div className="mt-3 flex items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+                          <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{p.like_count ?? 0}</span>
+                          <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" />{p.comment_count ?? 0}</span>
+                        </div>
                       </div>
-                    )}
-                    <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
-                      · {formatRelative(p.created_at)}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h2
-                    className="line-clamp-2 text-lg font-semibold leading-snug"
-                    style={{ color: "var(--deep-navy)" }}
-                  >
-                    {p.title}
-                  </h2>
-
-                  {/* Category tag */}
-                  <div className="mt-2.5">
-                    <span
-                      className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${
-                        CAT_COLOR[(p.category ?? "general") as Category]
-                      }`}
-                    >
-                      {catLabel(p.category ?? "general")}
-                    </span>
-                  </div>
-
-                  {/* Content preview */}
-                  <p
-                    className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {p.content.length > 200 ? `${p.content.slice(0, 200)}...` : p.content}
-                  </p>
-
-                  {/* Media */}
-                  {p.image_url && (
-                    <div className="relative mt-4">
-                      {isVideoUrl(p.image_url) ? (
-                        <video
-                          src={p.image_url}
-                          controls
-                          preload="metadata"
-                          className="w-full rounded-2xl"
-                          style={{ border: "1px solid var(--border-soft)" }}
-                          onClick={(e) => e.preventDefault()}
-                        />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="w-full rounded-2xl"
-                          style={{ border: "1px solid var(--border-soft)" }}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                      )}
-                      {p.image_urls && p.image_urls.length > 1 && (
-                        <div className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-black/60 px-2.5 text-xs font-semibold text-white">
-                          +{p.image_urls.length - 1}
-                        </div>
-                      )}
                     </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="mt-4 flex items-center gap-5">
-                    <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-                      <Heart className="h-[18px] w-[18px]" />
-                      <span className="text-[13px] font-medium">{p.like_count ?? 0}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-                      <MessageCircle className="h-[18px] w-[18px]" />
-                      <span className="text-[13px] font-medium">{p.comment_count ?? 0}</span>
-                    </div>
-                  </div>
-                </article>
-              </Link>
+                  </article>
+                </Link>
               );
             })}
 
-            {/* Infinite scroll sentinel */}
-            {!loading && !errorMsg && hasMore && filteredPosts.length > 0 && (
-              <div ref={sentinelRef} className="flex justify-center py-4">
-                {loadingMore && <div className="b-skeleton h-10 w-40 rounded-2xl" />}
-              </div>
-            )}
+          {/* Meet results */}
+          {!loading &&
+            tab === "meets" &&
+            meets.map((m, idx) => {
+              const typeClass = MEET_TYPE_CLASSES[m.type ?? "other"] ?? "";
+              return (
+                <Link key={m.id} href={`/meet/${m.id}`} className="block no-underline text-inherit">
+                  <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-sm font-semibold">{m.title}</div>
+                          {m.type && (
+                            <span className={`shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${typeClass}`}>
+                              {MEET_TYPE_LABELS[m.type] ? t(MEET_TYPE_LABELS[m.type]) : m.type}
+                            </span>
+                          )}
+                          {m.is_closed && (
+                            <span className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">
+                              Closed
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {m.city && (
+                            <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{m.city}</span>
+                          )}
+                          <span className="inline-flex items-center gap-0.5"><CalendarDays className="h-3 w-3" />{formatDateTime(m.start_at, t("meet.timeNotSet"))}</span>
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {m.description}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
 
-            {!loading && !errorMsg && filteredPosts.length === 0 && (
-              <div
-                className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center"
-                style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
-              >
-                <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
-                <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
-                  {t("home.noPostsFound")}
-                </div>
-                <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-                  {searchText ? t("home.tryKeyword") : t("home.beFirst")}
-                </div>
-              </div>
-            )}
+          {/* NGO results */}
+          {!loading &&
+            tab === "ngo" &&
+            filteredNgos.map((n, idx) => (
+              <Link key={n.id} href={`/ngo/${n.id}`} className="block no-underline text-inherit">
+                <article
+                  className="b-card b-card-hover b-animate-in p-5"
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                >
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                      {n.ngo_name ?? "Partner"}
+                    </span>
+                    <NgoVerifiedBadge verified={n.ngo_verified} size={12} />
+                  </div>
+                  <h2 className="text-lg font-semibold leading-snug line-clamp-2" style={{ color: "var(--deep-navy)" }}>
+                    {n.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {n.description}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+                    {n.location && (
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{n.location}</span>
+                    )}
+                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{n.application_count ?? 0} applied</span>
+                  </div>
+                  {n.is_closed && (
+                    <div className="mt-3">
+                      <span className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">Closed</span>
+                    </div>
+                  )}
+                </article>
+              </Link>
+            ))}
         </div>
       </div>
     </div>

@@ -76,8 +76,8 @@ export default function BottomNav() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const items = [
-    { href: "/browse", icon: Home, label: t("nav.explore") },
-    { href: "/", icon: FileText, label: t("nav.home") },
+    { href: "/", icon: Home, label: t("nav.explore") },
+    { href: "/browse", icon: FileText, label: t("nav.home") },
     { href: "/meet", icon: CalendarHeart, label: t("nav.meet") },
     { href: "/chats", icon: MessageCircle, label: t("nav.chats"), badge: unread },
     { href: "/ngo", icon: ShieldCheck, label: t("nav.ngo") },

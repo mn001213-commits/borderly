@@ -61,7 +61,7 @@ export default function PurposeOnboardingPage() {
 
       const current = (profile?.usage_purposes ?? []) as string[];
       if (current.length > 0) {
-        router.replace("/browse");
+        router.replace("/");
         return;
       }
 
@@ -165,7 +165,7 @@ export default function PurposeOnboardingPage() {
             onClick={() => {
               const H = 24;
               localStorage.setItem("purpose_skip_until", String(Date.now() + H * 60 * 60 * 1000));
-              router.replace("/browse");
+              router.replace("/");
             }}
             className="rounded-xl border px-4 py-2"
           >
