@@ -267,24 +267,38 @@ export default function SignupPage() {
       return;
     }
 
-    const profileRes = await fetch("/api/signup-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: uid,
-        display_name: displayName.trim(),
-        residence_country: residenceCountry,
-        origin_country: originCountry,
-        languages,
-        user_type: userType,
-      }),
-    });
+    const profileData = {
+      id: uid,
+      display_name: displayName.trim(),
+      residence_country: residenceCountry || null,
+      origin_country: originCountry || null,
+      languages,
+      user_type: userType,
+      ngo_verified: false,
+    };
 
-    if (!profileRes.ok) {
-      const { error: msg } = await profileRes.json();
-      setBusy(false);
-      setErrorMsg(msg || "Profile creation failed");
-      return;
+    // Try client-side upsert first (works when session exists)
+    const { error: pErr } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
+
+    if (pErr) {
+      // Fallback to server-side API if client RLS blocks
+      try {
+        const profileRes = await fetch("/api/signup-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileData),
+        });
+        if (!profileRes.ok) {
+          const { error: msg } = await profileRes.json().catch(() => ({ error: "Profile creation failed" }));
+          setBusy(false);
+          setErrorMsg(msg || "Profile creation failed");
+          return;
+        }
+      } catch {
+        setBusy(false);
+        setErrorMsg("Profile creation failed. Please try again.");
+        return;
+      }
     }
 
     setBusy(false);
