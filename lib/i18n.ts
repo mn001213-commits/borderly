@@ -220,6 +220,22 @@ const translations: Record<string, Record<Locale, string>> = {
   "adminNgo.notVerified": { en: "Not verified", ko: "미인증", ja: "未認証" },
   "adminNgo.verify": { en: "Verify", ko: "인증", ja: "認証" },
   "adminNgo.revoke": { en: "Revoke", ko: "취소", ja: "取消" },
+  "adminNgo.pending": { en: "Pending review", ko: "심사 대기중", ja: "審査待ち" },
+  "adminNgo.rejected": { en: "Rejected", ko: "거절됨", ja: "却下" },
+
+  "ngoOnboarding.title": { en: "Organization Setup", ko: "단체 정보 등록", ja: "団体情報登録" },
+  "ngoOnboarding.subtitle": { en: "Tell us about your organization", ko: "단체에 대해 알려주세요", ja: "団体について教えてください" },
+  "ngoOnboarding.orgName": { en: "Organization Name", ko: "단체 이름", ja: "団体名" },
+  "ngoOnboarding.orgNamePlaceholder": { en: "e.g. Community Bridge Foundation", ko: "예: 커뮤니티 브릿지 재단", ja: "例: コミュニティブリッジ財団" },
+  "ngoOnboarding.orgUrl": { en: "Website URL", ko: "웹사이트 URL", ja: "ウェブサイトURL" },
+  "ngoOnboarding.purpose": { en: "Activity Purpose on Borderly", ko: "Borderly에서의 활동 목적", ja: "Borderlyでの活動目的" },
+  "ngoOnboarding.purposePlaceholder": { en: "Describe what your organization does and how you plan to use Borderly...", ko: "단체의 활동 내용과 Borderly를 어떻게 활용할 계획인지 설명해주세요...", ja: "団体の活動内容とBorderlyの利用計画を説明してください..." },
+  "ngoOnboarding.purposeMin": { en: "Minimum 10 characters", ko: "최소 10자 이상", ja: "10文字以上" },
+  "ngoOnboarding.submit": { en: "Submit for Review", ko: "심사 요청", ja: "審査を申請" },
+  "ngoOnboarding.submitting": { en: "Submitting...", ko: "제출 중...", ja: "送信中..." },
+  "ngoOnboarding.pendingTitle": { en: "Application Submitted!", ko: "신청이 완료되었습니다!", ja: "申請が完了しました！" },
+  "ngoOnboarding.pendingDesc": { en: "Your organization registration is under review. You will receive an email once approved by an administrator.", ko: "단체 등록이 심사 중입니다. 관리자 승인 후 이메일로 결과를 안내해 드립니다.", ja: "団体登録は審査中です。管理者の承認後、メールで結果をお知らせします。" },
+  "common.optional": { en: "Optional", ko: "선택사항", ja: "任意" },
 
   // Meet Detail
   "meetDetail.notFound": { en: "Meetup not found.", ko: "모임을 찾을 수 없습니다.", ja: "ミートアップが見つかりません。" },
