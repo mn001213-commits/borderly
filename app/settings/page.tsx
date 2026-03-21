@@ -27,6 +27,9 @@ export default function SettingsPage() {
   const { t } = useT();
   const [loggingOut, setLoggingOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Language
   const [lang, setLang] = useState<Locale>("en");
@@ -115,11 +118,17 @@ export default function SettingsPage() {
     router.refresh();
   };
 
+  const openDeleteModal = () => {
+    setDeleteConfirm("");
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
+
   const deleteAccount = async () => {
-    const input = prompt('Type "DELETE" to permanently delete your account');
-    if (input !== "DELETE") return;
+    if (deleteConfirm !== "DELETE") return;
 
     setDeleting(true);
+    setDeleteError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) return;
@@ -137,7 +146,7 @@ export default function SettingsPage() {
       await supabase.auth.signOut();
       router.push("/login");
     } catch (e: any) {
-      alert(e?.message || "Failed to delete account");
+      setDeleteError(e?.message || "Failed to delete account");
       setDeleting(false);
     }
   };
@@ -325,15 +334,73 @@ export default function SettingsPage() {
           {t("settings.deleteWarning")}
         </p>
         <button
-          onClick={deleteAccount}
+          onClick={openDeleteModal}
           disabled={deleting}
           className="mt-4 inline-flex h-10 items-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: "#E53935" }}
         >
           <Trash2 className="h-4 w-4" />
-          {deleting ? t("settings.deleting") : t("settings.deleteAccount")}
+          {t("settings.deleteAccount")}
         </button>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl" style={{ background: "var(--bg-card)" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "#FEF2F2" }}>
+                <Trash2 className="h-5 w-5" style={{ color: "#B91C1C" }} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold" style={{ color: "#B91C1C" }}>{t("settings.deleteAccount")}</h3>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t("settings.deleteIrreversible")}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl p-3 mb-4 text-sm" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
+              {t("settings.deleteAllData")}
+            </div>
+
+            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              {t("settings.typeDelete")}
+            </label>
+            <input
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="DELETE"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none mb-4"
+              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              autoFocus
+            />
+
+            {deleteError && (
+              <div className="rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 rounded-2xl py-3 text-sm font-medium transition"
+                style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={deleteAccount}
+                disabled={deleteConfirm !== "DELETE" || deleting}
+                className="flex-1 rounded-2xl py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                style={{ background: "#E53935" }}
+              >
+                {deleting ? t("settings.deleting") : t("settings.deleteAccount")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
