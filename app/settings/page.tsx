@@ -121,9 +121,19 @@ export default function SettingsPage() {
 
     setDeleting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from("profiles").delete().eq("id", user.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: "Failed to delete account" }));
+        throw new Error(error);
+      }
+
       await supabase.auth.signOut();
       router.push("/login");
     } catch (e: any) {
