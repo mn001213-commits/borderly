@@ -13,6 +13,10 @@ type NgoProfile = {
   display_name: string;
   avatar_url: string | null;
   ngo_verified: boolean;
+  ngo_org_name: string | null;
+  ngo_org_url: string | null;
+  ngo_purpose: string | null;
+  ngo_status: string | null;
   created_at: string;
 };
 
@@ -45,7 +49,20 @@ export default function AdminNgoPage() {
     setBusy(id);
     try {
       await verifyNgo(id, !current);
-      setNgos((prev) => prev.map((n) => (n.id === id ? { ...n, ngo_verified: !current } : n)));
+      setNgos((prev) => prev.map((n) => (n.id === id ? { ...n, ngo_verified: !current, ngo_status: !current ? "approved" : "rejected" } : n)));
+
+      // Send approval/rejection email via API
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        fetch("/api/ngo-approve", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ user_id: id, approved: !current }),
+        }).catch(() => {});
+      }
     } catch {}
     setBusy(null);
   };
@@ -83,11 +100,20 @@ export default function AdminNgoPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-sm truncate">{n.display_name}</span>
+                    <span className="font-semibold text-sm truncate">{n.ngo_org_name || n.display_name}</span>
                     <NgoVerifiedBadge verified={n.ngo_verified} />
                   </div>
-                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {n.ngo_verified ? t("adminNgo.verified") : t("adminNgo.notVerified")}
+                  {n.ngo_org_name && (
+                    <div className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>{n.display_name}</div>
+                  )}
+                  {n.ngo_org_url && (
+                    <a href={n.ngo_org_url} target="_blank" rel="noopener noreferrer" className="text-xs hover:underline truncate block" style={{ color: "var(--primary)" }}>{n.ngo_org_url}</a>
+                  )}
+                  {n.ngo_purpose && (
+                    <div className="text-xs mt-1 line-clamp-2" style={{ color: "var(--text-muted)" }}>{n.ngo_purpose}</div>
+                  )}
+                  <div className="text-[11px] mt-1" style={{ color: n.ngo_verified ? "#43A047" : "#F59E0B" }}>
+                    {n.ngo_status === "approved" ? t("adminNgo.verified") : n.ngo_status === "rejected" ? t("adminNgo.rejected") : t("adminNgo.pending")}
                   </div>
                 </div>
 

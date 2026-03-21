@@ -303,7 +303,7 @@ export default function SignupPage() {
 
     setBusy(false);
     setOkMsg(t("signup.accountCreated"));
-    router.push("/");
+    router.push(userType === "ngo" ? "/onboarding/ngo" : "/");
   };
 
   return (
