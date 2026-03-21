@@ -191,9 +191,9 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState("");
 
   const [userType, setUserType] = useState<"local" | "foreigner" | "ngo">("foreigner");
-  const [residenceCountry, setResidenceCountry] = useState("JP");
-  const [originCountry, setOriginCountry] = useState("KR");
-  const [languages, setLanguages] = useState<string[]>(["ko"]);
+  const [residenceCountry, setResidenceCountry] = useState("");
+  const [originCountry, setOriginCountry] = useState("");
+  const [languages, setLanguages] = useState<string[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -240,6 +240,13 @@ export default function SignupPage() {
       return;
     }
 
+    // Supabase returns a fake user with no session when email already exists
+    if (data.user && !data.session && data.user.identities?.length === 0) {
+      setBusy(false);
+      setErrorMsg(t("signup.alreadyExists"));
+      return;
+    }
+
     const uid = data.user?.id;
     if (!uid) {
       setBusy(false);
@@ -247,22 +254,23 @@ export default function SignupPage() {
       return;
     }
 
-    const { error: pErr } = await supabase.from("profiles").upsert(
-      {
+    const profileRes = await fetch("/api/signup-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         id: uid,
         display_name: displayName.trim(),
         residence_country: residenceCountry,
         origin_country: originCountry,
         languages,
         user_type: userType,
-        ngo_verified: false,
-      },
-      { onConflict: "id" }
-    );
+      }),
+    });
 
-    if (pErr) {
+    if (!profileRes.ok) {
+      const { error: msg } = await profileRes.json();
       setBusy(false);
-      setErrorMsg(pErr.message);
+      setErrorMsg(msg || "Profile creation failed");
       return;
     }
 

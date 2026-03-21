@@ -68,6 +68,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "signup.creating": { en: "Creating account...", ko: "계정 생성 중...", ja: "アカウント作成中..." },
   "signup.createAccount": { en: "Create Account", ko: "계정 만들기", ja: "アカウント作成" },
   "signup.noUserInfo": { en: "Sign up succeeded but could not retrieve user info.", ko: "가입은 완료되었지만 사용자 정보를 가져올 수 없습니다.", ja: "登録は完了しましたが、ユーザー情報を取得できませんでした。" },
+  "signup.alreadyExists": { en: "An account with this email already exists.", ko: "이미 해당 이메일로 가입된 계정이 있습니다.", ja: "このメールアドレスのアカウントは既に存在します。" },
   "signup.accountCreated": { en: "Account created! Redirecting...", ko: "계정이 생성되었습니다! 이동 중...", ja: "アカウントが作成されました！リダイレクト中..." },
   "signup.pwRequirements": { en: "Must be 8+ characters with at least one uppercase letter, one lowercase letter, and one number", ko: "8자 이상, 대문자·소문자·숫자를 각각 1개 이상 포함해야 합니다", ja: "8文字以上で、大文字・小文字・数字をそれぞれ1つ以上含む必要があります" },
   "signup.pwStrong": { en: "Strong password", ko: "안전한 비밀번호입니다", ja: "安全なパスワードです" },
