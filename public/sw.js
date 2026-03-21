@@ -61,7 +61,14 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() =>
-        caches.match(request).then((cached) => cached || fetch(request))
+        caches.match(request).then(
+          (cached) =>
+            cached ||
+            new Response("Offline", {
+              status: 503,
+              headers: { "Content-Type": "text/html" },
+            })
+        )
       )
   );
 });
