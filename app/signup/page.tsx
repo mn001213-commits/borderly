@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -198,6 +198,19 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  // Reset all fields whenever the page mounts
+  useEffect(() => {
+    setEmail("");
+    setPw("");
+    setDisplayName("");
+    setUserType("foreigner");
+    setResidenceCountry("");
+    setOriginCountry("");
+    setLanguages([]);
+    setErrorMsg(null);
+    setOkMsg(null);
+  }, []);
 
   const pwHasUpper = /[A-Z]/.test(pw);
   const pwHasLower = /[a-z]/.test(pw);
