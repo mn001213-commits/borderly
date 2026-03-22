@@ -29,12 +29,6 @@ export default function ChatRoomPage() {
   const params = useParams<{ conversationId: string }>();
   const conversationId = params?.conversationId;
 
-  useEffect(() => {
-    supabase.auth.getSession().then((res) => {
-      console.log("🔥 CURRENT UID:", res.data.session?.user?.id);
-    });
-  }, []);
-
   const {
     me,
     other,
@@ -224,7 +218,7 @@ export default function ChatRoomPage() {
           .from("post-images")
           .upload(path, imageFile);
         if (uploadErr) {
-          console.error("Image upload error:", uploadErr);
+          if (process.env.NODE_ENV === "development") console.error("Image upload error:", uploadErr);
           return;
         }
         const { data: urlData } = supabase.storage

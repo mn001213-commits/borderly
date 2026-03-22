@@ -64,7 +64,7 @@ export default function NotificationsPage() {
       const list = await listNotifications(80);
       setRows(list);
     } catch (error) {
-      console.error("listNotifications error:", error);
+      if (process.env.NODE_ENV === "development") console.error("listNotifications error:", error);
       setRows([]);
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ export default function NotificationsPage() {
           const list = await listNotifications(80);
           if (!cancelled) setRows(list);
         } catch (error) {
-          console.error("notifications realtime refresh error:", error);
+          if (process.env.NODE_ENV === "development") console.error("notifications realtime refresh error:", error);
         }
       }, 200);
     };
@@ -141,7 +141,7 @@ export default function NotificationsPage() {
         }))
       );
     } catch (error) {
-      console.error("markAllRead error:", error);
+      if (process.env.NODE_ENV === "development") console.error("markAllRead error:", error);
     } finally {
       setMarkingAll(false);
     }
@@ -163,7 +163,7 @@ export default function NotificationsPage() {
         return;
       }
     } catch (error) {
-      console.error("markRead error:", error);
+      if (process.env.NODE_ENV === "development") console.error("markRead error:", error);
       if (n.link) {
         router.push(n.link);
         return;

@@ -88,8 +88,6 @@ export async function createNotification({
 }) {
   if (!userId) return;
 
-  console.log("createNotification target userId:", userId);
-
   const { data: targetProfile, error: profileError } = await supabase
     .from("profiles")
     .select("id")
@@ -97,7 +95,7 @@ export async function createNotification({
     .maybeSingle();
 
   if (profileError) {
-    console.error("createNotification profile lookup error:", profileError);
+    if (process.env.NODE_ENV === "development") console.error("createNotification profile lookup error:", profileError);
     return;
   }
 
@@ -116,7 +114,7 @@ export async function createNotification({
   });
 
   if (error) {
-    console.error("createNotification error:", error);
+    if (process.env.NODE_ENV === "development") console.error("createNotification error:", error);
     return;
   }
 }

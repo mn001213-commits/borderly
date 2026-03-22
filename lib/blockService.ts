@@ -7,19 +7,6 @@ export async function getMyUserId() {
   return data.session?.user?.id ?? null;
 }
 
-export async function isEitherBlocked(meId: string, otherId: string) {
-  const { data: a, error: ea } = await supabase
-    .from("blocks")
-    .select("id")
-    .eq("blocker_id", meId)
-    .eq("blocked_id", otherId)
-    .maybeSingle();
-
-  if (ea) throw ea;
-
-  return { iBlocked: !!a };
-}
-
 export async function blockUser(meId: string, otherId: string) {
   const { error } = await supabase.from("blocks").insert({
     blocker_id: meId,

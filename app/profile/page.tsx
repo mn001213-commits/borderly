@@ -11,16 +11,7 @@ import dynamic from "next/dynamic";
 const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), { ssr: false });
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
-
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
-function isVideoUrl(url: string) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
-  } catch {
-    return false;
-  }
-}
+import { isVideoUrl, formatRelative } from "@/lib/format";
 
 type Post = {
   id: string;
@@ -40,24 +31,6 @@ type MeetPost = {
   start_at: string | null;
   is_closed: boolean;
 };
-
-function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - t);
-
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-
-  const min = Math.floor(diff / 60000);
-  if (min < 60) return `${min}m ago`;
-
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
-}
 
 export default function ProfilePage() {
   const { t } = useT();

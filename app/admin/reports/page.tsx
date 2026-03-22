@@ -13,6 +13,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
+import { formatRelative } from "@/lib/format";
 
 type ReportRow = {
   id: string;
@@ -42,20 +43,6 @@ type ReportView = ReportRow & {
 
 function cx(...arr: Array<string | false | null | undefined>) {
   return arr.filter(Boolean).join(" ");
-}
-
-function formatRelative(iso: string) {
-  const ts = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - ts);
-
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "Just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
 }
 
 function formatDateTime(iso: string | null | undefined) {

@@ -211,7 +211,7 @@ export async function createNgoConversation(
     .from("conversations")
     .insert({
       type: "ngo",
-      name: `Partners: ${ngoPostTitle}`,
+      name: `Supporters: ${ngoPostTitle}`,
       created_by: ngoUserId,
     })
     .select("id")
@@ -251,7 +251,7 @@ export async function listUnverifiedNgos() {
 export async function listAllNgos() {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, ngo_verified, ngo_org_name, ngo_org_url, ngo_purpose, ngo_status, created_at")
+    .select("id, display_name, avatar_url, ngo_verified, ngo_org_name, ngo_org_purpose, ngo_org_url, ngo_purpose, ngo_status, created_at")
     .eq("user_type", "ngo")
     .order("ngo_verified", { ascending: false })
     .order("created_at", { ascending: false });

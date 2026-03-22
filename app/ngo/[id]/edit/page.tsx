@@ -82,7 +82,7 @@ export default function EditNGOPage() {
         setWebsite(post.website ?? "");
         setDescription(post.description ?? "");
       } catch (err: any) {
-        console.error(err);
+        if (process.env.NODE_ENV === "development") console.error(err);
         if (!alive) return;
         setErrorMsg(err?.message || "Failed to load partner post.");
       } finally {
@@ -131,7 +131,7 @@ export default function EditNGOPage() {
 
       router.push(`/ngo/${id}`);
     } catch (err: any) {
-      console.error(err);
+      if (process.env.NODE_ENV === "development") console.error(err);
       setErrorMsg(err?.message || "Failed to update partner post.");
     } finally {
       setSubmitting(false);

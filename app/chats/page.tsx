@@ -7,6 +7,7 @@ import { createNotification } from "@/lib/notificationService";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
 import { Bell, MessageCircle, User, Users, Plus, ShieldCheck } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
+import { formatRelative } from "@/lib/format";
 
 type ChatRow = {
   conversation_id: string;
@@ -30,22 +31,6 @@ type GroupRow = {
   last_message_at: string | null;
   type: string;
 };
-
-function formatRelative(iso: string | null) {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - t);
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return "Just now";
-  const min = Math.floor(diff / 60000);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 export default function ChatsPage() {
   const { t } = useT();

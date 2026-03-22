@@ -66,7 +66,7 @@ export default function NgoApplicationsPage() {
 
       // Create NGO conversation
       const post = posts.find((p) => p.id === selectedPostId);
-      const convId = await createNgoConversation(myUid, app.applicant_id, post?.title ?? "Partner Support");
+      const convId = await createNgoConversation(myUid, app.applicant_id, post?.title ?? "Supporter");
 
       // Notify applicant
       await createNotification({

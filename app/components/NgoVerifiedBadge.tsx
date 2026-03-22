@@ -12,7 +12,7 @@ export default function NgoVerifiedBadge({
   if (!verified) return null;
 
   return (
-    <span title="Verified Partner" className="inline-flex items-center">
+    <span title="Verified Supporter" className="inline-flex items-center">
       <ShieldCheck
         className="shrink-0"
         style={{ width: size, height: size, color: "#43A047" }}

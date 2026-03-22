@@ -2,7 +2,7 @@
 
 A mobile-first community platform for connecting people across borders — built with Next.js, Supabase, and Tailwind CSS.
 
-**Live:** [borderly-tawny.vercel.app](https://borderly-tawny.vercel.app)
+**Live:** [borderly-global.com](https://borderly-global.com)
 
 > [한국어 버전](./README.ko.md)
 
