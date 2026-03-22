@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireAuth } from "@/lib/apiAuth";
 
 // Simple in-memory rate limiter: max 30 requests per minute per user
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -23,21 +23,11 @@ function checkRateLimit(userId: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth check
-    const auth = req.headers.get("authorization") || "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-
-    if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const { data: userRes, error: uErr } = await supabaseAdmin.auth.getUser(token);
-    if (uErr || !userRes.user) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    const { user, error: authError } = await requireAuth(req);
+    if (authError) return authError;
 
     // Rate limit check
-    if (!checkRateLimit(userRes.user.id)) {
+    if (!checkRateLimit(user.id)) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 

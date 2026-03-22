@@ -5,22 +5,10 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeft, ImagePlus, Film, X, MessageCircle, Info, HelpCircle, Sun, Briefcase, MoreHorizontal } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
+import { isVideoFile, isVideoUrl } from "@/lib/format";
+import { type Category } from "@/lib/constants";
 
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
 const MAX_VIDEO_MB = 50;
-
-function isVideoFile(file: File) {
-  return file.type.startsWith("video/");
-}
-
-function isVideoUrl(url: string) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
-  } catch {
-    return false;
-  }
-}
 
 const BUCKET = "post-images";
 
@@ -71,8 +59,6 @@ async function compressImage(
   const ext = mime === "image/webp" ? "webp" : "jpg";
   return { blob, contentType: mime, ext };
 }
-
-type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
 const CATEGORY_OPTIONS: Array<{ value: Category; color: string; icon: React.ElementType; iconColor: string }> = [
   { value: "general", color: "bg-[#EAF4FF] text-[#4DA6FF]", icon: MessageCircle, iconColor: "#7EC8E3" },

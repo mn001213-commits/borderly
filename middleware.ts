@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const ALLOWED_ORIGIN = "https://borderly-tawny.vercel.app";
+const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_BASE_URL ?? "https://borderly-global.com";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

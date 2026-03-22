@@ -60,7 +60,7 @@ export default function MeetManagePage() {
       .eq("id", id)
       .maybeSingle();
 
-    if (meetErr) console.error(meetErr);
+    if (meetErr && process.env.NODE_ENV === "development") console.error(meetErr);
 
     if (!meet || meet.host_id !== user.id) {
       router.push("/meet");
@@ -79,7 +79,7 @@ export default function MeetManagePage() {
       .eq("meet_id", id)
       .maybeSingle();
 
-    if (gcErr) console.error(gcErr);
+    if (gcErr && process.env.NODE_ENV === "development") console.error(gcErr);
     setConversationId(gc?.conversation_id ?? null);
 
     // 3) Fetch participants (no join with profiles to prevent 400)
@@ -89,7 +89,7 @@ export default function MeetManagePage() {
       .eq("meet_id", id);
 
     if (mp.error) {
-      console.error(mp.error);
+      if (process.env.NODE_ENV === "development") console.error(mp.error);
       setParticipants([]);
       setLoading(false);
       return;
@@ -118,7 +118,7 @@ export default function MeetManagePage() {
           });
         }
       } else {
-        console.error(pr.error);
+        if (process.env.NODE_ENV === "development") console.error(pr.error);
       }
     }
 
@@ -203,14 +203,14 @@ export default function MeetManagePage() {
       .eq("meet_id", id)
       .eq("user_id", userId);
 
-    if (up.error) console.error(up.error);
+    if (up.error && process.env.NODE_ENV === "development") console.error(up.error);
 
     if (!up.error && conversationId) {
       const upsert = await supabase.from("conversation_members").upsert({
         conversation_id: conversationId,
         user_id: userId,
       });
-      if (upsert.error) console.error(upsert.error);
+      if (upsert.error && process.env.NODE_ENV === "development") console.error(upsert.error);
     }
 
     // Notify the approved participant
@@ -280,7 +280,7 @@ export default function MeetManagePage() {
       .eq("meet_id", id)
       .eq("user_id", userId);
 
-    if (up.error) console.error(up.error);
+    if (up.error && process.env.NODE_ENV === "development") console.error(up.error);
 
     if (!up.error && conversationId) {
       const del = await supabase
@@ -289,7 +289,7 @@ export default function MeetManagePage() {
         .eq("conversation_id", conversationId)
         .eq("user_id", userId);
 
-      if (del.error) console.error(del.error);
+      if (del.error && process.env.NODE_ENV === "development") console.error(del.error);
     }
 
     // Notify the rejected participant

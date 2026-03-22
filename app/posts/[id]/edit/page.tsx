@@ -6,27 +6,12 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { X, ImagePlus } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
+import { isVideoFile, isVideoUrl } from "@/lib/format";
+import { type Category } from "@/lib/constants";
 
 const BUCKET = "post-images";
-
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
 const MAX_VIDEO_MB = 50;
 const MAX_FILES = 5;
-
-function isVideoFile(file: File) {
-  return file.type.startsWith("video/");
-}
-
-function isVideoUrl(url: string) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
-  } catch {
-    return false;
-  }
-}
-
-type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
 const CAT_KEYS: Category[] = ["general", "info", "question", "daily", "jobs", "other"];
 

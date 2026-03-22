@@ -2,7 +2,7 @@
 
 국경을 넘어 사람들을 연결하는 모바일 우선 커뮤니티 플랫폼 — Next.js, Supabase, Tailwind CSS로 구축되었습니다.
 
-**배포 주소:** [borderly-tawny.vercel.app](https://borderly-tawny.vercel.app)
+**배포 주소:** [borderly-global.com](https://borderly-global.com)
 
 > [English version](./README.md)
 

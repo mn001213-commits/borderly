@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireAuth } from "@/lib/apiAuth";
 
 export async function GET(req: Request) {
-  const auth = req.headers.get("authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const { user, error: authError } = await requireAuth(req);
+  if (authError) return authError;
 
-  if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
-
-  const { data: userRes, error: uErr } = await supabaseAdmin.auth.getUser(token);
-  if (uErr || !userRes.user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-  const uid = userRes.user.id;
+  const uid = user.id;
 
   // DB에서 admin role 확인
   const { data: profile } = await supabaseAdmin

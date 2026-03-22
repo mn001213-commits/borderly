@@ -34,6 +34,8 @@ import {
   HeartPulse,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { formatRelative } from "@/lib/format";
+import { CAT_COLORS } from "@/lib/constants";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
 import { useT } from "@/app/components/LangProvider";
 
@@ -79,15 +81,6 @@ type NgoRow = {
   is_closed: boolean | null;
 };
 
-const CAT_COLORS: Record<string, { bg: string; color: string }> = {
-  general: { bg: "#E3F2FD", color: "#1565C0" },
-  info: { bg: "#FFF3E0", color: "#EF6C00" },
-  question: { bg: "#F3E5F5", color: "#8E24AA" },
-  daily: { bg: "#E8F5E9", color: "#2E7D32" },
-  jobs: { bg: "#FFF8E1", color: "#F57F17" },
-  other: { bg: "#F5F5F5", color: "#616161" },
-};
-
 const MEET_TYPE_CLASSES: Record<string, string> = {
   hangout: "b-meet-hangout",
   study: "b-meet-study",
@@ -101,29 +94,6 @@ const MEET_TYPE_CLASSES: Record<string, string> = {
   volunteer: "b-meet-volunteer",
   other: "b-meet-other",
 };
-
-function formatRelative(iso?: string | null) {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - t);
-
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
-
-  const month = Math.floor(day / 30);
-  if (month < 12) return `${month}mo ago`;
-
-  const year = Math.floor(month / 12);
-  return `${year}y ago`;
-}
 
 function formatDateTime(iso?: string | null, fallback = "Schedule TBD") {
   if (!iso) return fallback;

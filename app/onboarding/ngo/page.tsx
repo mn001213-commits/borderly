@@ -13,12 +13,13 @@ export default function NgoOnboardingPage() {
   const { t } = useT();
 
   const [orgName, setOrgName] = useState("");
+  const [orgPurpose, setOrgPurpose] = useState("");
   const [orgUrl, setOrgUrl] = useState("");
   const [purpose, setPurpose] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = orgName.trim().length >= 2 && purpose.trim().length >= 10;
+  const canSubmit = orgName.trim().length >= 2 && orgPurpose.trim().length >= 5 && purpose.trim().length >= 10;
 
   const onSubmit = async () => {
     if (!canSubmit || !user) return;
@@ -31,6 +32,7 @@ export default function NgoOnboardingPage() {
       .from("profiles")
       .update({
         ngo_org_name: orgName.trim(),
+        ngo_org_purpose: orgPurpose.trim(),
         ngo_org_url: orgUrl.trim() || null,
         ngo_purpose: purpose.trim(),
         ngo_status: "pending",
@@ -54,6 +56,7 @@ export default function NgoOnboardingPage() {
         },
         body: JSON.stringify({
           org_name: orgName.trim(),
+          org_purpose: orgPurpose.trim(),
           org_url: orgUrl.trim(),
           purpose: purpose.trim(),
         }),
@@ -101,6 +104,26 @@ export default function NgoOnboardingPage() {
                 className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
                 style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
               />
+            </div>
+
+            {/* Organization Purpose */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                <FileText className="h-3.5 w-3.5" />
+                {t("ngoOnboarding.orgPurpose")}
+              </label>
+              <textarea
+                value={orgPurpose}
+                onChange={(e) => setOrgPurpose(e.target.value)}
+                placeholder={t("ngoOnboarding.orgPurposePlaceholder")}
+                disabled={busy}
+                rows={3}
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none disabled:opacity-70"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              />
+              <p className="mt-1 text-[11px]" style={{ color: orgPurpose.trim().length >= 5 ? "var(--text-muted)" : "#B91C1C" }}>
+                {t("ngoOnboarding.orgPurposeMin")}
+              </p>
             </div>
 
             {/* Organization URL */}

@@ -47,6 +47,7 @@ export default function NGOPage() {
   const [posts, setPosts] = useState<NgoPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNgo, setIsNgo] = useState(false);
+  const [ngoStatus, setNgoStatus] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [activeCat, setActiveCat] = useState<NgoCat>("all");
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
@@ -79,10 +80,16 @@ export default function NGOPage() {
       if (user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("user_type")
+          .select("user_type, ngo_verified, ngo_status")
           .eq("id", user.id)
           .maybeSingle();
-        if (prof?.user_type === "ngo") setIsNgo(true);
+        if (prof?.user_type === "ngo") {
+          if (prof.ngo_verified === true) {
+            setIsNgo(true);
+          } else {
+            setNgoStatus(prof.ngo_status ?? "pending");
+          }
+        }
       }
 
       try {
@@ -141,6 +148,19 @@ export default function NGOPage() {
             </p>
           </div>
 
+          {!isNgo && ngoStatus === "pending" && (
+            <span className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-medium"
+              style={{ background: "#FFF8E1", color: "#F59E0B", border: "1px solid #FED7AA" }}>
+              <Clock className="h-4 w-4" />
+              {t("adminNgo.pending")}
+            </span>
+          )}
+          {!isNgo && ngoStatus === "rejected" && (
+            <span className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-medium"
+              style={{ background: "#FEF2F2", color: "#E53935", border: "1px solid #FECACA" }}>
+              {t("adminNgo.rejected")}
+            </span>
+          )}
           {isNgo && (
             <div className="flex gap-2">
               <Link
@@ -284,7 +304,7 @@ export default function NGOPage() {
                   {/* NGO name + verified */}
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                      {p.ngo_name ?? "Partner"}
+                      {p.ngo_name ?? "Supporter"}
                     </span>
                     <NgoVerifiedBadge verified={p.ngo_verified} />
                   </div>

@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireAuth } from "@/lib/apiAuth";
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify admin
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.slice(7);
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { user, error: authError } = await requireAuth(req);
+    if (authError) return authError;
 
     // Check admin role
     const { data: adminProfile } = await supabaseAdmin
@@ -64,7 +56,7 @@ export async function POST(req: NextRequest) {
     if (resend && ngoEmail) {
       if (approved) {
         await resend.emails.send({
-          from: "Borderly <noreply@borderly.app>",
+          from: "Borderly <noreply@borderly-global.com>",
           to: ngoEmail,
           subject: `[Borderly] Your organization has been approved!`,
           html: `
@@ -72,9 +64,9 @@ export async function POST(req: NextRequest) {
               <h2 style="color: #1a1a2e;">Congratulations, ${orgName}!</h2>
               <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 16px 0;">
                 <p style="color: #166534; font-size: 16px; font-weight: bold;">Your organization has been verified on Borderly.</p>
-                <p style="color: #166534;">You can now create NGO posts and connect with the community.</p>
+                <p style="color: #166534;">You can now create Supporter posts and connect with the community.</p>
               </div>
-              <a href="https://borderly-tawny.vercel.app/"
+              <a href="${process.env.NEXT_PUBLIC_BASE_URL || "https://borderly-global.com"}/"
                  style="display: inline-block; background: #1a1a2e; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600;">
                 Go to Borderly
               </a>
@@ -83,7 +75,7 @@ export async function POST(req: NextRequest) {
         });
       } else {
         await resend.emails.send({
-          from: "Borderly <noreply@borderly.app>",
+          from: "Borderly <noreply@borderly-global.com>",
           to: ngoEmail,
           subject: `[Borderly] Organization registration update`,
           html: `
@@ -100,7 +92,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -11,18 +11,8 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
-
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
-function isVideoUrl(url: string) {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    return VIDEO_EXTS.some((ext) => path.endsWith(`.${ext}`));
-  } catch {
-    return false;
-  }
-}
-
-type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
+import { isVideoUrl } from "@/lib/format";
+import { CAT_COLORS, type Category } from "@/lib/constants";
 
 type Post = {
   id: string;
@@ -34,15 +24,6 @@ type Post = {
   comment_count: number;
   image_url: string | null;
   category: Category | null;
-};
-
-const CAT_COLORS: Record<string, { bg: string; color: string }> = {
-  general: { bg: "#E3F2FD", color: "#1565C0" },
-  info: { bg: "#FFF3E0", color: "#EF6C00" },
-  question: { bg: "#F3E5F5", color: "#8E24AA" },
-  daily: { bg: "#E8F5E9", color: "#2E7D32" },
-  jobs: { bg: "#FFF8E1", color: "#F57F17" },
-  other: { bg: "#F5F5F5", color: "#616161" },
 };
 
 function getCatLabel(cat: string, tr?: (key: string) => string): string {

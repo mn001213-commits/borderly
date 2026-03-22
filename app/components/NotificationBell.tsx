@@ -52,7 +52,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
         if (!mounted) return;
         setCount(unread);
       } catch (error) {
-        console.error("NotificationBell load error:", error);
+        if (process.env.NODE_ENV === "development") console.error("NotificationBell load error:", error);
       }
     };
 
@@ -74,7 +74,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
           const unread = await getUnreadCount();
           if (!cancelled) setCount(unread);
         } catch (error) {
-          console.error("NotificationBell refresh error:", error);
+          if (process.env.NODE_ENV === "development") console.error("NotificationBell refresh error:", error);
         }
       }, 120);
     };
