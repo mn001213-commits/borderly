@@ -10,12 +10,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify the user actually exists in auth
-    const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.getUserById(id);
-    if (authErr || !authUser?.user) {
-      return NextResponse.json({ error: "Invalid user" }, { status: 403 });
-    }
-
     const { error } = await supabaseAdmin.from("profiles").upsert(
       {
         id,
