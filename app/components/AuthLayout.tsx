@@ -8,7 +8,7 @@ import BottomNav from "./BottomNav";
 import OnlineSidebar from "./OnlineSidebar";
 import NotificationToast from "./NotificationToast";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/update-password"];
+const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/update-password", "/onboarding"];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

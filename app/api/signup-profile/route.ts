@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
     );
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[signup-profile] DB error:", error.message);
+      return NextResponse.json({ error: "Profile creation failed" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
