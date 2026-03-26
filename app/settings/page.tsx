@@ -328,18 +328,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="b-card b-animate-in p-5" style={{ animationDelay: "0.3s", border: "1px solid #FECACA" }}>
-        <div className="text-sm font-bold" style={{ color: "#B91C1C" }}>{t("settings.dangerZone")}</div>
-        <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-          {t("settings.deleteWarning")}
-        </p>
+      <div className="b-animate-in pt-8 pb-4" style={{ animationDelay: "0.3s" }}>
         <button
           onClick={openDeleteModal}
           disabled={deleting}
-          className="mt-4 inline-flex h-10 items-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
-          style={{ background: "#E53935" }}
+          className="text-xs transition hover:underline disabled:opacity-40"
+          style={{ color: "var(--text-muted)" }}
         >
-          <Trash2 className="h-4 w-4" />
           {t("settings.deleteAccount")}
         </button>
       </div>

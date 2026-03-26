@@ -51,6 +51,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "login.signingIn": { en: "Signing in...", ko: "로그인 중...", ja: "ログイン中..." },
   "login.signIn": { en: "Sign In", ko: "로그인", ja: "ログイン" },
   "login.createAccount": { en: "Create account", ko: "계정 만들기", ja: "アカウント作成" },
+  "login.invalidCredentials": { en: "Invalid email or password. Please check and try again.", ko: "이메일 또는 비밀번호가 올바르지 않습니다. 확인 후 다시 시도해주세요.", ja: "メールアドレスまたはパスワードが正しくありません。確認して再度お試しください。" },
+  "login.accountLocked": { en: "Too many failed attempts. Account locked for 3 minutes.", ko: "로그인 시도가 너무 많습니다. 3분간 계정이 잠깁니다.", ja: "ログイン試行回数が多すぎます。3分間アカウントがロックされます。" },
 
   // Signup
   "signup.subtitle": { en: "Create your Borderly account", ko: "Borderly 계정을 만드세요", ja: "Borderlyアカウントを作成" },
