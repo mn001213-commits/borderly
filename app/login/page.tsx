@@ -63,7 +63,12 @@ export default function LoginPage() {
         setLockedUntil(Date.now() + LOCKOUT_MS);
         setMsg(t("login.accountLocked") || "Too many failed attempts. Account locked for 3 minutes.");
       } else {
-        setMsg(error.message);
+        // Convert technical error messages to user-friendly messages
+        if (error.message === "Invalid login credentials") {
+          setMsg(t("login.invalidCredentials") || "Invalid email or password. Please check and try again.");
+        } else {
+          setMsg(error.message);
+        }
       }
       return;
     }

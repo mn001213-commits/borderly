@@ -9,7 +9,7 @@ import { useT } from "@/app/components/LangProvider";
 
 export default function NgoOnboardingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useT();
 
   const [orgName, setOrgName] = useState("");
@@ -19,16 +19,21 @@ export default function NgoOnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = orgName.trim().length >= 2 && orgPurpose.trim().length >= 5 && purpose.trim().length >= 10;
+  const canSubmit = !loading && !!user && orgName.trim().length >= 2 && orgPurpose.trim().length >= 5 && purpose.trim().length >= 10;
 
   const onSubmit = async () => {
-    if (!canSubmit || !user) return;
+    if (loading) return;
+    if (!user) {
+      setError(t("common.loginRequired") || "Please log in first");
+      return;
+    }
+    if (!canSubmit) return;
 
     setBusy(true);
     setError(null);
 
     // Save NGO info to profile
-    const { error: updateErr } = await supabase
+    const { error: updateErr, data: updatedRows } = await supabase
       .from("profiles")
       .update({
         ngo_org_name: orgName.trim(),
@@ -37,10 +42,19 @@ export default function NgoOnboardingPage() {
         ngo_purpose: purpose.trim(),
         ngo_status: "pending",
       })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select();
 
     if (updateErr) {
+      console.error("NGO onboarding update error:", updateErr);
       setError(updateErr.message);
+      setBusy(false);
+      return;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      console.error("NGO onboarding: No profile found for user", user.id);
+      setError("Profile not found. Please try logging out and back in.");
       setBusy(false);
       return;
     }
@@ -163,6 +177,16 @@ export default function NgoOnboardingPage() {
               </p>
             </div>
 
+            {loading && (
+              <p className="text-xs text-center mb-2" style={{ color: "var(--text-muted)" }}>
+                {t("common.loading") || "Loading..."}
+              </p>
+            )}
+            {!loading && !user && (
+              <p className="text-xs text-center mb-2" style={{ color: "#B91C1C" }}>
+                {t("common.loginRequired") || "Please log in first"}
+              </p>
+            )}
             <button
               onClick={onSubmit}
               disabled={!canSubmit || busy}

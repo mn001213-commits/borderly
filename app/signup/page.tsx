@@ -195,6 +195,12 @@ export default function SignupPage() {
   const [originCountry, setOriginCountry] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
 
+  // NGO fields
+  const [orgName, setOrgName] = useState("");
+  const [orgPurpose, setOrgPurpose] = useState("");
+  const [orgUrl, setOrgUrl] = useState("");
+  const [ngoPurpose, setNgoPurpose] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
@@ -208,6 +214,10 @@ export default function SignupPage() {
     setResidenceCountry("");
     setOriginCountry("");
     setLanguages([]);
+    setOrgName("");
+    setOrgPurpose("");
+    setOrgUrl("");
+    setNgoPurpose("");
     setErrorMsg(null);
     setOkMsg(null);
   }, []);
@@ -218,7 +228,7 @@ export default function SignupPage() {
   const pwStrong = pw.length >= 8 && pwHasUpper && pwHasLower && pwHasNumber;
 
   const canSubmit = useMemo(() => {
-    return (
+    const baseValid =
       email.trim().length > 3 &&
       pw.length >= 8 &&
       pwHasUpper &&
@@ -228,9 +238,16 @@ export default function SignupPage() {
       displayName.trim().length <= 30 &&
       residenceCountry.trim().length === 2 &&
       originCountry.trim().length === 2 &&
-      languages.length >= 1
-    );
-  }, [email, pw, pwHasUpper, pwHasLower, pwHasNumber, displayName, residenceCountry, originCountry, languages]);
+      languages.length >= 1;
+
+    if (userType === "ngo") {
+      return baseValid &&
+        orgName.trim().length >= 2 &&
+        orgPurpose.trim().length >= 5 &&
+        ngoPurpose.trim().length >= 10;
+    }
+    return baseValid;
+  }, [email, pw, pwHasUpper, pwHasLower, pwHasNumber, displayName, residenceCountry, originCountry, languages, userType, orgName, orgPurpose, ngoPurpose]);
 
   const onSignup = async () => {
     if (!canSubmit) return;
@@ -267,7 +284,7 @@ export default function SignupPage() {
       return;
     }
 
-    const profileData = {
+    const profileData: Record<string, unknown> = {
       id: uid,
       display_name: displayName.trim(),
       residence_country: residenceCountry || null,
@@ -276,6 +293,15 @@ export default function SignupPage() {
       user_type: userType,
       ngo_verified: false,
     };
+
+    // Add NGO fields if user type is ngo
+    if (userType === "ngo") {
+      profileData.ngo_org_name = orgName.trim();
+      profileData.ngo_org_purpose = orgPurpose.trim();
+      profileData.ngo_org_url = orgUrl.trim() || null;
+      profileData.ngo_purpose = ngoPurpose.trim();
+      profileData.ngo_status = "pending";
+    }
 
     // Try client-side upsert first (works when session exists)
     const { error: pErr } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
@@ -301,9 +327,27 @@ export default function SignupPage() {
       }
     }
 
+    // Send NGO request email
+    if (userType === "ngo") {
+      try {
+        await fetch("/api/ngo-request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            org_name: orgName.trim(),
+            org_purpose: orgPurpose.trim(),
+            org_url: orgUrl.trim(),
+            purpose: ngoPurpose.trim(),
+          }),
+        });
+      } catch {
+        // Email notification is best-effort
+      }
+    }
+
     setBusy(false);
     setOkMsg(t("signup.accountCreated"));
-    router.push(userType === "ngo" ? "/onboarding/ngo" : "/");
+    router.push(userType === "ngo" ? "/onboarding/ngo/pending" : "/");
   };
 
   return (
@@ -463,6 +507,80 @@ export default function SignupPage() {
                 </div>
               )}
             </div>
+
+            {/* NGO Information Fields */}
+            {userType === "ngo" && (
+              <div className="space-y-4 p-4 rounded-xl" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+                <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                  <Building2 className="h-4 w-4" />
+                  {t("ngoOnboarding.title") || "Organization Information"}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.orgName") || "Organization Name"} *
+                  </label>
+                  <input
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    placeholder={t("ngoOnboarding.orgNamePlaceholder") || "Enter organization name"}
+                    disabled={busy}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.orgPurpose") || "Organization Purpose"} *
+                  </label>
+                  <textarea
+                    value={orgPurpose}
+                    onChange={(e) => setOrgPurpose(e.target.value)}
+                    placeholder={t("ngoOnboarding.orgPurposePlaceholder") || "Describe your organization"}
+                    disabled={busy}
+                    rows={2}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                  <p className="mt-1 text-[11px]" style={{ color: orgPurpose.trim().length >= 5 ? "var(--text-muted)" : "#B91C1C" }}>
+                    {t("ngoOnboarding.orgPurposeMin") || "Minimum 5 characters"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.orgUrl") || "Website"} ({t("common.optional") || "Optional"})
+                  </label>
+                  <input
+                    value={orgUrl}
+                    onChange={(e) => setOrgUrl(e.target.value)}
+                    placeholder="https://example.org"
+                    disabled={busy}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.purpose") || "Activity Purpose"} *
+                  </label>
+                  <textarea
+                    value={ngoPurpose}
+                    onChange={(e) => setNgoPurpose(e.target.value)}
+                    placeholder={t("ngoOnboarding.purposePlaceholder") || "Why do you want to use Borderly?"}
+                    disabled={busy}
+                    rows={3}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                  <p className="mt-1 text-[11px]" style={{ color: ngoPurpose.trim().length >= 10 ? "var(--text-muted)" : "#B91C1C" }}>
+                    {t("ngoOnboarding.purposeMin") || "Minimum 10 characters"}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <CountrySelect value={residenceCountry} onChange={setResidenceCountry} lang="en" label={t("profile.residenceCountry")} />
             <CountrySelect value={originCountry} onChange={setOriginCountry} lang="en" label={t("profile.originCountry")} />
