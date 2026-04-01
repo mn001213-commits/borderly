@@ -127,6 +127,7 @@ export default function MeetPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [myUid, setMyUid] = useState<string | null>(null);
+  const [userCity, setUserCity] = useState<string | null>(null);
   const [statusMap, setStatusMap] = useState<Map<string, string>>(new Map());
 
   const [prefs, setPrefs] = useState<{ topTypes: string[]; topCities: string[] }>({
@@ -187,6 +188,13 @@ export default function MeetPage() {
     setMeets(list);
 
     if (uid) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("city")
+        .eq("id", uid)
+        .maybeSingle();
+      setUserCity((profileData as any)?.city ?? null);
+
       const r = await supabase.from("meet_participants").select("meet_id,status").eq("user_id", uid);
 
       const rows = (r.data ?? []) as Array<{ meet_id: string; status: string }>;
@@ -674,6 +682,33 @@ export default function MeetPage() {
                       </div>
                     )}
 
+                    {/* Host profile — between quota bars and description */}
+                    <Link
+                      href={`/u/${m.host_id}`}
+                      className="mt-3 flex items-center gap-2 no-underline group w-fit"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {m.host_avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={m.host_avatar_url}
+                          alt={m.host_display_name ?? "Host"}
+                          className="h-7 w-7 rounded-full object-cover shrink-0"
+                          style={{ border: "1.5px solid var(--border-soft)" }}
+                        />
+                      ) : (
+                        <div
+                          className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
+                          style={{ background: "var(--primary)" }}
+                        >
+                          {(m.host_display_name ?? "?")[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold group-hover:underline" style={{ color: "var(--text-secondary)" }}>
+                        {m.host_display_name ?? t("common.unknown")}
+                      </span>
+                    </Link>
+
                     {/* Description */}
                     <p
                       className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
@@ -683,35 +718,7 @@ export default function MeetPage() {
                     </p>
 
                     {/* Actions */}
-                    <div className="mt-4 flex items-center gap-2">
-                      {/* Host info */}
-                      <Link
-                        href={`/u/${m.host_id}`}
-                        className="flex items-center gap-1.5 min-w-0 flex-1 no-underline group"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {m.host_avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={m.host_avatar_url}
-                            alt={m.host_display_name ?? "Host"}
-                            className="h-6 w-6 rounded-full object-cover shrink-0"
-                          />
-                        ) : (
-                          <div
-                            className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
-                            style={{ background: "var(--primary)" }}
-                          >
-                            {(m.host_display_name ?? "?")[0]?.toUpperCase()}
-                          </div>
-                        )}
-                        <span
-                          className="text-xs font-medium truncate group-hover:underline"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          {m.host_display_name ?? t("common.unknown")}
-                        </span>
-                      </Link>
+                    <div className="mt-4 flex items-center justify-end gap-2">
                       <div className="flex shrink-0 gap-2">
                       {!myUid ? (
                         <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
@@ -788,6 +795,116 @@ export default function MeetPage() {
             </div>
           )}
         </div>
+
+        {/* Upcoming Events */}
+        {!loading && (() => {
+          const upcoming = meets
+            .filter((m) => m.start_at && !isPastMeet(m.start_at) && !m.is_closed)
+            .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime())
+            .slice(0, 8);
+          if (!upcoming.length) return null;
+          return (
+            <div className="mt-10">
+              <div className="mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4" style={{ color: "var(--primary)" }} />
+                <span className="text-base font-bold" style={{ color: "var(--deep-navy)" }}>Upcoming Events</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {upcoming.map((m) => (
+                  <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit shrink-0 w-56">
+                    <div
+                      className="rounded-2xl p-3.5 h-full flex flex-col gap-1.5"
+                      style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+                    >
+                      <span className={`inline-flex h-5 w-fit items-center rounded-full px-2 text-[10px] font-semibold b-meet-${m.type}`}>
+                        {typeEmoji(m.type)} {t(`meet.${m.type}`)}
+                      </span>
+                      <div className="text-sm font-semibold line-clamp-2 leading-snug" style={{ color: "var(--deep-navy)" }}>
+                        {m.title}
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{formatWhen(m.start_at)}</span>
+                      </div>
+                      {m.city && (
+                        <div className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{m.city}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-[11px] mt-auto pt-1" style={{ color: "var(--text-secondary)" }}>
+                        {m.host_avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.host_avatar_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center text-[8px] font-bold text-white" style={{ background: "var(--primary)" }}>
+                            {(m.host_display_name ?? "?")[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <span className="truncate">{m.host_display_name ?? t("common.unknown")}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Nearby Events */}
+        {!loading && userCity && (() => {
+          const nearby = meets
+            .filter((m) => m.city && m.city.toLowerCase() === userCity.toLowerCase() && !isPastMeet(m.start_at) && !m.is_closed)
+            .slice(0, 8);
+          if (!nearby.length) return null;
+          return (
+            <div className="mt-8 mb-6">
+              <div className="mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4" style={{ color: "var(--primary)" }} />
+                <span className="text-base font-bold" style={{ color: "var(--deep-navy)" }}>Nearby Events</span>
+                <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>· {userCity}</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {nearby.map((m) => (
+                  <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit shrink-0 w-56">
+                    <div
+                      className="rounded-2xl p-3.5 h-full flex flex-col gap-1.5"
+                      style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+                    >
+                      <span className={`inline-flex h-5 w-fit items-center rounded-full px-2 text-[10px] font-semibold b-meet-${m.type}`}>
+                        {typeEmoji(m.type)} {t(`meet.${m.type}`)}
+                      </span>
+                      <div className="text-sm font-semibold line-clamp-2 leading-snug" style={{ color: "var(--deep-navy)" }}>
+                        {m.title}
+                      </div>
+                      {m.start_at && (
+                        <div className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{formatWhen(m.start_at)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                        <Users className="h-3 w-3 shrink-0" />
+                        <span>{m.participant_count} {t("meet.joined_count")}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] mt-auto pt-1" style={{ color: "var(--text-secondary)" }}>
+                        {m.host_avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.host_avatar_url} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center text-[8px] font-bold text-white" style={{ background: "var(--primary)" }}>
+                            {(m.host_display_name ?? "?")[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <span className="truncate">{m.host_display_name ?? t("common.unknown")}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
