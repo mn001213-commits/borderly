@@ -63,6 +63,12 @@ export default function NotificationsPage() {
     try {
       const list = await listNotifications(80);
       setRows(list);
+      // Auto-mark all as read when visiting the page
+      const hasUnread = list.some((n) => !n.is_read);
+      if (hasUnread) {
+        await markAllRead();
+        setRows(list.map((n) => ({ ...n, is_read: true })));
+      }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("listNotifications error:", error);
       setRows([]);
