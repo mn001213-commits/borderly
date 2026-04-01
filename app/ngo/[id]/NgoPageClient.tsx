@@ -137,13 +137,19 @@ export default function NgoDetailPage() {
               <NgoVerifiedBadge verified={post.ngo_verified} />
             </div>
 
-            <h2 className="text-xl font-bold leading-snug">{post.title}</h2>
-
             {post.is_closed && (
-              <span className="mt-2 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">{t("meet.closed")}</span>
+              <span className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">{t("meet.closed")}</span>
             )}
 
-            <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>{post.description}</p>
+            <div className="mt-3 rounded-2xl p-4" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>{t("ngoDetail.activityPurpose")}</div>
+              <p className="text-base font-semibold leading-snug" style={{ color: "var(--deep-navy)" }}>{post.title}</p>
+            </div>
+
+            <div className="mt-3 rounded-2xl p-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>{t("ngoDetail.helpOffered")}</div>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>{post.description}</p>
+            </div>
 
             {/* Meta */}
             <div className="mt-4 space-y-2 text-sm" style={{ color: "var(--text-muted)" }}>
