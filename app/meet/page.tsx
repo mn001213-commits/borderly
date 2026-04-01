@@ -311,7 +311,14 @@ export default function MeetPage() {
       });
     }
 
+    const isInactiveMeet = (m: MeetRow) =>
+      isPastMeet(m.start_at) || m.is_closed || (m.max_people != null && m.participant_count >= m.max_people);
+
     arr = arr.slice().sort((a, b) => {
+      const aOff = isInactiveMeet(a);
+      const bOff = isInactiveMeet(b);
+      if (aOff !== bOff) return aOff ? 1 : -1;
+
       if (sortMode === "popular") {
         const diff = (b.participant_count ?? 0) - (a.participant_count ?? 0);
         if (diff !== 0) return diff;
@@ -570,9 +577,17 @@ export default function MeetPage() {
               else if (isPending) statusLabel = t("meetManage.pendingApproval");
               else if (joined) statusLabel = t("meet.joined");
 
+              const isInactive = ended || isFull || m.is_closed;
+
               return (
                 <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit">
-                  <article className="b-card b-card-hover b-animate-in overflow-hidden" style={{ animationDelay: `${idx * 0.05}s` }}>
+                  <article
+                    className="b-card b-card-hover b-animate-in overflow-hidden"
+                    style={{
+                      animationDelay: `${idx * 0.05}s`,
+                      ...(isInactive ? { filter: "grayscale(1) brightness(0.65)", opacity: 0.7 } : {}),
+                    }}
+                  >
                     {/* Image — full width, top of card */}
                     {m.image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
