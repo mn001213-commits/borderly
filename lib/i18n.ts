@@ -178,7 +178,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "ngo.health": { en: "Health", ko: "건강", ja: "健康" },
 
   // NGO Detail
-  "ngoDetail.title": { en: "Supporter Post", ko: "협력 단체 게시글", ja: "協力団体投稿" },
+  "ngoDetail.title": { en: "Announcement", ko: "공고", ja: "公告" },
+  "ngoDetail.activityPurpose": { en: "Activity Purpose", ko: "활동 목적", ja: "活動目的" },
+  "ngoDetail.helpOffered": { en: "What We Can Help With", ko: "무엇을 도와드릴 수 있나요", ja: "どのようなお手伝いができますか" },
   "ngoDetail.notFound": { en: "Post not found", ko: "게시글을 찾을 수 없습니다", ja: "投稿が見つかりません" },
   "ngoDetail.backToNgo": { en: "Back to Supporters", ko: "협력 단체로 돌아가기", ja: "協力団体に戻る" },
   "ngoDetail.failedToLoad": { en: "Failed to load", ko: "로드 실패", ja: "読み込みに失敗しました" },
@@ -463,10 +465,14 @@ const translations: Record<string, Record<Locale, string>> = {
   "editMeet.openDesc": { en: "Open for requests", ko: "요청 가능", ja: "リクエスト受付中" },
 
   // Create NGO
-  "createNgo.title": { en: "New Supporter Post", ko: "새 협력 단체 게시글", ja: "新規協力団体投稿" },
+  "createNgo.title": { en: "New Announcement", ko: "새 공고 작성", ja: "新規公告作成" },
   "createNgo.publish": { en: "Publish", ko: "게시", ja: "公開" },
   "createNgo.posting": { en: "Posting...", ko: "게시 중...", ja: "投稿中..." },
   "createNgo.addCover": { en: "Add a cover image", ko: "커버 이미지 추가", ja: "カバー画像を追加" },
+  "createNgo.activityPurpose": { en: "Activity Purpose *", ko: "활동 목적 *", ja: "活動目的 *" },
+  "createNgo.activityPurposePlaceholder": { en: "What is the purpose of this activity or program?", ko: "이 활동이나 프로그램의 목적은 무엇인가요?", ja: "この活動やプログラムの目的は何ですか？" },
+  "createNgo.helpOffered": { en: "What We Can Help With *", ko: "무엇을 도와드릴 수 있나요? *", ja: "どのようなお手伝いができますか？ *" },
+  "createNgo.helpOfferedPlaceholder": { en: "Describe specifically what support or services you offer...", ko: "제공하는 지원이나 서비스를 구체적으로 설명해 주세요...", ja: "提供する支援やサービスを具体的に説明してください..." },
   "createNgo.titlePlaceholder": { en: "Title *", ko: "제목 *", ja: "タイトル *" },
   "createNgo.descPlaceholder": { en: "Describe what your organization offers... *", ko: "귀 단체가 제공하는 서비스를 설명하세요... *", ja: "団体が提供するサービスを説明してください... *" },
   "createNgo.locationPlaceholder": { en: "Location (e.g. Tokyo, Shibuya)", ko: "위치 (예: 서울, 강남)", ja: "場所 (例: 東京、渋谷)" },
