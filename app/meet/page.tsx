@@ -52,6 +52,8 @@ type MeetRow = {
   participant_count: number;
   foreigner_count: number;
   local_count: number;
+  host_display_name?: string | null;
+  host_avatar_url?: string | null;
 };
 
 function typeEmoji(t: MeetType) {
@@ -166,6 +168,22 @@ export default function MeetPage() {
     }
 
     const list = (data ?? []) as MeetRow[];
+
+    // Fetch host profiles
+    const hostIds = [...new Set(list.map((m) => m.host_id).filter(Boolean))];
+    if (hostIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,display_name,avatar_url")
+        .in("id", hostIds);
+      const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      for (const m of list) {
+        const p = profileMap.get(m.host_id) as any;
+        m.host_display_name = p?.display_name ?? null;
+        m.host_avatar_url = p?.avatar_url ?? null;
+      }
+    }
+
     setMeets(list);
 
     if (uid) {
@@ -650,7 +668,36 @@ export default function MeetPage() {
                     </p>
 
                     {/* Actions */}
-                    <div className="mt-4 flex justify-end gap-2">
+                    <div className="mt-4 flex items-center gap-2">
+                      {/* Host info */}
+                      <Link
+                        href={`/u/${m.host_id}`}
+                        className="flex items-center gap-1.5 min-w-0 flex-1 no-underline group"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {m.host_avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={m.host_avatar_url}
+                            alt={m.host_display_name ?? "Host"}
+                            className="h-6 w-6 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                            style={{ background: "var(--primary)" }}
+                          >
+                            {(m.host_display_name ?? "?")[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <span
+                          className="text-xs font-medium truncate group-hover:underline"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {m.host_display_name ?? t("common.unknown")}
+                        </span>
+                      </Link>
+                      <div className="flex shrink-0 gap-2">
                       {!myUid ? (
                         <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                           {t("meet.signInToJoin")}
@@ -703,6 +750,7 @@ export default function MeetPage() {
                           {ended ? t("meet.ended") : m.is_closed ? t("meet.closed") : isFull ? t("meet.full") : t("meet.join")}
                         </button>
                       )}
+                      </div>
                     </div>
                     </div>
                   </article>
