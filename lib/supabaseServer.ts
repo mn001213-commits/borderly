@@ -15,10 +15,7 @@ export async function createSupabaseServer() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, {
-                ...options,
-                maxAge: options?.maxAge ?? 60 * 60 * 24 * 7, // 7 days
-              })
+              cookieStore.set(name, value, options)
             );
           } catch {
             // Called from Server Component — ignore
