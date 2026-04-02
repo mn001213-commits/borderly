@@ -32,10 +32,12 @@ export default function NgoOnboardingPage() {
     setBusy(true);
     setError(null);
 
-    // Save NGO info to profile
+    // Save NGO info to profile (also set user_type to "ngo" for Google OAuth users)
     const { error: updateErr, data: updatedRows } = await supabase
       .from("profiles")
       .update({
+        user_type: "ngo",
+        ngo_verified: false,
         ngo_org_name: orgName.trim(),
         ngo_org_purpose: orgPurpose.trim(),
         ngo_org_url: orgUrl.trim() || null,

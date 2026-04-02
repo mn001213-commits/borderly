@@ -23,6 +23,7 @@ import {
   GraduationCap,
   HeartPulse,
   MoreHorizontal,
+  Building2,
 } from "lucide-react";
 import SortDropdown from "@/app/components/SortDropdown";
 
@@ -50,6 +51,7 @@ export default function NGOPage() {
   const [loading, setLoading] = useState(true);
   const [isNgo, setIsNgo] = useState(false);
   const [ngoStatus, setNgoStatus] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [q, setQ] = useState("");
   const [activeCat, setActiveCat] = useState<NgoCat>("all");
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
@@ -87,6 +89,7 @@ export default function NGOPage() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setIsLoggedIn(true);
         const { data: prof } = await supabase
           .from("profiles")
           .select("user_type, ngo_verified, ngo_status")
@@ -179,6 +182,16 @@ export default function NGOPage() {
             >
               <ClipboardList className="h-4 w-4" />
               {t("ngo.applications")}
+            </Link>
+          )}
+          {isLoggedIn && !isNgo && !ngoStatus && (
+            <Link
+              href="/onboarding/ngo"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold no-underline transition hover:opacity-80"
+              style={{ background: "var(--primary)", color: "#fff" }}
+            >
+              <Building2 className="h-4 w-4" />
+              {t("ngo.applyPartner")}
             </Link>
           )}
         </div>

@@ -198,6 +198,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "ngo.newPost": { en: "New Post", ko: "새 게시글", ja: "新規投稿" },
   "ngo.noPostsYet": { en: "No Supporter posts yet", ko: "아직 협력 단체 게시글이 없습니다", ja: "協力団体投稿はまだありません" },
   "ngo.willAppear": { en: "Once a verified Supporter creates a post, it will appear here.", ko: "인증된 협력 단체가 게시글을 작성하면 여기에 표시됩니다.", ja: "認証された協力団体が投稿を作成すると、ここに表示されます。" },
+  "ngo.applyPartner": { en: "Apply as Partner", ko: "협력단체 신청", ja: "協力団体として申請" },
+  "ngo.applyPartnerDesc": { en: "Register your organization to post programs and opportunities.", ko: "프로그램 및 봉사활동을 게시하려면 협력단체로 등록하세요.", ja: "プログラムやボランティア活動を投稿するには協力団体として登録してください。" },
   "ngo.applied": { en: "applied", ko: "명 지원", ja: "人応募" },
   "ngo.max": { en: "max", ko: "정원", ja: "定員" },
   "ngo.housing": { en: "Housing", ko: "주거", ja: "住居" },
