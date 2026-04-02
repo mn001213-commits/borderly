@@ -66,7 +66,6 @@ export default function NgoNewPage() {
   const [location, setLocation] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [questions, setQuestions] = useState<string[]>([""]);
-  const [category, setCategory] = useState<NgoCategory>("general");
   const [maxApplicants, setMaxApplicants] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
