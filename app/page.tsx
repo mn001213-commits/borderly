@@ -117,7 +117,7 @@ export default function BrowsePage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    all: { icon: LayoutGrid, color: "#4A8FE7" },
     general: { icon: MessageCircle, color: "#4361EE" },
     info: { icon: Info, color: "#06D6A0" },
     question: { icon: HelpCircle, color: "#F77F00" },
@@ -141,14 +141,14 @@ export default function BrowsePage() {
   const catBadge = (k: string) => t(`cat.${k}`);
 
   const meetTypeIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    all: { icon: LayoutGrid, color: "#4A8FE7" },
     hangout: { icon: Handshake, color: "#F77F00" },
     study: { icon: BookOpen, color: "#06D6A0" },
     language: { icon: Languages, color: "#7B2FF2" },
     meal: { icon: UtensilsCrossed, color: "#E6A817" },
     sports: { icon: Dumbbell, color: "#4361EE" },
     skill: { icon: Wrench, color: "#0096C7" },
-    party: { icon: PartyPopper, color: "#FF6B6B" },
+    party: { icon: PartyPopper, color: "#E91E63" },
     project: { icon: Rocket, color: "#4361EE" },
   };
   const meetTypes = useMemo(

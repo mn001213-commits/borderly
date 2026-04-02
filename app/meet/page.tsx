@@ -278,7 +278,7 @@ export default function MeetPage() {
   ];
 
   const typeIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    all: { icon: LayoutGrid, color: "#4A8FE7" },
     hangout: { icon: Handshake, color: "#F77F00" },
     study: { icon: BookOpen, color: "#06D6A0" },
     language: { icon: MessageSquare, color: "#7B2FF2" },

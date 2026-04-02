@@ -62,7 +62,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#F7FAFF" />
+        <meta name="theme-color" content="#F8FAFE" />
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("borderly-theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}` }} />
       </head>
       <body

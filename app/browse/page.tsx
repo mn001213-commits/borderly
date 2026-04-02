@@ -367,7 +367,7 @@ export default function HomePage() {
   }
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    all: { icon: LayoutGrid, color: "#4A8FE7" },
     general: { icon: MessageCircle, color: "#4361EE" },
     info: { icon: Info, color: "#06D6A0" },
     question: { icon: HelpCircle, color: "#F77F00" },

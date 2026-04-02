@@ -53,12 +53,12 @@ export default function NGOPage() {
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    all: { icon: LayoutGrid, color: "#4A8FE7" },
     jobs: { icon: Briefcase, color: "#E6A817" },
     housing: { icon: Home, color: "#4361EE" },
     legal: { icon: Scale, color: "#C1292E" },
     education: { icon: GraduationCap, color: "#06D6A0" },
-    health: { icon: HeartPulse, color: "#FF6B6B" },
+    health: { icon: HeartPulse, color: "#E91E63" },
     other: { icon: MoreHorizontal, color: "#737373" },
   };
   const catLabel = (k: NgoCat) => {
