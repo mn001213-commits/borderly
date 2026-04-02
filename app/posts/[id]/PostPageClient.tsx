@@ -1055,7 +1055,8 @@ export default function PostDetailPage() {
           </div>
         )}
 
-        <section className="b-card mt-4 p-5">
+        <div className="mt-4 xl:grid xl:grid-cols-[3fr_2fr] xl:items-start xl:gap-6">
+        <section className="b-card p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold leading-7 sm:text-xl" style={{ color: "var(--deep-navy)" }}>{post.title}</h1>
@@ -1232,7 +1233,7 @@ export default function PostDetailPage() {
           <div className="mt-4 whitespace-pre-wrap text-sm leading-7" style={{ color: "var(--text-secondary)" }}>{post.content}</div>
         </section>
 
-        <section className="b-card mt-4 p-5">
+        <section className="b-card mt-4 p-5 xl:mt-0 xl:sticky xl:top-[72px] xl:max-h-[calc(100vh-90px)] xl:overflow-y-auto">
           <div className="flex items-center justify-between">
             <div className="text-base font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.comments")}</div>
             <div className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -1286,6 +1287,7 @@ export default function PostDetailPage() {
             </div>
           </div>
         </section>
+        </div>
       </div>
 
       {copiedToast && (
