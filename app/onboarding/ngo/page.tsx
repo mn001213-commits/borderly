@@ -32,43 +32,42 @@ export default function NgoOnboardingPage() {
     setBusy(true);
     setError(null);
 
-    // Save NGO info to profile (also set user_type to "ngo" for Google OAuth users)
-    const { error: updateErr, data: updatedRows } = await supabase
-      .from("profiles")
-      .update({
-        user_type: "ngo",
-        ngo_verified: false,
-        ngo_org_name: orgName.trim(),
-        ngo_org_purpose: orgPurpose.trim(),
-        ngo_org_url: orgUrl.trim() || null,
-        ngo_purpose: purpose.trim(),
-        ngo_status: "pending",
-      })
-      .eq("id", user.id)
-      .select();
-
-    if (updateErr) {
-      console.error("NGO onboarding update error:", updateErr);
-      setError(updateErr.message);
+    // Save NGO info via server-side API (bypasses client schema cache issues)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Session expired. Please log in again.");
       setBusy(false);
       return;
     }
 
-    if (!updatedRows || updatedRows.length === 0) {
-      console.error("NGO onboarding: No profile found for user", user.id);
-      setError("Profile not found. Please try logging out and back in.");
+    const res = await fetch("/api/ngo-onboarding", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        org_name: orgName.trim(),
+        org_purpose: orgPurpose.trim(),
+        org_url: orgUrl.trim() || null,
+        purpose: purpose.trim(),
+      }),
+    });
+
+    if (!res.ok) {
+      const { error: msg } = await res.json().catch(() => ({ error: "Failed to submit" }));
+      setError(msg || "Failed to submit");
       setBusy(false);
       return;
     }
 
-    // Notify admin via API
+    // Notify admin via email (best-effort)
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       await fetch("/api/ngo-request", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           org_name: orgName.trim(),
