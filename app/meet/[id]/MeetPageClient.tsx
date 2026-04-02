@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Edit3, Trash2, Calendar, MapPin, Users } from "lucide-react";
+import { Edit3, Trash2, Calendar, MapPin, Users, MessageCircle, Reply, ChevronDown, ChevronUp } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
@@ -51,6 +51,30 @@ type Participant = {
 
 function cx(...arr: Array<string | false | null | undefined>) {
   return arr.filter(Boolean).join(" ");
+}
+
+type MeetCommentRow = {
+  id: string;
+  meet_id: string;
+  user_id: string;
+  parent_id: string | null;
+  content: string;
+  created_at: string;
+  author_name: string | null;
+  is_hidden?: boolean | null;
+};
+
+function formatRelative(iso: string, tr?: (key: string) => string) {
+  const ts = new Date(iso).getTime();
+  const now = Date.now();
+  const diff = Math.max(0, now - ts);
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return tr ? tr("post.justNow") : "Just now";
+  if (min < 60) return `${min}${tr ? tr("post.mAgo") : "m ago"}`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}${tr ? tr("post.hAgo") : "h ago"}`;
+  const day = Math.floor(hr / 24);
+  return `${day}${tr ? tr("post.dAgo") : "d ago"}`;
 }
 
 function typeEmoji(t: MeetType) {
@@ -111,6 +135,26 @@ export default function MeetDetailPage() {
   const [myStatus, setMyStatus] = useState<MyStatus>("none");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [joinMsg, setJoinMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
+
+  // Comments
+  const [meetComments, setMeetComments] = useState<MeetCommentRow[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [replyOpenById, setReplyOpenById] = useState<Record<string, boolean>>({});
+  const [replyBodyById, setReplyBodyById] = useState<Record<string, string>>({});
+  const [repliesHiddenById, setRepliesHiddenById] = useState<Record<string, boolean>>({});
+
+  const rootComments = useMemo(() => meetComments.filter((c) => !c.parent_id), [meetComments]);
+  const childrenMap = useMemo(() => {
+    const map: Record<string, MeetCommentRow[]> = {};
+    for (const c of meetComments) {
+      if (!c.parent_id) continue;
+      if (!map[c.parent_id]) map[c.parent_id] = [];
+      map[c.parent_id].push(c);
+    }
+    return map;
+  }, [meetComments]);
 
   // Detect approval transition + banner
   const prevStatusRef = useRef<MyStatus>("none");
@@ -246,12 +290,87 @@ export default function MeetDetailPage() {
     merged.sort((a, b) => w(a.status) - w(b.status));
 
     setParticipants(merged);
+
+    // Load comments
+    const { data: cmts } = await supabase
+      .from("meet_comments")
+      .select("id, meet_id, user_id, parent_id, content, created_at, author_name, is_hidden")
+      .eq("meet_id", meetId)
+      .eq("is_hidden", false)
+      .order("created_at", { ascending: true });
+    setMeetComments((cmts ?? []) as MeetCommentRow[]);
+
     setLoading(false);
   }, [meetId]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  const addMeetComment = useCallback(async (parentId: string | null = null) => {
+    if (!meetId || commentSaving) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    const body = parentId ? (replyBodyById[parentId] ?? "").trim() : commentBody.trim();
+    if (!body) return;
+
+    setCommentSaving(true);
+    const tempId = `temp-${Date.now()}`;
+
+    const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+    const author = (prof?.display_name as string | null) ?? null;
+
+    const optimistic: MeetCommentRow = {
+      id: tempId, meet_id: meetId, user_id: user.id, parent_id: parentId,
+      content: body, created_at: new Date().toISOString(),
+      author_name: author ?? t("post.anonymous"), is_hidden: false,
+    };
+    setMeetComments((prev) => [...prev, optimistic]);
+
+    if (parentId) {
+      setReplyBodyById((p) => ({ ...p, [parentId]: "" }));
+      setReplyOpenById((p) => ({ ...p, [parentId]: false }));
+    } else {
+      setCommentBody("");
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("meet_comments")
+        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body, author_name: author ?? t("post.anonymous") })
+        .select()
+        .single();
+      if (error) throw error;
+      setMeetComments((prev) => prev.map((c) => (c.id === tempId ? data : c)));
+
+      if (meet && meet.host_id !== user.id) {
+        createNotification({
+          userId: meet.host_id, type: "comment",
+          title: "New comment on your meet",
+          body: `${author ?? t("post.someone")} commented: ${body.slice(0, 80)}`,
+          link: `/meet/${meetId}`, meta: { meet_id: meetId },
+        }).catch(() => {});
+      }
+    } catch {
+      setMeetComments((prev) => prev.filter((c) => c.id !== tempId));
+      if (parentId) setReplyBodyById((p) => ({ ...p, [parentId]: body }));
+      else setCommentBody(body);
+    } finally {
+      setCommentSaving(false);
+    }
+  }, [meetId, commentBody, commentSaving, replyBodyById, meet, router, t]);
+
+  const deleteMeetComment = useCallback(async (commentId: string) => {
+    if (deletingCommentId) return;
+    if (!confirm(t("meet.deleteCommentConfirm"))) return;
+    setDeletingCommentId(commentId);
+    try {
+      await supabase.from("meet_comments").delete().eq("id", commentId);
+      setMeetComments((prev) => prev.filter((c) => c.id !== commentId && c.parent_id !== commentId));
+    } catch { /* realtime will sync */ }
+    finally { setDeletingCommentId(null); }
+  }, [deletingCommentId, t]);
 
   // Load other meets for upcoming/nearby sections
   useEffect(() => {
@@ -336,6 +455,11 @@ export default function MeetDetailPage() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "meet_posts", filter: `id=eq.${meetId}` },
+          refetchSoon
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "meet_comments", filter: `meet_id=eq.${meetId}` },
           refetchSoon
         )
         .subscribe();
@@ -622,7 +746,7 @@ export default function MeetDetailPage() {
 
           <div className="mt-4 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
             <div>{t("meetDetail.time")}: {meet.start_at ? new Date(meet.start_at).toLocaleString() : t("meetDetail.tbd")}</div>
-            <div>{t("meetDetail.place")}: {[meet.city, meet.place_hint].filter(Boolean).join(" · ") || t("meetDetail.tbd")}</div>
+            <div>{t("meetDetail.place")}: {meet.place_hint || meet.city || t("meetDetail.tbd")}</div>
             <div>{capText}</div>
           </div>
 
@@ -848,6 +972,160 @@ export default function MeetDetailPage() {
             )}
           </div>
         </div>
+        {/* ── Meet Comments ── */}
+        <div className="mt-6">
+          <div className="b-card p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-base font-semibold" style={{ color: "var(--deep-navy)" }}>
+                <MessageCircle className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                {t("meet.comments")}
+              </div>
+              <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{meetComments.length}</span>
+            </div>
+
+            {/* Comment list */}
+            <div className="mt-4 space-y-3">
+              {rootComments.length === 0 ? (
+                <div className="flex items-center gap-3 rounded-xl px-4 py-4" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)" }}>
+                  <MessageCircle className="h-5 w-5 shrink-0" style={{ color: "var(--text-muted)" }} />
+                  <div>
+                    <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("meet.noComments")}</div>
+                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>{t("meet.beFirstComment")}</div>
+                  </div>
+                </div>
+              ) : (
+                rootComments.map((c) => {
+                  const replies = childrenMap[c.id] ?? [];
+                  const hidden = repliesHiddenById[c.id] ?? (replies.length > 2);
+                  return (
+                    <div key={c.id}>
+                      {/* Root comment */}
+                      <div className="rounded-xl p-4" style={{ background: "var(--bg-elevated)" }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                              <span className="font-semibold" style={{ color: "var(--deep-navy)" }}>{c.author_name ?? t("post.anonymous")}</span>
+                              {meId === c.user_id && (
+                                <span className="inline-flex h-5 items-center rounded-full px-1.5 text-[10px] font-semibold text-white" style={{ background: "var(--primary)" }}>You</span>
+                              )}
+                              <span>&middot;</span>
+                              <span>{formatRelative(c.created_at, t)}</span>
+                            </div>
+                            <div className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{c.content}</div>
+                            <div className="mt-2 flex items-center gap-3">
+                              <button
+                                onClick={() => setReplyOpenById((p) => ({ ...p, [c.id]: !p[c.id] }))}
+                                className="flex items-center gap-1 text-xs font-medium transition hover:opacity-70"
+                                style={{ color: "var(--primary)" }}
+                              >
+                                <Reply className="h-3.5 w-3.5" />
+                                {t("meet.reply")}
+                              </button>
+                              {replies.length > 0 && (
+                                <button
+                                  onClick={() => setRepliesHiddenById((p) => ({ ...p, [c.id]: !hidden }))}
+                                  className="flex items-center gap-1 text-xs font-medium transition hover:opacity-70"
+                                  style={{ color: "var(--text-muted)" }}
+                                >
+                                  {hidden ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                                  {replies.length} {t("meet.replies")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {meId === c.user_id && (
+                            <button onClick={() => deleteMeetComment(c.id)} disabled={deletingCommentId === c.id}
+                              className="shrink-0 rounded-lg p-1.5 transition hover:bg-red-50" style={{ color: "var(--text-muted)" }}>
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Replies */}
+                      {!hidden && replies.length > 0 && (
+                        <div className="ml-6 mt-2 space-y-2">
+                          {replies.map((r) => (
+                            <div key={r.id} className="rounded-xl p-3" style={{ background: "var(--bg-elevated)", borderLeft: "2px solid var(--border-soft)" }}>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                                    <span className="font-semibold" style={{ color: "var(--deep-navy)" }}>{r.author_name ?? t("post.anonymous")}</span>
+                                    {meId === r.user_id && (
+                                      <span className="inline-flex h-5 items-center rounded-full px-1.5 text-[10px] font-semibold text-white" style={{ background: "var(--primary)" }}>You</span>
+                                    )}
+                                    <span>&middot;</span>
+                                    <span>{formatRelative(r.created_at, t)}</span>
+                                  </div>
+                                  <div className="mt-1 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.content}</div>
+                                </div>
+                                {meId === r.user_id && (
+                                  <button onClick={() => deleteMeetComment(r.id)} disabled={deletingCommentId === r.id}
+                                    className="shrink-0 rounded-lg p-1.5 transition hover:bg-red-50" style={{ color: "var(--text-muted)" }}>
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reply form */}
+                      {replyOpenById[c.id] && (
+                        <div className="ml-6 mt-2 flex gap-2">
+                          <input
+                            value={replyBodyById[c.id] ?? ""}
+                            onChange={(e) => setReplyBodyById((p) => ({ ...p, [c.id]: e.target.value }))}
+                            onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); addMeetComment(c.id); } }}
+                            placeholder={t("meet.replyPlaceholder")}
+                            disabled={commentSaving}
+                            className="flex-1 rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-70"
+                            style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                          />
+                          <button
+                            onClick={() => addMeetComment(c.id)}
+                            disabled={commentSaving || !(replyBodyById[c.id] ?? "").trim()}
+                            className="shrink-0 rounded-xl px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
+                            style={{ background: "var(--primary)" }}
+                          >
+                            {t("meet.reply")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Root comment form */}
+            <div className="mt-5 rounded-xl p-4" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)" }}>
+              <div className="mb-2 text-sm font-medium" style={{ color: "var(--deep-navy)" }}>{t("meet.writeComment")}</div>
+              <textarea
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+                onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); addMeetComment(); } }}
+                placeholder={t("meet.commentPlaceholder")}
+                disabled={commentSaving}
+                className="min-h-[80px] w-full resize-y rounded-xl p-3 text-sm outline-none disabled:opacity-70"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => addMeetComment()}
+                  disabled={commentSaving || !commentBody.trim()}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ background: "var(--primary)" }}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {commentSaving ? t("meet.postingComment") : t("meet.postComment")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Upcoming Events */}
         {(() => {
           const upcoming = otherMeets

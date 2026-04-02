@@ -176,6 +176,19 @@ const translations: Record<string, Record<Locale, string>> = {
   "meet.meal": { en: "Meal", ko: "식사", ja: "食事会" },
   "meet.sports": { en: "Sports", ko: "스포츠", ja: "スポーツ" },
 
+  // Meet comments
+  "meet.comments": { en: "Comments", ko: "댓글", ja: "コメント" },
+  "meet.noComments": { en: "No comments yet", ko: "아직 댓글이 없습니다", ja: "まだコメントはありません" },
+  "meet.beFirstComment": { en: "Be the first to leave a comment.", ko: "첫 번째 댓글을 남겨보세요.", ja: "最初のコメントを残しましょう。" },
+  "meet.writeComment": { en: "Write a comment", ko: "댓글 작성", ja: "コメントを書く" },
+  "meet.commentPlaceholder": { en: "Write a comment...", ko: "댓글을 입력하세요...", ja: "コメントを入力..." },
+  "meet.postComment": { en: "Post", ko: "작성", ja: "投稿" },
+  "meet.postingComment": { en: "Posting...", ko: "게시 중...", ja: "投稿中..." },
+  "meet.deleteCommentConfirm": { en: "Delete this comment?", ko: "이 댓글을 삭제하시겠습니까?", ja: "このコメントを削除しますか？" },
+  "meet.reply": { en: "Reply", ko: "답글", ja: "返信" },
+  "meet.replyPlaceholder": { en: "Write a reply...", ko: "답글을 입력하세요...", ja: "返信を入力..." },
+  "meet.replies": { en: "replies", ko: "개 답글", ja: "件の返信" },
+
   // NGO page
   "ngo.title": { en: "Support Organizations", ko: "지원 기관", ja: "サポート団体" },
   "ngo.desc": { en: "Find trusted Supporters that provide help with jobs, housing, daily life, and more.", ko: "취업, 주거, 일상생활 등을 지원하는 협력 단체를 찾아보세요.", ja: "就職、住居、日常生活などを支援する協力団体を探しましょう。" },
@@ -385,6 +398,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "chatGroup.groupChat": { en: "Group Chat", ko: "그룹 채팅", ja: "グループチャット" },
   "chatGroup.leaveConfirm": { en: "Leave this group chat?", ko: "이 그룹 채팅을 나가시겠습니까?", ja: "このグループチャットを退出しますか？" },
   "chatGroup.leaveGroup": { en: "Leave group", ko: "그룹 나가기", ja: "グループを退出" },
+  "chatGroup.meetChatLocked": { en: "Cannot leave while the meet is active", ko: "모임이 진행 중이라 나갈 수 없습니다", ja: "ミートが進行中のため退出できません" },
 
   // Create Post
   "create.newPost": { en: "New Post", ko: "새 게시글", ja: "新規投稿" },
@@ -428,6 +442,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "createMeet.whenWhere": { en: "When & Where", ko: "일시 & 장소", ja: "日時と場所" },
   "createMeet.cityPlaceholder": { en: "City (e.g. Seoul)", ko: "도시 (예: 서울)", ja: "都市 (例: 東京)" },
   "createMeet.placePlaceholder": { en: "Place hint (e.g. Near Hongdae Station Exit 1)", ko: "장소 힌트 (예: 홍대입구역 1번 출구 근처)", ja: "場所のヒント (例: 渋谷駅ハチ公口付近)" },
+  "createMeet.locationPlaceholder": { en: "Meeting place (e.g. Hongdae Station Exit 1, Seoul)", ko: "모임 장소 (예: 서울 홍대입구역 1번 출구)", ja: "集合場所 (例: 渋谷駅ハチ公口)" },
   "createMeet.recruitmentQuota": { en: "Recruitment Quota", ko: "모집 인원", ja: "募集人数" },
   "createMeet.quotaDesc": { en: "Both foreigners and locals are required. Ratio must be between 30:70 and 70:30.", ko: "외국인과 현지인 모두 필요합니다. 비율은 30:70에서 70:30 사이여야 합니다.", ja: "外国人とローカル両方が必要です。比率は30:70から70:30の間である必要があります。" },
   "createMeet.foreigners": { en: "Foreigners", ko: "외국인", ja: "外国人" },
