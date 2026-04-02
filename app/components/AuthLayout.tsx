@@ -17,7 +17,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isOnboardingPage = pathname.startsWith("/onboarding");
+  const isChatRoom = /^\/chats\/[^/]+$/.test(pathname);
   const showFullLayout = !!user && !isPublicPage;
+  const hideChrome = isPublicPage || isChatRoom;
 
   // Redirect to login if not authenticated and not on a public page
   useEffect(() => {
@@ -40,13 +42,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <>
-      {!isPublicPage && <TopBar />}
+      {!hideChrome && <TopBar />}
 
-      <main className={`min-h-screen ${isPublicPage ? "" : "pt-14 pb-[72px]"} ${showFullLayout ? "xl:mr-[340px]" : ""}`}>
+      <main className={`min-h-screen ${hideChrome ? "" : "pt-14 pb-[72px]"} ${showFullLayout && !isChatRoom ? "xl:mr-[340px]" : ""}`}>
         {children}
       </main>
 
-      {showFullLayout && (
+      {showFullLayout && !isChatRoom && (
         <>
           <OnlineSidebar />
           <BottomNav />
