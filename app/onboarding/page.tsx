@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getCountryList, countryName } from "@/lib/countries";
 import { getAllLanguages, langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
+import { useAuth } from "@/app/components/AuthProvider";
 import { setLocale, type Locale } from "@/lib/i18n";
 
 const PURPOSE_KEYS = [
@@ -180,6 +181,7 @@ function LanguageSelect({
 
 export default function OnboardingPage() {
   const { t } = useT();
+  const { completeOnboarding } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -242,6 +244,7 @@ export default function OnboardingPage() {
 
       // If profile is complete, redirect to home
       if (profile?.use_purpose && profile?.languages?.length > 0 && profile?.residence_country && profile?.origin_country && profile?.display_name) {
+        completeOnboarding();
         router.replace("/");
         return;
       }
@@ -345,6 +348,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    completeOnboarding();
     router.replace("/");
   };
 

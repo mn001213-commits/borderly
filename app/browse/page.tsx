@@ -520,10 +520,10 @@ export default function HomePage() {
                   {/* Author + time */}
                   <div className="flex items-center gap-2.5 mb-3">
                     {p.user_id ? (
-                      <Link
-                        href={`/u/${p.user_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2.5 no-underline text-inherit hover:opacity-80 transition"
+                      <div
+                        role="link"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/u/${p.user_id}`); }}
+                        className="flex items-center gap-2.5 no-underline text-inherit hover:opacity-80 transition cursor-pointer"
                       >
                         {avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -544,7 +544,7 @@ export default function HomePage() {
                         <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
                           {displayName}
                         </span>
-                      </Link>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2.5">
                         <div
