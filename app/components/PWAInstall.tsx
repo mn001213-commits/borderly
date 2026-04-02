@@ -13,7 +13,7 @@ const DISMISS_KEY = "pwa-install-dismissed-at";
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as Record<string, unknown>).standalone === true
+    (navigator as unknown as Record<string, unknown>).standalone === true
   );
 }
 
