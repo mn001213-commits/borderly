@@ -6,7 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import { createReport } from "@/lib/reportService";
-import NotificationBell from "@/app/components/NotificationBell";
 import ReportModal from "@/app/components/ReportModal";
 import { useT } from "@/app/components/LangProvider";
 
@@ -16,7 +15,6 @@ import {
   Trash2,
   Heart,
   MessageCircle,
-  Plus,
   Reply,
   ChevronDown,
   ChevronUp,
@@ -1014,29 +1012,16 @@ export default function PostDetailPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-[980px] px-4 pb-24 pt-4">
-        <header className="sticky top-0 z-40 backdrop-blur" style={{ borderBottom: "1px solid var(--border-soft)", background: "rgba(234,244,255,0.9)" }}>
-          <div className="flex items-center justify-between gap-3 py-3">
+        <header className="sticky top-0 z-40 backdrop-blur" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+          <div className="flex items-center gap-3 py-3">
             <Link
               href="/"
               className="inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition"
-              style={{ background: "var(--light-blue)", color: "var(--deep-navy)", border: "1px solid var(--border-soft)" }}
+              style={{ color: "var(--deep-navy)", border: "1px solid var(--border-soft)" }}
             >
               <ArrowLeft className="h-5 w-5" />
               {t("common.back")}
             </Link>
-
-            <div className="flex items-center gap-2">
-              <NotificationBell className="relative flex h-10 w-10 items-center justify-center rounded-full transition" />
-
-              <Link
-                href="/create"
-                className="hidden h-11 items-center gap-2 rounded-2xl px-4 text-sm font-medium text-white transition hover:opacity-90 sm:inline-flex"
-                style={{ background: "var(--primary)" }}
-              >
-                <Plus className="h-5 w-5" />
-                {t("profile.createPost")}
-              </Link>
-            </div>
           </div>
         </header>
 

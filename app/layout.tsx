@@ -4,6 +4,7 @@ import { LangProvider } from "./components/LangProvider";
 import { AuthProvider } from "./components/AuthProvider";
 import AuthLayout from "./components/AuthLayout";
 import PWAInstall from "./components/PWAInstall";
+import DevAgentation from "./components/DevAgentation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -65,6 +66,7 @@ export default function RootLayout({
           <AuthProvider>
             <AuthLayout>{children}</AuthLayout>
             <PWAInstall />
+            <DevAgentation />
           </AuthProvider>
         </LangProvider>
       </body>
