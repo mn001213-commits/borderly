@@ -460,7 +460,7 @@ export default function BrowsePage() {
         )}
 
         {/* Results */}
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-5">
           {errorMsg && (
             <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>
           )}
