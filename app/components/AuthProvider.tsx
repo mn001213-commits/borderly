@@ -13,7 +13,8 @@ const AuthContext = createContext<{
   user: AuthUser;
   loading: boolean;
   needsOnboarding: boolean;
-}>({ user: null, loading: true, needsOnboarding: false });
+  completeOnboarding: () => void;
+}>({ user: null, loading: true, needsOnboarding: false, completeOnboarding: () => {} });
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -23,6 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  function completeOnboarding() {
+    setNeedsOnboarding(false);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -92,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, needsOnboarding }}>
+    <AuthContext.Provider value={{ user, loading, needsOnboarding, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );
