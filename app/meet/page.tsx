@@ -517,7 +517,7 @@ export default function MeetPage() {
         </div>
 
         {/* Meet cards */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           {loading && (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -575,10 +575,10 @@ export default function MeetPage() {
               return (
                 <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit">
                   <article
-                    className="b-card b-card-hover b-animate-in overflow-hidden"
+                    className={`b-card b-animate-in overflow-hidden ${isInactive ? "" : "b-card-hover"}`}
                     style={{
                       animationDelay: `${idx * 0.05}s`,
-                      ...(isInactive ? { filter: "grayscale(1) brightness(0.65)", opacity: 0.7 } : {}),
+                      ...(isInactive ? { opacity: 0.55 } : {}),
                     }}
                   >
                     {/* Image — full width, top of card */}

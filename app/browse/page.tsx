@@ -464,7 +464,7 @@ export default function HomePage() {
         </div>
 
         {/* Feed */}
-        <div className="space-y-4">
+        <div className="space-y-5">
             {/* Trending */}
             {!loading && !errorMsg && trendingTop3.length > 0 && (
               <section className="b-card p-5">
