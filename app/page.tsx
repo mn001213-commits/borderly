@@ -6,14 +6,12 @@ import {
   Search,
   FileText,
   CalendarDays,
-  ShieldCheck,
   Clock3,
   Sparkles,
   Heart,
   MessageCircle,
   MapPin,
   X,
-  Users,
   LayoutGrid,
   Info,
   HelpCircle,
@@ -28,18 +26,13 @@ import {
   Wrench,
   PartyPopper,
   Rocket,
-  Home,
-  Scale,
-  GraduationCap,
-  HeartPulse,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { formatRelative } from "@/lib/format";
 import { CAT_COLORS } from "@/lib/constants";
-import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
 import { useT } from "@/app/components/LangProvider";
 
-type SearchTab = "posts" | "meets" | "ngo";
+type SearchTab = "posts" | "meets";
 type SortMode = "latest" | "popular" | "newest" | "soonest";
 
 type RecentSearchItem = {
@@ -69,17 +62,6 @@ type MeetRow = {
   is_closed: boolean | null;
 };
 
-type NgoRow = {
-  id: string;
-  created_at: string;
-  title: string;
-  description: string;
-  location: string | null;
-  ngo_name: string | null;
-  ngo_verified: boolean;
-  application_count: number | null;
-  is_closed: boolean | null;
-};
 
 const MEET_TYPE_CLASSES: Record<string, string> = {
   hangout: "b-meet-hangout",
@@ -122,14 +104,12 @@ export default function BrowsePage() {
   const [tab, setTab] = useState<SearchTab>("posts");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [activeMeetType, setActiveMeetType] = useState<string>("all");
-  const [activeNgoCat, setActiveNgoCat] = useState<string>("all");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
 
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [meets, setMeets] = useState<MeetRow[]>([]);
-  const [ngos, setNgos] = useState<NgoRow[]>([]);
 
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
 
@@ -176,56 +156,10 @@ export default function BrowsePage() {
     []
   );
 
-  const ngoCatIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    jobs: { icon: Briefcase, color: "#AA96DA" },
-    housing: { icon: Home, color: "#7EC8E3" },
-    legal: { icon: Scale, color: "#F9D56E" },
-    education: { icon: GraduationCap, color: "#95E1D3" },
-    health: { icon: HeartPulse, color: "#F3A683" },
-    other: { icon: MoreHorizontal, color: "#C4C4C4" },
-  };
-  const ngoCats = useMemo(
-    () => ["all", "jobs", "housing", "legal", "education", "health", "other"],
-    []
-  );
-  const NGO_CAT_KEYWORDS: Record<string, string[]> = {
-    jobs: ["job", "employment", "career", "work", "hiring", "recruit", "internship"],
-    housing: ["housing", "shelter", "accommodation", "rent", "apartment", "home", "residence"],
-    legal: ["legal", "lawyer", "asylum", "visa", "immigration", "rights", "court", "permit"],
-    education: ["education", "school", "training", "course", "learn", "language", "class", "workshop", "scholarship"],
-    health: ["health", "medical", "clinic", "doctor", "mental", "therapy", "hospital", "care", "wellness"],
-  };
-  function detectNgoCat(title: string, description: string): string {
-    const text = `${title} ${description}`.toLowerCase();
-    for (const [cat, keywords] of Object.entries(NGO_CAT_KEYWORDS)) {
-      if (keywords.some((kw) => text.includes(kw))) return cat;
-    }
-    return "other";
-  }
-  const ngoCatLabel = (k: string) => {
-    const map: Record<string, string> = {
-      all: t("common.all"),
-      jobs: t("cat.jobs"),
-      housing: t("ngo.housing") || "Housing",
-      legal: t("ngo.legal") || "Legal",
-      education: t("ngo.education") || "Education",
-      health: t("ngo.health") || "Health",
-      other: t("cat.other"),
-    };
-    return map[k] ?? k;
-  };
-
-  const filteredNgos = useMemo(() => {
-    if (activeNgoCat === "all") return ngos;
-    return ngos.filter((n) => detectNgoCat(n.title, n.description) === activeNgoCat);
-  }, [ngos, activeNgoCat]);
-
   const resultCount = useMemo(() => {
     if (tab === "posts") return posts.length;
-    if (tab === "ngo") return filteredNgos.length;
     return meets.length;
-  }, [tab, posts.length, meets.length, filteredNgos.length]);
+  }, [tab, posts.length, meets.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -290,7 +224,6 @@ export default function BrowsePage() {
           if (error) throw error;
           setPosts((data ?? []).map((p: any) => ({ ...p, like_count: 0, comment_count: 0 })) as PostRow[]);
           setMeets([]);
-          setNgos([]);
         }
 
         if (tab === "meets") {
@@ -316,52 +249,27 @@ export default function BrowsePage() {
           if (error) throw error;
           setMeets((data ?? []) as MeetRow[]);
           setPosts([]);
-          setNgos([]);
-        }
-
-        if (tab === "ngo") {
-          let query = supabase
-            .from("v_ngo_posts")
-            .select("id, created_at, title, description, location, ngo_name, ngo_verified, application_count, is_closed")
-            .limit(50);
-
-          if (keyword) {
-            query = query.or(
-              `title.ilike.%${keyword}%,description.ilike.%${keyword}%,location.ilike.%${keyword}%,ngo_name.ilike.%${keyword}%`
-            );
-          }
-
-          query = query.order("created_at", { ascending: false });
-
-          const { data, error } = await query;
-          if (error) throw error;
-          setNgos((data ?? []) as NgoRow[]);
-          setPosts([]);
-          setMeets([]);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load data.";
         setErrorMsg(message);
         setPosts([]);
         setMeets([]);
-        setNgos([]);
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [tab, activeCat, activeMeetType, activeNgoCat, sortMode, debouncedQ]);
+  }, [tab, activeCat, activeMeetType, sortMode, debouncedQ]);
 
   const applyRecentSearch = (item: RecentSearchItem) => {
     setTab(item.tab);
     setQ(item.keyword);
     setActiveCat("all");
     setActiveMeetType("all");
-    setActiveNgoCat("all");
     if (item.tab === "posts") setSortMode("latest");
     if (item.tab === "meets") setSortMode("newest");
-    if (item.tab === "ngo") setSortMode("latest");
   };
 
   const removeRecentSearch = (target: RecentSearchItem) => {
@@ -376,21 +284,17 @@ export default function BrowsePage() {
     setQ("");
     setActiveCat("all");
     setActiveMeetType("all");
-    setActiveNgoCat("all");
     if (tab === "posts") setSortMode("latest");
     if (tab === "meets") setSortMode("newest");
-    if (tab === "ngo") setSortMode("latest");
   };
 
   const tabIcon = (tb: SearchTab) => {
     if (tb === "posts") return <FileText className="h-3.5 w-3.5" />;
-    if (tb === "ngo") return <ShieldCheck className="h-3.5 w-3.5" />;
     return <CalendarDays className="h-3.5 w-3.5" />;
   };
 
   const tabLabel = (tb: SearchTab) => {
     if (tb === "posts") return t("browse.posts");
-    if (tb === "ngo") return t("browse.ngo");
     return t("browse.meets");
   };
 
@@ -423,17 +327,15 @@ export default function BrowsePage() {
 
             {/* Tabs */}
             <div className="mt-3 flex items-center gap-3">
-              {(["posts", "meets", "ngo"] as SearchTab[]).map((tb) => (
+              {(["posts", "meets"] as SearchTab[]).map((tb) => (
                 <button
                   key={tb}
                   onClick={() => {
                     setTab(tb);
                     setActiveCat("all");
                     setActiveMeetType("all");
-                    setActiveNgoCat("all");
                     if (tb === "posts") setSortMode("latest");
                     if (tb === "meets") setSortMode("newest");
-                    if (tb === "ngo") setSortMode("latest");
                   }}
                   className="b-pill shrink-0"
                   style={{
@@ -508,33 +410,6 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {/* NGO category pills */}
-        {tab === "ngo" && (
-          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            {ngoCats.map((nc) => {
-              const ni = ngoCatIcon[nc];
-              const Icon = ni?.icon;
-              return (
-                <button
-                  key={nc}
-                  onClick={() => setActiveNgoCat(nc)}
-                  className="b-pill shrink-0"
-                  style={{
-                    height: 36,
-                    padding: "0 14px",
-                    fontSize: 13,
-                    background: activeNgoCat === nc ? "var(--primary)" : "transparent",
-                    color: activeNgoCat === nc ? "#fff" : "var(--text-secondary)",
-                    border: activeNgoCat === nc ? "none" : "1px solid var(--border-soft)",
-                  }}
-                >
-                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeNgoCat === nc ? "#fff" : ni.color }} />}
-                  {ngoCatLabel(nc)}
-                </button>
-              );
-            })}
-          </div>
-        )}
 
         {/* Sort pills */}
         <div className="mt-3 flex items-center gap-3">
@@ -562,7 +437,7 @@ export default function BrowsePage() {
           {/* Result count */}
           {!loading && !errorMsg && (
             <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-              {resultCount} {tab === "posts" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : tab === "ngo" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : (resultCount === 1 ? t("browse.meet") : t("browse.meets"))}
+              {resultCount} {tab === "posts" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : (resultCount === 1 ? t("browse.meet") : t("browse.meets"))}
             </span>
           )}
         </div>
@@ -640,19 +515,6 @@ export default function BrowsePage() {
             </div>
           )}
 
-          {!loading && !errorMsg && tab === "ngo" && filteredNgos.length === 0 && (
-            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
-              <ShieldCheck className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
-              <div className="text-sm font-semibold">{t("browse.noNgoFound")}</div>
-              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-                {debouncedQ ? `No partner posts matched "${debouncedQ}".` : "No partner posts yet."}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/ngo" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewNgo")}</Link>
-              </div>
-            </div>
-          )}
 
           {/* Post results */}
           {!loading &&
@@ -729,41 +591,6 @@ export default function BrowsePage() {
               );
             })}
 
-          {/* NGO results */}
-          {!loading &&
-            tab === "ngo" &&
-            filteredNgos.map((n, idx) => (
-              <Link key={n.id} href={`/ngo/${n.id}`} className="block no-underline text-inherit">
-                <article
-                  className="b-card b-card-hover b-animate-in p-5"
-                  style={{ animationDelay: `${idx * 0.05}s` }}
-                >
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                      {n.ngo_name ?? "Partner"}
-                    </span>
-                    <NgoVerifiedBadge verified={n.ngo_verified} size={12} />
-                  </div>
-                  <h2 className="text-lg font-semibold leading-snug line-clamp-2" style={{ color: "var(--deep-navy)" }}>
-                    {n.title}
-                  </h2>
-                  <p className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {n.description}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
-                    {n.location && (
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{n.location}</span>
-                    )}
-                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{n.application_count ?? 0} applied</span>
-                  </div>
-                  {n.is_closed && (
-                    <div className="mt-3">
-                      <span className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">Closed</span>
-                    </div>
-                  )}
-                </article>
-              </Link>
-            ))}
         </div>
       </div>
     </div>

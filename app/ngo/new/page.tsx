@@ -135,9 +135,15 @@ export default function NgoNewPage() {
 
         {/* Details */}
         <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.05s" }}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.titlePlaceholder")} className="w-full bg-transparent text-lg font-semibold outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("createNgo.activityPurpose")}</div>
+            <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.activityPurposePlaceholder")} className="w-full min-h-[80px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          </div>
           <div style={{ borderTop: "1px solid var(--border-soft)" }} />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("createNgo.descPlaceholder")} className="w-full min-h-[120px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("createNgo.helpOffered")}</div>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("createNgo.helpOfferedPlaceholder")} className="w-full min-h-[120px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
+          </div>
           <div style={{ borderTop: "1px solid var(--border-soft)" }} />
           <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("createNgo.locationPlaceholder")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
           <input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder={t("createNgo.websitePlaceholder")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
