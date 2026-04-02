@@ -5,8 +5,10 @@ html, body {
 }
 
 /* ══════════════════════════════════
-   Borderly Design System v2
-   "Warm Connection"
+   Borderly Design System v3
+   "Warm Connection" — Refined
+   Inspired by: Notion, Linear, Stripe,
+   Vercel, Supabase patterns
    ══════════════════════════════════ */
 
 /* ── Timing Functions ── */
@@ -14,6 +16,8 @@ html, body {
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
   --spring: cubic-bezier(0.37, 1.61, 0.58, 0.87);
+  --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-micro: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Light Mode ── */
@@ -21,6 +25,7 @@ html, body {
   --bg-snow: #F8FAFE;
   --bg-card: #FFFFFF;
   --bg-elevated: #F0F4FA;
+  --bg-surface: #F5F8FC;
   --primary: #4A8FE7;
   --primary-hover: #3A7DD4;
   --primary-light: #EBF3FF;
@@ -30,9 +35,24 @@ html, body {
   --deep-navy: #1E2A3A;
   --text-secondary: #5A6B7F;
   --text-muted: #94A3B8;
-  --border-soft: #D6DEE8;
+  --border-soft: #E2E8F0;
   --border-focus: #B8C4D0;
+  --border-subtle: #EDF2F7;
   --accent-yellow: #FFE066;
+
+  /* Shadows — Chromatic (Stripe-inspired, brand-tinted) */
+  --shadow-xs: 0 1px 2px rgba(30,42,58,0.04);
+  --shadow-sm: 0 1px 3px rgba(30,42,58,0.06), 0 1px 2px rgba(30,42,58,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(30,42,58,0.06), 0 2px 4px -2px rgba(30,42,58,0.04);
+  --shadow-lg: 0 10px 25px -3px rgba(30,42,58,0.08), 0 4px 10px -4px rgba(30,42,58,0.04);
+  --shadow-xl: 0 20px 40px -5px rgba(30,42,58,0.1), 0 8px 16px -8px rgba(30,42,58,0.06);
+  /* Ring-as-border (Vercel/Airbnb pattern) */
+  --ring-border: 0 0 0 1px rgba(30,42,58,0.06);
+  /* Card multi-layer (Notion pattern — 4 layers, cumulative low opacity) */
+  --shadow-card: 0 0 0 1px var(--border-subtle), 0 1px 1px rgba(30,42,58,0.02), 0 2px 4px rgba(30,42,58,0.03), 0 4px 12px rgba(30,42,58,0.04);
+  --shadow-card-hover: 0 0 0 1px var(--border-soft), 0 2px 4px rgba(30,42,58,0.04), 0 8px 16px rgba(30,42,58,0.06), 0 16px 32px rgba(30,42,58,0.04);
+  /* Navigation glass shadow */
+  --shadow-nav: 0 1px 0 rgba(30,42,58,0.04), 0 2px 8px rgba(30,42,58,0.04);
 
   /* Compat aliases */
   --light-blue: var(--bg-elevated);
@@ -46,6 +66,7 @@ html, body {
   --bg-snow: #0F1419;
   --bg-card: #1A2332;
   --bg-elevated: #243044;
+  --bg-surface: #151D28;
   --primary: #6AADFF;
   --primary-hover: #4A8FE7;
   --primary-light: #1A2A3F;
@@ -57,7 +78,19 @@ html, body {
   --text-muted: #5A6B7F;
   --border-soft: #2A3A4E;
   --border-focus: #3A4A5E;
+  --border-subtle: #1F2D3F;
   --accent-yellow: #FFE066;
+
+  /* Dark mode shadows — heavier opacity for visibility (Spotify pattern) */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
+  --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.35), 0 4px 10px -4px rgba(0,0,0,0.2);
+  --shadow-xl: 0 20px 40px -5px rgba(0,0,0,0.4), 0 8px 16px -8px rgba(0,0,0,0.3);
+  --ring-border: 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-card: 0 0 0 1px var(--border-subtle), 0 1px 2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 0 0 1px var(--border-soft), 0 2px 4px rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.18), 0 16px 36px rgba(0,0,0,0.12);
+  --shadow-nav: 0 1px 0 rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.2);
 
   --light-blue: var(--bg-elevated);
 
@@ -76,6 +109,24 @@ body {
   background: var(--bg-snow);
   color: var(--deep-navy);
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Typography Enhancement (Linear/Vercel pattern) ── */
+h1, h2, h3, .b-heading {
+  font-family: var(--font-heading), -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+  font-feature-settings: "kern" 1;
+}
+h1, .b-heading-xl {
+  letter-spacing: -0.025em;
+}
+.b-heading-display {
+  letter-spacing: -0.035em;
+  line-height: 1.1;
 }
 
 /* ── Background texture — warm subtle ── */
@@ -115,33 +166,41 @@ body::before {
    Cards
    ══════════════════════════════════ */
 
+/* Card — Notion-inspired multi-layer depth */
 .b-card {
-  background: color-mix(in srgb, var(--bg-card) 94%, var(--border-soft));
-  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  border: none;
   border-radius: 16px;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.06), inset 0 0 2px rgba(0,0,0,0.03);
+  box-shadow: var(--shadow-card);
+  position: relative;
 }
 
+/* Hover — smooth lift with enhanced shadow */
 .b-card-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
 }
 .b-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-  border-color: var(--border-focus);
+  box-shadow: var(--shadow-card-hover);
+}
+.b-card-hover:active {
+  transform: translateY(-1px);
+  transition-duration: 0.1s;
 }
 
+/* Inactive — subdued with dashed border */
 .b-card-inactive {
   background: var(--bg-elevated);
   border: 1px dashed var(--border-soft);
   border-radius: 16px;
   box-shadow: none;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 .b-card-inactive img {
-  filter: saturate(0.3);
+  filter: saturate(0.25) brightness(0.95);
 }
 
+/* Featured — gradient border */
 .b-card-featured {
   border: none;
   background:
@@ -149,64 +208,112 @@ body::before {
     linear-gradient(135deg, var(--primary), var(--accent)) border-box;
   border: 2px solid transparent;
   border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Glass card — for overlays, search bars */
+.b-card-glass {
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--shadow-card), inset 0 0 0 1px rgba(255,255,255,0.08);
 }
 
 /* ══════════════════════════════════
    Buttons
    ══════════════════════════════════ */
 
+/* Button Primary — Stripe-inspired chromatic shadow */
 .b-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: linear-gradient(135deg, #4A8FE7 0%, #6AADFF 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #6AADFF 100%);
   color: #fff;
   border: none;
   border-radius: 12px;
   padding: 10px 20px;
   font-weight: 600;
   font-size: 14px;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 8px rgba(74,143,231,0.3);
+  letter-spacing: -0.01em;
+  transition: all 0.15s var(--ease-micro);
+  box-shadow: 0 1px 2px rgba(74,143,231,0.2), 0 2px 8px rgba(74,143,231,0.15);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 .b-btn-primary:hover {
-  box-shadow: 0 4px 14px rgba(74,143,231,0.4);
+  box-shadow: 0 2px 4px rgba(74,143,231,0.25), 0 6px 16px rgba(74,143,231,0.2);
   transform: translateY(-1px);
+  filter: brightness(1.05);
 }
 .b-btn-primary:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(74,143,231,0.3);
+  box-shadow: 0 1px 2px rgba(74,143,231,0.2);
+  filter: brightness(0.98);
+  transition-duration: 0.05s;
 }
 .dark .b-btn-primary {
   background: linear-gradient(135deg, #6AADFF 0%, #8AC2FF 100%);
+  box-shadow: 0 1px 2px rgba(106,173,255,0.15), 0 2px 8px rgba(106,173,255,0.12);
 }
 
+/* Button Secondary — clean ring-border */
 .b-btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: transparent;
+  background: var(--bg-card);
   color: var(--deep-navy);
-  border: 1.5px solid var(--border-soft);
+  border: none;
   border-radius: 12px;
   padding: 10px 20px;
   font-weight: 500;
   font-size: 14px;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--ease-micro);
+  box-shadow: var(--ring-border), var(--shadow-xs);
 }
 .b-btn-secondary:hover {
   background: var(--bg-elevated);
-  border-color: var(--border-focus);
+  box-shadow: var(--ring-border), var(--shadow-sm);
+}
+.b-btn-secondary:active {
+  background: var(--bg-surface);
+  transition-duration: 0.05s;
+}
+
+/* Button Ghost — minimal, icon-friendly */
+.b-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.12s var(--ease-micro);
+}
+.b-btn-ghost:hover {
+  background: var(--bg-elevated);
+  color: var(--deep-navy);
 }
 
 /* ══════════════════════════════════
    Pills
    ══════════════════════════════════ */
 
+/* Pills — refined with subtle depth */
 .b-pill {
   display: inline-flex;
   align-items: center;
@@ -215,35 +322,40 @@ body::before {
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--ease-micro);
   gap: 6px;
+  cursor: pointer;
 }
 
 .b-pill-inactive {
-  background: var(--bg-elevated);
-  border: 1px solid transparent;
+  background: var(--bg-card);
+  border: none;
   color: var(--text-secondary);
+  box-shadow: var(--ring-border);
 }
 .b-pill-inactive:hover {
-  background: var(--border-soft);
+  background: var(--bg-elevated);
   color: var(--deep-navy);
+  box-shadow: var(--ring-border), var(--shadow-xs);
 }
 
 .b-pill-active {
   background: var(--primary);
-  border: 1px solid var(--primary);
+  border: none;
   color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(74,143,231,0.25);
+  box-shadow: 0 1px 3px rgba(74,143,231,0.2), 0 2px 6px rgba(74,143,231,0.15);
 }
 .dark .b-pill-active {
-  box-shadow: 0 2px 6px rgba(106,173,255,0.2);
+  box-shadow: 0 1px 3px rgba(106,173,255,0.15), 0 2px 6px rgba(106,173,255,0.12);
 }
 
 /* ══════════════════════════════════
    Inputs
    ══════════════════════════════════ */
 
+/* Input — refined focus ring (Notion/Linear pattern) */
 .b-input {
   background: var(--bg-elevated);
   border: 1.5px solid transparent;
@@ -251,17 +363,39 @@ body::before {
   padding: 10px 14px;
   font-size: 14px;
   color: var(--deep-navy);
-  transition: all 0.15s ease;
+  transition: all 0.2s var(--ease-micro);
   width: 100%;
+  box-shadow: var(--ring-border);
+}
+.b-input:hover {
+  border-color: var(--border-soft);
 }
 .b-input:focus {
   border-color: var(--primary);
   background: var(--bg-card);
-  box-shadow: 0 0 0 3px var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-light), var(--shadow-sm);
   outline: none;
 }
 .b-input::placeholder {
   color: var(--text-muted);
+}
+
+/* Search bar — glass variant */
+.b-search {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--deep-navy);
+  transition: all 0.2s var(--ease-micro);
+  width: 100%;
+  box-shadow: var(--shadow-xs);
+}
+.b-search:focus {
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--primary-light), var(--shadow-sm);
+  outline: none;
 }
 
 /* ══════════════════════════════════
@@ -298,7 +432,7 @@ body::before {
    ══════════════════════════════════ */
 
 @keyframes b-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -308,44 +442,65 @@ body::before {
 }
 
 .b-animate-in {
-  animation: b-fade-up 0.3s var(--ease-out-expo) both;
+  animation: b-fade-up 0.35s var(--ease-out-expo) both;
 }
 
 /* Like / action pop */
 @keyframes b-pop {
   0%   { transform: scale(1); }
-  50%  { transform: scale(1.25); }
+  40%  { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
 .b-pop {
   animation: b-pop 0.3s var(--ease-out-back);
 }
 
-/* Skeleton — pulse */
+/* Skeleton — refined shimmer (Linear pattern) */
+@keyframes b-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 @keyframes b-pulse {
   0%, 100% { opacity: 0.4; }
-  50%      { opacity: 0.7; }
+  50%      { opacity: 0.65; }
 }
 .b-skeleton {
-  background: var(--bg-elevated);
-  animation: b-pulse 1.8s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-surface) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: b-shimmer 1.8s ease-in-out infinite;
   border-radius: 12px;
 }
 
 /* Page enter */
 @keyframes b-page-enter {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scale-in for modals/dropdowns */
+@keyframes b-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.b-scale-in {
+  animation: b-scale-in 0.15s var(--ease-out-expo) both;
 }
 
 /* ══════════════════════════════════
    Dark Mode Overrides
    ══════════════════════════════════ */
 
+/* Navigation glass — refined dark mode */
 .dark header,
 .dark nav {
-  background: rgba(15, 20, 25, 0.95) !important;
-  backdrop-filter: blur(12px);
+  background: rgba(15, 20, 25, 0.88) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
 }
 
 .dark aside {
@@ -454,4 +609,59 @@ body::before {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ══════════════════════════════════
+   Utility Enhancements
+   ══════════════════════════════════ */
+
+/* Divider — subtle separator */
+.b-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  border: none;
+}
+
+/* Badge — notification dot */
+.b-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Focus ring utility */
+.b-focus-ring:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Smooth list item hover */
+.b-list-item {
+  transition: background 0.12s var(--ease-micro);
+  border-radius: 12px;
+}
+.b-list-item:hover {
+  background: var(--bg-elevated);
+}
+
+/* Empty state illustration */
+.b-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  border: 1px dashed var(--border-soft);
+  background: var(--bg-card);
+  padding: 3rem 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow-xs);
 }

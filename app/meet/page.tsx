@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { swrCache } from "@/lib/swrCache";
 import { checkAndSendMeetReminders } from "@/lib/meetReminderService";
 import { createNotification } from "@/lib/notificationService";
 import { useT } from "../components/LangProvider";
@@ -26,6 +27,7 @@ import {
   UtensilsCrossed,
   Dumbbell,
 } from "lucide-react";
+import SortDropdown from "@/app/components/SortDropdown";
 
 type MeetType =
   | "hangout"
@@ -144,8 +146,16 @@ export default function MeetPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setErrorMsg(null);
+
+    // SWR: show cached meets instantly
+    const cached = swrCache.get<MeetRow[]>("meet-list");
+    if (cached) {
+      setMeets(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     const {
       data: { user },
@@ -153,7 +163,7 @@ export default function MeetPage() {
     const uid = user?.id ?? null;
 
     setMyUid(uid);
-    
+
     const { data, error } = await supabase
       .from("v_meet_with_count")
       .select(
@@ -164,7 +174,7 @@ export default function MeetPage() {
 
     if (error) {
       setErrorMsg(error.message);
-      setMeets([]);
+      if (!cached) setMeets([]);
       setLoading(false);
       return;
     }
@@ -187,6 +197,7 @@ export default function MeetPage() {
     }
 
     setMeets(list);
+    swrCache.set("meet-list", list);
 
     if (uid) {
       const r = await supabase.from("meet_participants").select("meet_id,status").eq("user_id", uid);
@@ -399,6 +410,11 @@ export default function MeetPage() {
 
   const leaveMeet = async (meetId: string) => {
     if (!myUid) return;
+
+    // Prevent host from leaving their own meet
+    const meetData = meets.find((m) => m.id === meetId);
+    if (meetData?.host_id === myUid) return;
+
     setBusyKey(meetId, true);
 
     setStatusMap((prev) => {
@@ -415,6 +431,22 @@ export default function MeetPage() {
         .eq("user_id", myUid);
       if (error) {
         await load();
+        return;
+      }
+
+      // Also remove from linked chat room
+      const { data: gc } = await supabase
+        .from("group_conversations")
+        .select("conversation_id")
+        .eq("meet_id", meetId)
+        .maybeSingle();
+
+      if (gc?.conversation_id) {
+        await supabase
+          .from("conversation_members")
+          .delete()
+          .eq("conversation_id", gc.conversation_id)
+          .eq("user_id", myUid);
       }
     } finally {
       setBusyKey(meetId, false);
@@ -430,7 +462,7 @@ export default function MeetPage() {
             className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
             style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
           >
-            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -439,77 +471,46 @@ export default function MeetPage() {
               style={{ color: "var(--deep-navy)" }}
             />
             {q && (
-              <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+              <button type="button" onClick={() => setQ("")} className="text-xs font-medium whitespace-nowrap hover:opacity-70" style={{ color: "var(--text-muted)" }}>
                 {t("common.clear")}
               </button>
             )}
           </div>
           <Link
             href="/meet/new"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
+            className="b-btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl no-underline"
           >
             <Plus className="h-5 w-5" />
           </Link>
         </div>
 
         {/* Type tabs + sort */}
-        <div className="mb-6 flex flex-col gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {typeTabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveType(tab)}
-                className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
-              >
-                {(() => { const ci = typeIcon[tab]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
-                {meetTabLabel(tab)}
-              </button>
-            ))}
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
+              {typeTabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveType(tab)}
+                  className={activeType === tab ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                >
+                  {(() => { const ci = typeIcon[tab]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeType === tab ? "#fff" : ci.color }} />; })()}
+                  {meetTabLabel(tab)}
+                </button>
+              ))}
+            </div>
+            <SortDropdown
+              options={[
+                { key: "recommend", label: t("common.recommended"), icon: <Star className="h-3.5 w-3.5" /> },
+                { key: "latest", label: t("common.latest"), icon: <Clock className="h-3.5 w-3.5" /> },
+                { key: "popular", label: t("common.popular"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
+              ]}
+              value={sortMode}
+              onChange={(k) => setSortMode(k as "recommend" | "latest" | "popular")}
+            />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSortMode("recommend")}
-              className="b-pill h-9 px-3 text-xs"
-              style={{
-                background: sortMode === "recommend" ? "var(--primary)" : "transparent",
-                color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Star className="h-3.5 w-3.5" />
-              {t("common.recommended")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("latest")}
-              className="b-pill h-9 px-3 text-xs"
-              style={{
-                background: sortMode === "latest" ? "var(--primary)" : "transparent",
-                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {t("common.latest")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("popular")}
-              className="b-pill h-9 px-3 text-xs"
-              style={{
-                background: sortMode === "popular" ? "var(--primary)" : "transparent",
-                color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              {t("common.popular")}
-            </button>
-
+          <div className="mt-2 flex items-center">
             <span className="ml-auto text-xs font-medium whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
               {filtered.length} {t("common.meets")}
             </span>
@@ -557,6 +558,7 @@ export default function MeetPage() {
                     : `${m.participant_count} / ${m.max_people}`;
 
               const isFull = m.max_people != null && m.participant_count >= m.max_people;
+              const isHost = myUid === m.host_id;
               const myStatus = statusMap.get(m.id) ?? "none";
               const joined = myStatus !== "none";
               const isPending = myStatus === "pending";
@@ -674,8 +676,7 @@ export default function MeetPage() {
                         <img
                           src={m.host_avatar_url}
                           alt={m.host_display_name ?? "Host"}
-                          className="h-7 w-7 rounded-full object-cover shrink-0"
-                          style={{ border: "1.5px solid var(--border-soft)" }}
+                          className="h-7 w-7 rounded-full object-cover shrink-0 ring-1 ring-[var(--border-subtle)]"
                         />
                       ) : (
                         <div
@@ -704,6 +705,13 @@ export default function MeetPage() {
                       {!myUid ? (
                         <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                           {t("meet.signInToJoin")}
+                        </span>
+                      ) : isHost ? (
+                        <span
+                          className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold"
+                          style={{ background: "var(--primary)", color: "#fff" }}
+                        >
+                          {t("meet.host")}
                         </span>
                       ) : isPending ? (
                         <button
@@ -762,10 +770,7 @@ export default function MeetPage() {
             })}
 
           {!loading && !errorMsg && filtered.length === 0 && (
-            <div
-              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center"
-              style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
-            >
+            <div className="b-empty-state b-animate-in">
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
                 {t("meet.noMeets")}

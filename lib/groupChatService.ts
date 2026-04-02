@@ -186,6 +186,27 @@ export async function leaveGroup(conversationId: string) {
   return removeGroupMember(conversationId, user.id);
 }
 
+export async function leaveConversation(conversationId: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  try {
+    const { error } = await supabase
+      .from("conversation_members")
+      .delete()
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("leaveConversation error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function updateGroupName(
   conversationId: string,
   name: string
@@ -225,6 +246,37 @@ export async function getConversationInfo(conversationId: string) {
     avatar_url: string | null;
     created_by: string | null;
   };
+}
+
+/**
+ * Check if a conversation is linked to an active (not closed) meet.
+ * Returns { linked: true, meetId, isClosed } or { linked: false }.
+ */
+export async function getLinkedMeetStatus(conversationId: string): Promise<{
+  linked: boolean;
+  meetId?: string;
+  isClosed?: boolean;
+}> {
+  const { data: gc } = await supabase
+    .from("group_conversations")
+    .select("meet_id")
+    .eq("conversation_id", conversationId)
+    .maybeSingle();
+
+  if (!gc?.meet_id) return { linked: false };
+
+  const { data: meet } = await supabase
+    .from("meet_posts")
+    .select("id, is_closed, date")
+    .eq("id", gc.meet_id)
+    .maybeSingle();
+
+  if (!meet) return { linked: false };
+
+  const ended = meet.date ? new Date(meet.date) < new Date() : false;
+  const isClosed = !!meet.is_closed || ended;
+
+  return { linked: true, meetId: meet.id, isClosed };
 }
 
 export async function searchUsers(query: string, excludeIds: string[] = []) {

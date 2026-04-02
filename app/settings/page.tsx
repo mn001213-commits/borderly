@@ -53,12 +53,15 @@ export default function SettingsPage() {
   const toggleDarkMode = () => {
     const next = !darkMode;
     setDarkMode(next);
+    const meta = document.getElementById("theme-color-meta");
     if (next) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("borderly-theme", "dark");
+      if (meta) meta.setAttribute("content", "#0F1419");
     } else {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("borderly-theme", "light");
+      if (meta) meta.setAttribute("content", "#F8FAFE");
     }
   };
 
@@ -322,7 +325,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <span>{t("settings.appName")}</span>
-            <span className="font-semibold" style={{ color: "var(--deep-navy)" }}>Borderly</span>
+            <span className="font-semibold" style={{ color: "var(--deep-navy)" }} translate="no">Borderly</span>
           </div>
         </div>
       </div>

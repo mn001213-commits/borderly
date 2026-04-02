@@ -837,7 +837,7 @@ export default function PostDetailPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
-                <span className="font-medium" style={{ color: "var(--deep-navy)" }}>{comment.author_name ?? t("post.anonymous")}</span>
+                <Link href={`/u/${comment.user_id}`} className="font-medium hover:underline" style={{ color: "var(--deep-navy)" }}>{comment.author_name ?? t("post.anonymous")}</Link>
 
                 {isMine ? (
                   <span className="inline-flex h-6 items-center rounded-full px-2 text-[10px] font-medium text-white" style={{ background: "var(--primary)" }}>
@@ -1048,7 +1048,7 @@ export default function PostDetailPage() {
                     </span>
                   );
                 })()}
-                <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{post.author_name ?? t("post.anonymous")}</span>
+                <Link href={`/u/${post.user_id}`} className="font-medium hover:underline" style={{ color: "var(--text-secondary)" }}>{post.author_name ?? t("post.anonymous")}</Link>
                 <span>·</span>
                 <span>{formatRelative(post.created_at, t)}</span>
               </div>

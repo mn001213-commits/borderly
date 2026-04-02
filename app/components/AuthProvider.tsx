@@ -75,10 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setNeedsOnboarding(false);
           setLoading(false);
-          // localStorage 강제 정리
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("supabase.auth.token");
-          }
         } else if (event === "USER_UPDATED") {
           // 프로필 재로드
           load();

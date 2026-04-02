@@ -17,42 +17,51 @@ export default function TopBar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-30 backdrop-blur-lg"
+      className="fixed top-0 left-0 right-0 z-30"
       style={{
-        background: "color-mix(in srgb, var(--bg-card) 98%, transparent)",
-        borderBottom: "1px solid var(--border-soft)",
+        background: "color-mix(in srgb, var(--bg-card) 92%, transparent)",
+        backdropFilter: "blur(20px) saturate(1.5)",
+        WebkitBackdropFilter: "blur(20px) saturate(1.5)",
+        boxShadow: "var(--shadow-nav)",
       }}
     >
-      <div className={`mx-auto flex h-14 items-center justify-between gap-4 px-4 sm:px-6 ${user ? "xl:mr-[340px]" : ""}`}>
-        <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0">
+      <div className="mx-auto flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/borderly-logo.png" alt="Borderly" className="h-8 w-8 rounded-xl object-cover" />
-          <div className="b-logo-gradient text-[16px] font-extrabold tracking-tight" style={{ fontFamily: "var(--font-heading)" }}>
+          <img
+            src="/borderly-logo.png"
+            alt="Borderly"
+            className="h-8 w-8 rounded-xl object-cover transition-transform group-hover:scale-105"
+          />
+          <div
+            className="b-logo-gradient text-base font-extrabold"
+            style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.03em" }}
+            translate="no"
+          >
             borderly
           </div>
         </Link>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {user ? (
             <>
-              <NotificationBell className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]" />
+              <NotificationBell className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]" />
 
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition no-underline text-inherit hover:bg-[var(--bg-elevated)]"
+                className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors no-underline text-inherit hover:bg-[var(--bg-elevated)]"
               >
                 {user.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={user.avatarUrl}
                     alt="Me"
-                    className="h-8 w-8 rounded-full object-cover"
-                    style={{ border: "2px solid var(--border-soft)" }}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-[var(--border-subtle)]"
                   />
                 ) : (
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{ background: "var(--primary-light)", border: "2px solid var(--border-soft)" }}
+                    className="flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-[var(--border-subtle)]"
+                    style={{ background: "var(--primary-light)" }}
                   >
                     <User className="h-4 w-4" style={{ color: "var(--primary)" }} />
                   </div>

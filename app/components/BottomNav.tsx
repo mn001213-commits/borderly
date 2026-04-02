@@ -83,10 +83,12 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg xl:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 xl:hidden"
       style={{
-        background: "color-mix(in srgb, var(--bg-card) 98%, transparent)",
-        borderTop: "1px solid var(--border-soft)",
+        background: "color-mix(in srgb, var(--bg-card) 92%, transparent)",
+        backdropFilter: "blur(20px) saturate(1.5)",
+        WebkitBackdropFilter: "blur(20px) saturate(1.5)",
+        boxShadow: "0 -1px 0 var(--border-subtle), 0 -2px 8px rgba(30,42,58,0.04)",
       }}
     >
       <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
@@ -97,26 +99,48 @@ export default function BottomNav() {
               key={href}
               href={href}
               aria-label={label}
-              className="flex flex-col items-center justify-center gap-0.5 no-underline transition-colors"
-              style={{ color: on ? "var(--primary)" : "var(--text-muted)" }}
+              className="flex flex-col items-center justify-center gap-0.5 no-underline"
+              style={{
+                color: on ? "var(--primary)" : "var(--text-muted)",
+                transition: "color 0.2s ease",
+              }}
             >
-              {/* Active dot indicator */}
+              {/* Active pill indicator */}
               <div
-                className="h-1 w-1 rounded-full mb-0.5 transition-all"
+                className="rounded-full mb-0.5"
                 style={{
+                  width: on ? "16px" : "0px",
+                  height: "3px",
                   background: on ? "var(--primary)" : "transparent",
-                  transform: on ? "scale(1)" : "scale(0)",
+                  borderRadius: "9999px",
+                  transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  boxShadow: on ? "0 1px 4px rgba(74,143,231,0.3)" : "none",
                 }}
               />
               <div className="relative flex h-8 w-8 items-center justify-center">
-                <Icon className="h-5 w-5" strokeWidth={on ? 2.5 : 2} />
+                <Icon
+                  className="h-5 w-5"
+                  strokeWidth={on ? 2.5 : 1.8}
+                  style={{ transition: "stroke-width 0.2s ease" }}
+                />
                 {badge !== undefined && badge > 0 && (
-                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white" style={{ background: "var(--primary)" }}>
+                  <span
+                    className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white"
+                    style={{
+                      background: "#EF4444",
+                      boxShadow: "0 1px 3px rgba(239,68,68,0.3)",
+                    }}
+                  >
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-medium">{label}</span>
+              <span
+                className="text-[10px]"
+                style={{ fontWeight: on ? 600 : 500 }}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}

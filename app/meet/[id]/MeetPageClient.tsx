@@ -291,14 +291,18 @@ export default function MeetDetailPage() {
 
     setParticipants(merged);
 
-    // Load comments
+    // Load comments (join profiles for author name)
     const { data: cmts } = await supabase
       .from("meet_comments")
-      .select("id, meet_id, user_id, parent_id, content, created_at, author_name, is_hidden")
+      .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden, profiles:user_id(display_name)")
       .eq("meet_id", meetId)
       .eq("is_hidden", false)
       .order("created_at", { ascending: true });
-    setMeetComments((cmts ?? []) as MeetCommentRow[]);
+    setMeetComments((cmts ?? []).map((c: any) => ({
+      ...c,
+      author_name: c.profiles?.display_name ?? null,
+      profiles: undefined,
+    })) as MeetCommentRow[]);
 
     setLoading(false);
   }, [meetId]);
@@ -338,11 +342,11 @@ export default function MeetDetailPage() {
     try {
       const { data, error } = await supabase
         .from("meet_comments")
-        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body, author_name: author ?? t("post.anonymous") })
-        .select()
+        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body })
+        .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden")
         .single();
       if (error) throw error;
-      setMeetComments((prev) => prev.map((c) => (c.id === tempId ? data : c)));
+      setMeetComments((prev) => prev.map((c) => (c.id === tempId ? { ...data, author_name: author } : c)));
 
       if (meet && meet.host_id !== user.id) {
         createNotification({
@@ -352,7 +356,8 @@ export default function MeetDetailPage() {
           link: `/meet/${meetId}`, meta: { meet_id: meetId },
         }).catch(() => {});
       }
-    } catch {
+    } catch (err: any) {
+      console.error("addMeetComment error:", err?.message ?? err, "code:", err?.code, "details:", err?.details, "hint:", err?.hint);
       setMeetComments((prev) => prev.filter((c) => c.id !== tempId));
       if (parentId) setReplyBodyById((p) => ({ ...p, [parentId]: body }));
       else setCommentBody(body);

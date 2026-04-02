@@ -1,3 +1,12 @@
+/* ── App Settings ─────────────────────────────────── */
+
+export const APP_SETTINGS = {
+  /** Days to suppress the PWA install banner after user taps "Later" */
+  pwaInstallCooldownDays: 7,
+} as const;
+
+/* ── Categories ───────────────────────────────────── */
+
 export type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
 export const CAT_COLORS: Record<string, { bg: string; color: string }> = {
