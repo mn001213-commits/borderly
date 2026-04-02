@@ -38,7 +38,7 @@ export default function TopBar() {
             style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.03em" }}
             translate="no"
           >
-            borderly
+            BORDERLY
           </div>
         </Link>
 
