@@ -359,7 +359,7 @@ export default function EditMeetPage() {
           {/* When & Where */}
           <section className="b-card b-animate-in p-5" style={{ animationDelay: "0.15s" }}>
             <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-              When & Where
+              {t("createMeet.whenWhere")}
             </label>
 
             <div className="mt-3 space-y-3">
@@ -379,7 +379,7 @@ export default function EditMeetPage() {
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="City (e.g. Seoul)"
+                  placeholder={t("createMeet.cityPlaceholder")}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
                   style={{ color: "var(--deep-navy)" }}
                 />
@@ -390,7 +390,7 @@ export default function EditMeetPage() {
                 <input
                   value={placeHint}
                   onChange={(e) => setPlaceHint(e.target.value)}
-                  placeholder="Place hint (e.g. Near Hongdae Station Exit 1)"
+                  placeholder={t("createMeet.placePlaceholder")}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
                   style={{ color: "var(--deep-navy)" }}
                 />
@@ -403,11 +403,11 @@ export default function EditMeetPage() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
               <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                Recruitment Quota
+                {t("createMeet.recruitmentQuota")}
               </label>
             </div>
             <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              Both foreigners and locals are required. Ratio must be between 30:70 and 70:30.
+              {t("createMeet.quotaDesc")}
             </p>
 
             <div className="mt-4 flex gap-3">
@@ -415,7 +415,7 @@ export default function EditMeetPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Globe className="h-3.5 w-3.5" style={{ color: "#3B82F6" }} />
-                  <span className="text-xs font-semibold" style={{ color: "#1D4ED8" }}>Foreigners</span>
+                  <span className="text-xs font-semibold" style={{ color: "#1D4ED8" }}>{t("createMeet.foreigners")}</span>
                 </div>
                 <div
                   className="flex items-center gap-2 rounded-2xl px-4 py-3"
@@ -442,7 +442,7 @@ export default function EditMeetPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Home className="h-3.5 w-3.5" style={{ color: "#D97706" }} />
-                  <span className="text-xs font-semibold" style={{ color: "#92400E" }}>Locals</span>
+                  <span className="text-xs font-semibold" style={{ color: "#92400E" }}>{t("createMeet.locals")}</span>
                 </div>
                 <div
                   className="flex items-center gap-2 rounded-2xl px-4 py-3"
@@ -479,13 +479,13 @@ export default function EditMeetPage() {
                 {/* Labels */}
                 <div className="mt-2 flex items-center justify-between text-xs font-semibold">
                   <span style={{ color: ratioValid ? "#1D4ED8" : "#DC2626" }}>
-                    {foreignerPct}% Foreigners
+                    {foreignerPct}% {t("createMeet.foreigners")}
                   </span>
                   <span className="font-bold" style={{ color: "var(--text-muted)" }}>
-                    Total {total}
+                    {t("createMeet.total")} {total}
                   </span>
                   <span style={{ color: ratioValid ? "#92400E" : "#DC2626" }}>
-                    {localPct}% Locals
+                    {localPct}% {t("createMeet.locals")}
                   </span>
                 </div>
 
@@ -495,7 +495,7 @@ export default function EditMeetPage() {
                     className="mt-3 rounded-xl px-4 py-2.5 text-xs font-medium"
                     style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}
                   >
-                    Neither side can exceed 70%. Please adjust the numbers.
+                    {t("createMeet.ratioWarning")}
                   </div>
                 )}
               </div>
@@ -507,10 +507,10 @@ export default function EditMeetPage() {
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                  Recruitment Status
+                  {t("editMeet.recruitmentStatus")}
                 </label>
                 <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {isClosed ? "No new join requests" : "Open for requests"}
+                  {isClosed ? t("editMeet.closedDesc") : t("editMeet.openDesc")}
                 </p>
               </div>
               <button

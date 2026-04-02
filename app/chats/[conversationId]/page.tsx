@@ -294,9 +294,21 @@ export default function ChatRoomPage() {
 
                   <button
                     onClick={async () => {
-                      if (!confirm(t("chatGroup.leaveConfirm"))) return;
-                      await leaveGroup(conversationId!);
-                      router.push("/chats");
+                      if (!confirm(t("chatGroup.leaveConfirm") || "Leave this group?")) return;
+
+                      try {
+                        const result = await leaveGroup(conversationId!);
+
+                        if (!result.success) {
+                          alert(result.error || "Failed to leave group");
+                          return;
+                        }
+
+                        router.push("/chats");
+                      } catch (err: any) {
+                        console.error("Leave group error:", err);
+                        alert(t("chatGroup.leaveError") || "Failed to leave group");
+                      }
                     }}
                     className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition hover:bg-[var(--light-blue)]"
                     style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}

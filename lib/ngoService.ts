@@ -2,6 +2,19 @@ import { supabase } from "./supabaseClient";
 
 // ── Types ──
 
+export type NgoCategory =
+  | "general"
+  | "environment"
+  | "education"
+  | "health"
+  | "human_rights"
+  | "community"
+  | "animal_welfare"
+  | "disaster_relief"
+  | "refugee_support"
+  | "arts_culture"
+  | "social_gathering";
+
 export type NgoPost = {
   id: string;
   ngo_user_id: string;
@@ -10,6 +23,7 @@ export type NgoPost = {
   location: string;
   website_url: string;
   image_url: string | null;
+  category: NgoCategory;
   questions: string[];
   max_applicants: number | null;
   is_closed: boolean;
@@ -36,12 +50,18 @@ export type NgoApplication = {
 
 // ── NGO Posts ──
 
-export async function listNgoPosts(limit = 50) {
-  const { data, error } = await supabase
+export async function listNgoPosts(category?: NgoCategory, limit = 50) {
+  let query = supabase
     .from("v_ngo_posts")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (category && category !== "general") {
+    query = query.eq("category", category);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as NgoPost[];
@@ -61,6 +81,7 @@ export async function getNgoPost(id: string) {
 export async function createNgoPost(post: {
   title: string;
   description: string;
+  category: NgoCategory;
   location?: string;
   website_url?: string;
   image_url?: string | null;
@@ -77,6 +98,7 @@ export async function createNgoPost(post: {
       ngo_user_id: uid,
       title: post.title,
       description: post.description,
+      category: post.category,
       location: post.location || "",
       website_url: post.website_url || "",
       image_url: post.image_url,
@@ -95,6 +117,7 @@ export async function updateNgoPost(
   updates: Partial<{
     title: string;
     description: string;
+    category: NgoCategory;
     location: string;
     website_url: string;
     image_url: string | null;

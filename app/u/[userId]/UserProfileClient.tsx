@@ -153,12 +153,16 @@ export default function UserProfilePage() {
     if (!me) { router.push("/login"); return; }
     if (!profileId || isMe) return;
 
-    // Check if conversation already exists
+    // Check if conversation already exists in direct_conversations table
+    // (v_chat_list only shows conversations with messages, so we check the table directly)
+    const userLow = me < profileId ? me : profileId;
+    const userHigh = me < profileId ? profileId : me;
+
     const { data: existing } = await supabase
-      .from("v_chat_list")
+      .from("direct_conversations")
       .select("conversation_id")
-      .eq("me_id", me)
-      .eq("other_id", profileId)
+      .eq("user_low", userLow)
+      .eq("user_high", userHigh)
       .maybeSingle();
 
     if (existing?.conversation_id) {

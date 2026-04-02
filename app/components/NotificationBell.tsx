@@ -79,6 +79,21 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       }, 120);
     };
 
+    const refreshNow = async () => {
+      try {
+        const unread = await getUnreadCount();
+        if (!cancelled) setCount(unread);
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") console.error("NotificationBell refresh error:", error);
+      }
+    };
+
+    // Listen for manual refresh events from notifications page
+    const handleNotificationsRead = () => {
+      refreshNow();
+    };
+    window.addEventListener("notifications-read", handleNotificationsRead);
+
     let ch: ReturnType<typeof supabase.channel> | null = null;
 
     const start = async () => {
@@ -108,6 +123,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
 
     return () => {
       cancelled = true;
+      window.removeEventListener("notifications-read", handleNotificationsRead);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (ch) supabase.removeChannel(ch);
     };

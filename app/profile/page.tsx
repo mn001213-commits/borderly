@@ -59,9 +59,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
-      setMsg(null);
-
       const { data: u, error: uErr } = await supabase.auth.getUser();
       if (uErr) {
         setMsg(uErr.message);
@@ -79,6 +76,40 @@ export default function ProfilePage() {
 
       setMeId(myId);
       setEmail(user?.email ?? null);
+
+      // 캐시 확인
+      const cacheKey = `profile-data-${myId}`;
+      const cached = sessionStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          const { data: cachedData, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+
+          // 5분 이내 캐시면 즉시 표시
+          if (age < 5 * 60 * 1000) {
+            setDisplayName(cachedData.displayName);
+            setAvatarUrl(cachedData.avatarUrl);
+            setBio(cachedData.bio);
+            setResidenceCountry(cachedData.residenceCountry);
+            setOriginCountry(cachedData.originCountry);
+            setLanguages(cachedData.languages);
+            setFollowers(cachedData.followers);
+            setFollowing(cachedData.following);
+            setPosts(cachedData.posts);
+            setMeets(cachedData.meets);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Cache parse error:", e);
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+
+      // 캐시 없거나 만료됨 - 새 데이터 로드
+      setLoading(true);
+      setMsg(null);
 
       const { data: prof } = await supabase
         .from("profiles")
@@ -120,8 +151,36 @@ export default function ProfilePage() {
         return;
       }
 
-      setPosts((postsRes.data ?? []) as Post[]);
-      setMeets((meetsRes.data ?? []) as MeetPost[]);
+      const postsData = (postsRes.data ?? []) as Post[];
+      const meetsData = (meetsRes.data ?? []) as MeetPost[];
+
+      setPosts(postsData);
+      setMeets(meetsData);
+
+      // 캐시 저장
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data: {
+              displayName: prof?.display_name ?? user?.email ?? "Unnamed User",
+              avatarUrl: prof?.avatar_url ?? null,
+              bio: prof?.bio ?? null,
+              residenceCountry: prof?.residence_country ?? null,
+              originCountry: prof?.origin_country ?? null,
+              languages: prof?.languages ?? [],
+              followers: fc,
+              following: fg,
+              posts: postsData,
+              meets: meetsData,
+            },
+            timestamp: Date.now(),
+          })
+        );
+      } catch (e) {
+        console.warn("Cache storage failed:", e);
+      }
+
       setLoading(false);
     };
 
@@ -146,12 +205,15 @@ export default function ProfilePage() {
     }
 
     setPosts((prev) => prev.filter((p) => p.id !== postId));
+
+    // 캐시 무효화
+    sessionStorage.removeItem(`profile-data-${meId}`);
   };
 
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
-        <header className="flex items-center justify-between gap-3 py-3">
+        <div className="flex items-center justify-between gap-3 py-3">
           <h1 className="text-xl font-bold">{t("profile.title")}</h1>
           <div className="flex items-center gap-2">
             <Link
@@ -170,7 +232,7 @@ export default function ProfilePage() {
               <Menu className="h-5 w-5" />
             </Link>
           </div>
-        </header>
+        </div>
 
         <div className="mt-4 space-y-4">
           <section className="b-card b-animate-in">

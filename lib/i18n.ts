@@ -53,6 +53,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "login.createAccount": { en: "Create account", ko: "계정 만들기", ja: "アカウント作成" },
   "login.invalidCredentials": { en: "Invalid email or password. Please check and try again.", ko: "이메일 또는 비밀번호가 올바르지 않습니다. 확인 후 다시 시도해주세요.", ja: "メールアドレスまたはパスワードが正しくありません。確認して再度お試しください。" },
   "login.accountLocked": { en: "Too many failed attempts. Account locked for 3 minutes.", ko: "로그인 시도가 너무 많습니다. 3분간 계정이 잠깁니다.", ja: "ログイン試行回数が多すぎます。3分間アカウントがロックされます。" },
+  "login.registrationSuccess": { en: "Account created successfully! Please log in.", ko: "계정이 성공적으로 생성되었습니다! 로그인해 주세요.", ja: "アカウントが正常に作成されました！ログインしてください。" },
+  "login.emailNotConfirmed": { en: "Please verify your email before logging in. Check your inbox for the verification link.", ko: "로그인 전에 이메일 인증을 완료해 주세요. 받은 편지함에서 인증 링크를 확인하세요.", ja: "ログイン前にメールアドレスを確認してください。受信トレイで確認リンクを確認してください。" },
 
   // Signup
   "signup.subtitle": { en: "Create your Borderly account", ko: "Borderly 계정을 만드세요", ja: "Borderlyアカウントを作成" },
@@ -74,6 +76,16 @@ const translations: Record<string, Record<Locale, string>> = {
   "signup.accountCreated": { en: "Account created! Redirecting...", ko: "계정이 생성되었습니다! 이동 중...", ja: "アカウントが作成されました！リダイレクト中..." },
   "signup.pwRequirements": { en: "Must be 8+ characters with at least one uppercase letter, one lowercase letter, and one number", ko: "8자 이상, 대문자·소문자·숫자를 각각 1개 이상 포함해야 합니다", ja: "8文字以上で、大文字・小文字・数字をそれぞれ1つ以上含む必要があります" },
   "signup.pwStrong": { en: "Strong password", ko: "안전한 비밀번호입니다", ja: "安全なパスワードです" },
+
+  // Verify Email
+  "verifyEmail.title": { en: "Check your email", ko: "이메일을 확인해 주세요", ja: "メールを確認してください" },
+  "verifyEmail.description": { en: "We've sent a verification link to your email. Please click the link to complete your registration.", ko: "인증 링크를 이메일로 보내드렸습니다. 링크를 클릭하여 회원가입을 완료해 주세요.", ja: "確認リンクをメールで送信しました。リンクをクリックして登録を完了してください。" },
+  "verifyEmail.resend": { en: "Resend verification email", ko: "인증 이메일 다시 보내기", ja: "確認メールを再送信" },
+  "verifyEmail.resendIn": { en: "Resend available in", ko: "재전송 가능:", ja: "再送信可能まで" },
+  "verifyEmail.sending": { en: "Sending...", ko: "전송 중...", ja: "送信中..." },
+  "verifyEmail.resent": { en: "Verification email sent!", ko: "인증 이메일을 다시 보냈습니다!", ja: "確認メールを再送信しました！" },
+  "verifyEmail.goToLogin": { en: "Go to Login", ko: "로그인하러 가기", ja: "ログインへ" },
+  "verifyEmail.checkSpam": { en: "Can't find the email? Check your spam folder.", ko: "이메일을 찾을 수 없나요? 스팸 폴더를 확인해 주세요.", ja: "メールが見つかりませんか？迷惑メールフォルダを確認してください。" },
 
   // Reset Password
   "resetPw.title": { en: "Reset Password", ko: "비밀번호 재설정", ja: "パスワードリセット" },
@@ -290,6 +302,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "meetDetail.alreadyRequested": { en: "You have already requested to join this meet.", ko: "이미 참가 요청을 보냈습니다.", ja: "すでに参加リクエストを送信しています。" },
   "meetDetail.meetFull": { en: "This meet is full.", ko: "이 모임은 마감되었습니다.", ja: "このミートは定員に達しました。" },
   "meetDetail.requestSent": { en: "Request sent! Waiting for host approval.", ko: "참가 요청을 보냈습니다! 호스트의 승인을 기다려 주세요.", ja: "リクエストを送信しました！ホストの承認をお待ちください。" },
+  "meetDetail.cannotJoinOwnMeet": { en: "You cannot join your own meetup.", ko: "본인이 만든 모임에는 참가할 수 없습니다.", ja: "自分が作成したミートアップには参加できません。" },
 
   // Meet Manage
   "meetManage.backToMeetup": { en: "Back to Meetup", ko: "모임으로 돌아가기", ja: "ミートアップに戻る" },
@@ -457,6 +470,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "createMeet.leaveEmptyUnlimited": { en: "Leave empty or 0 for no limit", ko: "비워두거나 0이면 제한 없음", ja: "空欄または0で制限なし" },
   "createMeet.mapUrlPlaceholder": { en: "Google Maps link (optional)", ko: "Google Maps 링크 (선택사항)", ja: "Google Mapsリンク（任意）" },
   "createMeet.onlineUrlPlaceholder": { en: "Online meeting URL - Zoom, Google Meet, etc. (optional)", ko: "온라인 미팅 URL - Zoom, Google Meet 등 (선택사항)", ja: "オンラインミーティングURL - Zoom、Google Meetなど（任意）" },
+  "createMeet.createFailed": { en: "Failed to create meetup. Please try again.", ko: "모임 생성에 실패했습니다. 다시 시도해주세요.", ja: "ミートアップの作成に失敗しました。もう一度お試しください。" },
+  "createMeet.invalidParticipants": { en: "Please set valid participant numbers (at least 1 person).", ko: "유효한 참가 인원을 설정해주세요 (최소 1명 이상).", ja: "有効な参加人数を設定してください（最低1人以上）。" },
+  "createMeet.minOnePerson": { en: "Minimum 1 person required", ko: "최소 1명 이상 필요", ja: "最低1人以上必要" },
 
   // Edit Meet
   "editMeet.title": { en: "Edit Meetup", ko: "모임 수정", ja: "ミートアップを編集" },
@@ -719,6 +735,8 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Onboarding
   "onboarding.step": { en: "Step", ko: "단계", ja: "ステップ" },
+  "onboarding.selectUILanguage": { en: "Choose your language", ko: "언어를 선택하세요", ja: "言語を選択してください" },
+  "onboarding.uiLanguageDesc": { en: "Select the language you'd like to use for Borderly.", ko: "Borderly에서 사용할 언어를 선택하세요.", ja: "Borderlyで使用する言語を選択してください。" },
   "onboarding.welcome": { en: "Welcome to Borderly!", ko: "Borderly에 오신 것을 환영합니다!", ja: "Borderlyへようこそ！" },
   "onboarding.selectLanguagesDesc": { en: "Let's set up your profile. First, select the languages you speak.", ko: "프로필을 설정해 봅시다. 먼저, 사용하는 언어를 선택하세요.", ja: "プロフィールを設定しましょう。まず、話せる言語を選択してください。" },
   "onboarding.selectLanguagesLabel": { en: "Select your languages (at least 1)", ko: "언어를 선택하세요 (최소 1개)", ja: "言語を選択してください（1つ以上）" },
@@ -741,7 +759,16 @@ const translations: Record<string, Record<Locale, string>> = {
   "onboarding.next": { en: "Next", ko: "다음", ja: "次へ" },
   "onboarding.saving": { en: "Saving...", ko: "저장 중...", ja: "保存中..." },
   "onboarding.complete": { en: "Complete", ko: "완료", ja: "完了" },
-  "onboarding.saveFailed": { en: "Save failed", ko: "저장 실패", ja: "保存に失敗しました" },
+  "onboarding.saveFailed": { en: "Unable to save your profile. Please try again.", ko: "프로필을 저장할 수 없습니다. 다시 시도해 주세요.", ja: "プロフィールを保存できません。もう一度お試しください。" },
+  "onboarding.invalidPurpose": { en: "Please select at least one valid purpose.", ko: "최소 1개 이상의 목적을 선택해 주세요.", ja: "少なくとも1つの目的を選択してください。" },
+  "onboarding.invalidData": { en: "Some information is invalid. Please check your selections.", ko: "일부 정보가 올바르지 않습니다. 선택 내용을 확인해 주세요.", ja: "一部の情報が無効です。選択内容を確認してください。" },
+  "onboarding.networkError": { en: "Network error. Please check your connection and try again.", ko: "네트워크 오류입니다. 연결 상태를 확인하고 다시 시도해 주세요.", ja: "ネットワークエラーです。接続を確認してもう一度お試しください。" },
+  "onboarding.whatsYourName": { en: "What should we call you?", ko: "어떻게 불러드릴까요?", ja: "なんとお呼びしましょうか？" },
+  "onboarding.nameDesc": { en: "This is how you'll appear to others on Borderly.", ko: "다른 사용자에게 표시되는 이름입니다.", ja: "他のユーザーに表示される名前です。" },
+  "onboarding.displayNameLabel": { en: "Display Name", ko: "표시 이름", ja: "表示名" },
+  "onboarding.displayNamePlaceholder": { en: "Enter your name...", ko: "이름을 입력하세요...", ja: "名前を入力してください..." },
+  "onboarding.otherDescriptionLabel": { en: "Please describe (optional)", ko: "설명해 주세요 (선택사항)", ja: "説明してください（任意）" },
+  "onboarding.otherPlaceholder": { en: "Tell us more about why you're here...", ko: "Borderly를 사용하는 이유를 알려주세요...", ja: "Borderlyを使う理由を教えてください..." },
 
   // Onboarding Purpose (separate page)
   "onboardingPurpose.title": { en: "Select your purpose", ko: "사용 목적을 선택하세요", ja: "利用目的を選択してください" },

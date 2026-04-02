@@ -114,35 +114,74 @@ export async function addGroupMember(
 export async function removeGroupMember(
   conversationId: string,
   userId: string
-) {
-  // Verify caller is admin of the group (or removing themselves)
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Not authenticated" };
 
-  if (user.id !== userId) {
-    const { data: myMembership } = await supabase
+    // 1. 제거 대상의 역할 확인
+    const { data: targetMember } = await supabase
       .from("conversation_members")
       .select("role")
       .eq("conversation_id", conversationId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
-    if (!myMembership || myMembership.role !== "admin") return false;
-  }
+    if (!targetMember) {
+      return { success: false, error: "Member not found" };
+    }
 
-  const { error } = await supabase
-    .from("conversation_members")
-    .delete()
-    .eq("conversation_id", conversationId)
-    .eq("user_id", userId);
-  return !error;
+    // 2. 본인이 아닌 경우 admin 권한 확인
+    if (user.id !== userId) {
+      const { data: myMember } = await supabase
+        .from("conversation_members")
+        .select("role")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!myMember || myMember.role !== "admin") {
+        return { success: false, error: "Insufficient permissions" };
+      }
+    }
+
+    // 3. 대상이 admin이면 다른 admin 존재 여부 확인
+    if (targetMember.role === "admin") {
+      const { count } = await supabase
+        .from("conversation_members")
+        .select("*", { count: "exact", head: true })
+        .eq("conversation_id", conversationId)
+        .eq("role", "admin");
+
+      if ((count ?? 0) <= 1) {
+        return {
+          success: false,
+          error: "Cannot remove the last admin. Please promote another member first.",
+        };
+      }
+    }
+
+    // 4. 제거 실행
+    const { error } = await supabase
+      .from("conversation_members")
+      .delete()
+      .eq("conversation_id", conversationId)
+      .eq("user_id", userId);
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("removeGroupMember error:", err);
+    return { success: false, error: err.message };
+  }
 }
 
 export async function leaveGroup(conversationId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!user) return { success: false, error: "Not authenticated" };
 
   return removeGroupMember(conversationId, user.id);
 }

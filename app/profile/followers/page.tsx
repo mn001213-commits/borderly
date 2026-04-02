@@ -140,7 +140,10 @@ export default function FollowersPage() {
     const isMe = u.id === myId;
 
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div
+        className="flex items-center gap-3 rounded-2xl p-4 shadow-sm"
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+      >
         <Link
           href={`/u/${u.id}`}
           className="flex items-center gap-3 min-w-0 flex-1 no-underline text-inherit"
@@ -150,14 +153,18 @@ export default function FollowersPage() {
             <img
               src={u.avatar_url}
               alt={u.display_name ?? t("userProfile.user")}
-              className="h-11 w-11 rounded-full object-cover ring-1 ring-gray-200"
+              className="h-11 w-11 rounded-full object-cover"
+              style={{ border: "1px solid var(--border-soft)" }}
             />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200">
-              <User className="h-5 w-5 text-gray-400" />
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-full"
+              style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
+            >
+              <User className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
             </div>
           )}
-          <div className="truncate text-sm font-medium text-gray-900">
+          <div className="truncate text-sm font-medium" style={{ color: "var(--deep-navy)" }}>
             {u.display_name ?? t("userProfile.user")}
           </div>
         </Link>
@@ -167,7 +174,8 @@ export default function FollowersPage() {
             <button
               onClick={() => handleUnfollow(u.id)}
               disabled={!!busy[u.id]}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
             >
               <UserMinus className="h-4 w-4" />
               {t("following.unfollow")}
@@ -176,7 +184,8 @@ export default function FollowersPage() {
             <button
               onClick={() => handleFollow(u.id)}
               disabled={!!busy[u.id]}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-blue-600 px-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+              style={{ background: "var(--primary)" }}
             >
               <UserPlus className="h-4 w-4" />
               {t("userProfile.follow")}
@@ -188,12 +197,13 @@ export default function FollowersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
         <header className="flex items-center gap-3 py-3">
           <Link
             href="/profile"
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-[#F0F7FF] no-underline"
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium no-underline transition hover:opacity-80"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
           >
             <ArrowLeft className="h-4 w-4" />
             {t("common.back")}
@@ -202,16 +212,24 @@ export default function FollowersPage() {
         </header>
 
         {/* Search */}
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-          <Search className="h-4 w-4 shrink-0 text-gray-400" />
+        <div
+          className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+        >
+          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("followers.searchPlaceholder")}
-            className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            className="w-full bg-transparent text-sm outline-none"
+            style={{ color: "var(--deep-navy)" }}
           />
           {query && (
-            <button onClick={() => setQuery("")} className="text-xs font-medium text-gray-400 hover:text-gray-600">
+            <button
+              onClick={() => setQuery("")}
+              className="text-xs font-medium transition hover:opacity-70"
+              style={{ color: "var(--text-muted)" }}
+            >
               {t("common.clear")}
             </button>
           )}
@@ -219,14 +237,17 @@ export default function FollowersPage() {
 
         <div className="mt-4 space-y-2">
           {loading ? (
-            <div className="text-sm text-gray-500">{t("common.loading")}</div>
+            <div className="text-sm" style={{ color: "var(--text-muted)" }}>{t("common.loading")}</div>
           ) : isSearching ? (
             <>
-              <div className="text-xs text-gray-500 mb-2">
+              <div className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>
                 {searching ? t("followers.searching") : `${sortedSearchResults.length} ${t("common.results")}`}
               </div>
               {sortedSearchResults.length === 0 && !searching ? (
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">
+                <div
+                  className="rounded-2xl border border-dashed px-6 py-8 text-center text-sm"
+                  style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+                >
                   {t("followers.noResults")} &quot;{query.trim()}&quot;
                 </div>
               ) : (
@@ -234,10 +255,13 @@ export default function FollowersPage() {
               )}
             </>
           ) : sortedFollowers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-              <User className="mb-3 h-10 w-10 text-gray-300" />
-              <div className="text-sm font-semibold text-gray-800">{t("followers.empty")}</div>
-              <div className="mt-1 text-sm text-gray-500">
+            <div
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center"
+              style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)" }}
+            >
+              <User className="mb-3 h-10 w-10" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("followers.empty")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
                 {t("followers.emptyDesc")}
               </div>
             </div>

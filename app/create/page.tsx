@@ -7,6 +7,7 @@ import { ArrowLeft, ImagePlus, Film, X, MessageCircle, Info, HelpCircle, Sun, Br
 import { useT } from "@/app/components/LangProvider";
 import { isVideoFile, isVideoUrl } from "@/lib/format";
 import { type Category } from "@/lib/constants";
+import { DragDropUpload } from "@/components/DragDropUpload";
 
 const MAX_VIDEO_MB = 50;
 
@@ -318,33 +319,20 @@ export default function CreatePage() {
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center gap-3 py-16 transition hover:opacity-70"
-              style={{ background: "var(--light-blue)" }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full"
-                  style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}
-                >
-                  <ImagePlus className="h-6 w-6" style={{ color: "var(--primary)" }} />
-                </div>
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full"
-                  style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}
-                >
-                  <Film className="h-6 w-6" style={{ color: "var(--primary)" }} />
-                </div>
-              </div>
-              <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                {t("create.tapToAdd")}
-              </div>
-              <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                {t("create.autoCompress")} {MAX_VIDEO_MB}MB
-              </div>
-            </button>
+            <div className="p-4">
+              <DragDropUpload
+                onFilesSelected={(newFiles) => {
+                  setFiles((prev) => {
+                    const combined = [...prev, ...newFiles];
+                    return combined.slice(0, 5);
+                  });
+                }}
+                maxFiles={5}
+                acceptedTypes={["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4"]}
+                maxSizeMB={MAX_VIDEO_MB}
+                existingFiles={files}
+              />
+            </div>
           )}
           <input
             ref={fileRef}

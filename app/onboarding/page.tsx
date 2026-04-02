@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getCountryList, countryName } from "@/lib/countries";
 import { getAllLanguages, langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
+import { setLocale, type Locale } from "@/lib/i18n";
 
 const PURPOSE_KEYS = [
   "social",
@@ -185,18 +186,31 @@ export default function OnboardingPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
 
+  // Whether to show display name step (for Google login users without display_name)
+  const [needsDisplayName, setNeedsDisplayName] = useState(false);
   const [step, setStep] = useState(1);
-  const totalSteps = 3;
 
-  // Step 1: Languages
+  // Step 1: UI Language
+  const [uiLanguage, setUiLanguage] = useState<Locale>("en");
+
+  // Step 2 (conditional): Display Name
+  const [displayName, setDisplayName] = useState("");
+
+  // Step 3: Spoken Languages
   const [languages, setLanguages] = useState<string[]>([]);
 
-  // Step 2: Countries
+  // Step 4: Countries
   const [residenceCountry, setResidenceCountry] = useState("");
   const [originCountry, setOriginCountry] = useState("");
 
-  // Step 3: Purpose
+  // Step 5: Purpose
   const [purposes, setPurposes] = useState<string[]>([]);
+  const [otherDescription, setOtherDescription] = useState("");
+
+  // Calculate total steps based on whether display name is needed
+  // Always include UI language as step 1
+  const totalSteps = needsDisplayName ? 5 : 4;
+  const displayStep = step;
 
   const togglePurpose = (key: string) => {
     setPurposes((prev) =>
@@ -214,17 +228,32 @@ export default function OnboardingPage() {
       }
       setMyId(uid);
 
+      // Initialize UI language from localStorage
+      const storedLocale = localStorage.getItem("borderly-locale");
+      if (storedLocale === "ko" || storedLocale === "ja" || storedLocale === "en") {
+        setUiLanguage(storedLocale);
+      }
+
       const { data: profile } = await supabase
         .from("profiles")
-        .select("use_purpose, languages, residence_country, origin_country")
+        .select("display_name, use_purpose, languages, residence_country, origin_country")
         .eq("id", uid)
-        .single();
+        .maybeSingle();
 
-      if (profile?.use_purpose) {
+      // If profile is complete, redirect to home
+      if (profile?.use_purpose && profile?.languages?.length > 0 && profile?.residence_country && profile?.origin_country && profile?.display_name) {
         router.replace("/");
         return;
       }
 
+      // Check if display_name is needed
+      if (!profile?.display_name) {
+        setNeedsDisplayName(true);
+      } else {
+        setDisplayName(profile.display_name);
+      }
+
+      // Load existing data
       if (profile?.languages && Array.isArray(profile.languages) && profile.languages.length > 0) {
         setLanguages(profile.languages);
       }
@@ -240,15 +269,34 @@ export default function OnboardingPage() {
   }, [router]);
 
   const canNext = () => {
-    switch (step) {
-      case 1:
-        return languages.length >= 1;
-      case 2:
-        return residenceCountry.length === 2 && originCountry.length === 2;
-      case 3:
-        return purposes.length >= 1;
-      default:
-        return false;
+    if (needsDisplayName) {
+      switch (step) {
+        case 1:
+          return true; // UI language always valid (has default)
+        case 2:
+          return displayName.trim().length >= 2;
+        case 3:
+          return languages.length >= 1;
+        case 4:
+          return residenceCountry.length === 2 && originCountry.length === 2;
+        case 5:
+          return purposes.length >= 1;
+        default:
+          return false;
+      }
+    } else {
+      switch (step) {
+        case 1:
+          return true; // UI language always valid
+        case 2:
+          return languages.length >= 1;
+        case 3:
+          return residenceCountry.length === 2 && originCountry.length === 2;
+        case 4:
+          return purposes.length >= 1;
+        default:
+          return false;
+      }
     }
   };
 
@@ -257,13 +305,23 @@ export default function OnboardingPage() {
     setSaving(true);
     setErrorMsg(null);
 
+    // Determine user_type based on countries
+    const userType = residenceCountry === originCountry ? "local" : "foreigner";
+
+    // Build use_purpose array (include other description if provided)
+    const finalPurposes = purposes.includes("other") && otherDescription.trim()
+      ? purposes.map(p => p === "other" ? `other:${otherDescription.trim()}` : p)
+      : purposes;
+
     const { error } = await supabase.from("profiles").upsert(
       {
         id: myId,
+        display_name: displayName.trim(),
         languages,
         residence_country: residenceCountry,
         origin_country: originCountry,
-        use_purpose: purposes.join(", "),
+        user_type: userType,
+        use_purpose: finalPurposes,
       },
       { onConflict: "id" }
     );
@@ -271,7 +329,19 @@ export default function OnboardingPage() {
     setSaving(false);
 
     if (error) {
-      setErrorMsg(t("onboarding.saveFailed") + ": " + error.message);
+      // User-friendly error messages
+      let friendlyMessage = t("onboarding.saveFailed");
+
+      if (error.message.includes("profiles_use_purpose_check")) {
+        friendlyMessage = t("onboarding.invalidPurpose");
+      } else if (error.message.includes("check constraint") || error.message.includes("violates")) {
+        friendlyMessage = t("onboarding.invalidData");
+      } else if (error.message.includes("network") || error.message.includes("fetch")) {
+        friendlyMessage = t("onboarding.networkError");
+      }
+
+      setErrorMsg(friendlyMessage);
+      console.error("Onboarding save error:", error);
       return;
     }
 
@@ -285,6 +355,191 @@ export default function OnboardingPage() {
       </div>
     );
   }
+
+  // UI Language selection component
+  const renderUILanguageStep = () => {
+    const uiLanguages: { value: Locale; label: string; nativeLabel: string }[] = [
+      { value: "en", label: "English", nativeLabel: "English" },
+      { value: "ko", label: "Korean", nativeLabel: "한국어" },
+      { value: "ja", label: "Japanese", nativeLabel: "日本語" },
+    ];
+
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.selectUILanguage")}</h1>
+        <p className="text-sm text-[var(--text-secondary)] mb-6">
+          {t("onboarding.uiLanguageDesc")}
+        </p>
+        <div className="space-y-3">
+          {uiLanguages.map((lang) => (
+            <button
+              key={lang.value}
+              type="button"
+              onClick={() => setUiLanguage(lang.value)}
+              className={`w-full text-left rounded-xl border px-4 py-4 text-sm font-medium transition ${
+                uiLanguage === lang.value
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                  : "border-[var(--border-soft)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--light-blue)]"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-base">{lang.nativeLabel}</span>
+                <span className="text-xs opacity-70">{lang.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render step content based on needsDisplayName and current step
+  const renderStepContent = () => {
+    if (needsDisplayName) {
+      switch (step) {
+        case 1:
+          return renderUILanguageStep();
+        case 2:
+          return (
+            <div>
+              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whatsYourName")}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                {t("onboarding.nameDesc")}
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
+                  {t("onboarding.displayNameLabel")}
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={t("onboarding.displayNamePlaceholder")}
+                  maxLength={50}
+                  className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--light-blue)] px-4 py-3 text-sm outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--primary)]"
+                />
+              </div>
+            </div>
+          );
+        case 3:
+          return (
+            <div>
+              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.welcome")}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                {t("onboarding.selectLanguagesDesc")}
+              </p>
+              <LanguageSelect
+                selected={languages}
+                onChange={setLanguages}
+                labelText={t("onboarding.selectLanguagesLabel")}
+                searchPlaceholder={t("onboarding.searchLanguages")}
+                noResultsText={t("onboarding.noResults")}
+              />
+            </div>
+          );
+        case 4:
+          return (
+            <div>
+              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whereAreYou")}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                {t("onboarding.countryDesc")}
+              </p>
+              <div className="space-y-4">
+                <CountrySelect value={residenceCountry} onChange={setResidenceCountry} label={t("onboarding.residenceCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
+                <CountrySelect value={originCountry} onChange={setOriginCountry} label={t("onboarding.originCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
+              </div>
+            </div>
+          );
+        case 5:
+          return renderPurposeStep();
+        default:
+          return null;
+      }
+    } else {
+      switch (step) {
+        case 1:
+          return renderUILanguageStep();
+        case 2:
+          return (
+            <div>
+              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.welcome")}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                {t("onboarding.selectLanguagesDesc")}
+              </p>
+              <LanguageSelect
+                selected={languages}
+                onChange={setLanguages}
+                labelText={t("onboarding.selectLanguagesLabel")}
+                searchPlaceholder={t("onboarding.searchLanguages")}
+                noResultsText={t("onboarding.noResults")}
+              />
+            </div>
+          );
+        case 3:
+          return (
+            <div>
+              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whereAreYou")}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                {t("onboarding.countryDesc")}
+              </p>
+              <div className="space-y-4">
+                <CountrySelect value={residenceCountry} onChange={setResidenceCountry} label={t("onboarding.residenceCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
+                <CountrySelect value={originCountry} onChange={setOriginCountry} label={t("onboarding.originCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
+              </div>
+            </div>
+          );
+        case 4:
+          return renderPurposeStep();
+        default:
+          return null;
+      }
+    }
+  };
+
+  const renderPurposeStep = () => (
+    <div>
+      <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whatBringsYou")}</h1>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">
+        {t("onboarding.purposeDesc")}
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {PURPOSE_KEYS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => togglePurpose(key)}
+            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+              purposes.includes(key)
+                ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                : "border-[var(--border-soft)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--light-blue)]"
+            }`}
+          >
+            {t(`onboarding.purpose.${key}`)}
+          </button>
+        ))}
+      </div>
+
+      {/* Other description textarea - only show when 'other' is selected */}
+      {purposes.includes("other") && (
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
+            {t("onboarding.otherDescriptionLabel")}
+          </label>
+          <textarea
+            value={otherDescription}
+            onChange={(e) => setOtherDescription(e.target.value)}
+            placeholder={t("onboarding.otherPlaceholder")}
+            maxLength={200}
+            rows={3}
+            className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--light-blue)] px-4 py-3 text-sm outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] resize-none"
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  const isLastStep = step === totalSteps;
 
   return (
     <div className="min-h-screen text-[var(--deep-navy)]">
@@ -303,63 +558,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="b-card p-6 b-animate-in">
-          {/* Step 1: Languages */}
-          {step === 1 && (
-            <div>
-              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.welcome")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">
-                {t("onboarding.selectLanguagesDesc")}
-              </p>
-              <LanguageSelect
-                selected={languages}
-                onChange={setLanguages}
-                labelText={t("onboarding.selectLanguagesLabel")}
-                searchPlaceholder={t("onboarding.searchLanguages")}
-                noResultsText={t("onboarding.noResults")}
-              />
-            </div>
-          )}
-
-          {/* Step 2: Countries */}
-          {step === 2 && (
-            <div>
-              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whereAreYou")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">
-                {t("onboarding.countryDesc")}
-              </p>
-              <div className="space-y-4">
-                <CountrySelect value={residenceCountry} onChange={setResidenceCountry} label={t("onboarding.residenceCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
-                <CountrySelect value={originCountry} onChange={setOriginCountry} label={t("onboarding.originCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Purpose */}
-          {step === 3 && (
-            <div>
-              <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whatBringsYou")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">
-                {t("onboarding.purposeDesc")}
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                {PURPOSE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => togglePurpose(key)}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                      purposes.includes(key)
-                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
-                        : "border-[var(--border-soft)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--light-blue)]"
-                    }`}
-                  >
-                    {t(`onboarding.purpose.${key}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderStepContent()}
 
           {/* Error message */}
           {errorMsg && (
@@ -383,12 +582,16 @@ export default function OnboardingPage() {
               </button>
             )}
 
-            {step < totalSteps && (
+            {!isLastStep && (
               <button
                 type="button"
                 disabled={!canNext()}
                 onClick={() => {
                   setErrorMsg(null);
+                  // If leaving UI language step, apply the selected locale
+                  if (step === 1) {
+                    setLocale(uiLanguage);
+                  }
                   setStep((s) => s + 1);
                 }}
                 className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -397,7 +600,7 @@ export default function OnboardingPage() {
               </button>
             )}
 
-            {step === totalSteps && (
+            {isLastStep && (
               <button
                 type="button"
                 disabled={!canNext() || saving}
