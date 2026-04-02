@@ -6,7 +6,7 @@ export const CAT_COLORS: Record<string, { bg: string; color: string }> = {
   question:{ bg: "#F5F0FF", color: "#7B2FF2" },
   daily:   { bg: "#EEFBF3", color: "#06D6A0" },
   jobs:    { bg: "#FFF8EB", color: "#E6A817" },
-  meet:    { bg: "#FFF0F3", color: "#FF6B6B" },
+  meet:    { bg: "#EBF3FF", color: "#4A8FE7" },
   skill:   { bg: "#EDF8FF", color: "#0096C7" },
   ngo:     { bg: "#F0FFF4", color: "#2D9F5D" },
   legal:   { bg: "#FFF5F5", color: "#C1292E" },
