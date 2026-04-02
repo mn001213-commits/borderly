@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { listNgoPosts, type NgoPost, type NgoCategory } from "@/lib/ngoService";
+import { swrCache } from "@/lib/swrCache";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
 import { useT } from "@/app/components/LangProvider";
 import {
@@ -23,6 +24,7 @@ import {
   HeartPulse,
   MoreHorizontal,
 } from "lucide-react";
+import SortDropdown from "@/app/components/SortDropdown";
 
 type NgoCat = "all" | "jobs" | "housing" | "legal" | "education" | "health" | "other";
 
@@ -76,6 +78,13 @@ export default function NGOPage() {
 
   useEffect(() => {
     (async () => {
+      // SWR: show cached NGO posts instantly
+      const cached = swrCache.get<NgoPost[]>("ngo-posts");
+      if (cached) {
+        setPosts(cached);
+        setLoading(false);
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: prof } = await supabase
@@ -93,10 +102,11 @@ export default function NGOPage() {
       }
 
       try {
-        const list = await listNgoPosts(80);
+        const list = await listNgoPosts(undefined, 80);
         setPosts(list);
+        swrCache.set("ngo-posts", list);
       } catch {
-        setPosts([]);
+        if (!cached) setPosts([]);
       }
       setLoading(false);
     })();
@@ -142,7 +152,7 @@ export default function NGOPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-xl font-bold">{t("ngo.title")}</h1>
+            <h1 className="text-xl font-bold" style={{ letterSpacing: "-0.02em" }}>{t("ngo.title")}</h1>
             <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
               {t("ngo.desc")}
             </p>
@@ -162,34 +172,24 @@ export default function NGOPage() {
             </span>
           )}
           {isNgo && (
-            <div className="flex gap-2">
-              <Link
-                href="/ngo/applications"
-                className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold no-underline transition hover:opacity-80"
-                style={{ background: "var(--light-blue)", color: "var(--primary)", border: "1px solid var(--border-soft)" }}
-              >
-                <ClipboardList className="h-4 w-4" />
-                {t("ngo.applications")}
-              </Link>
-              <Link
-                href="/ngo/new"
-                className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white no-underline transition hover:opacity-90"
-                style={{ background: "var(--primary)" }}
-              >
-                <Plus className="h-4 w-4" />
-                {t("ngo.newPost")}
-              </Link>
-            </div>
+            <Link
+              href="/ngo/applications"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold no-underline transition hover:opacity-80"
+              style={{ background: "var(--light-blue)", color: "var(--primary)", border: "1px solid var(--border-soft)" }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              {t("ngo.applications")}
+            </Link>
           )}
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
+        {/* Search + Create button */}
+        <div className="mb-6 flex items-center gap-2">
           <div
-            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
             style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
           >
-            <Search className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -198,63 +198,47 @@ export default function NGOPage() {
               style={{ color: "var(--deep-navy)" }}
             />
             {q && (
-              <button type="button" onClick={() => setQ("")} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+              <button type="button" onClick={() => setQ("")} className="text-xs font-medium whitespace-nowrap hover:opacity-70" style={{ color: "var(--text-muted)" }}>
                 {t("common.clear")}
               </button>
             )}
           </div>
+          {isNgo && (
+            <Link
+              href="/ngo/new"
+              className="b-btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl no-underline"
+            >
+              <Plus className="h-5 w-5" />
+            </Link>
+          )}
         </div>
 
         {/* Category tabs + sort */}
-        <div className="mb-6 flex flex-col gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {catTabs.map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setActiveCat(k)}
-                className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
-              >
-                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
-                {catLabel(k)}
-              </button>
-            ))}
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
+              {catTabs.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setActiveCat(k)}
+                  className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                >
+                  {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === k ? "#fff" : ci.color }} />; })()}
+                  {catLabel(k)}
+                </button>
+              ))}
+            </div>
+            <SortDropdown
+              options={[
+                { key: "latest", label: t("common.latest"), icon: <Clock className="h-3.5 w-3.5" /> },
+                { key: "popular", label: t("common.popular"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
+              ]}
+              value={sortMode}
+              onChange={(k) => setSortMode(k as "latest" | "popular")}
+            />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSortMode("latest")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "latest" ? "var(--primary)" : "transparent",
-                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {t("common.latest")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("popular")}
-              className="b-pill"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
-                background: sortMode === "popular" ? "var(--primary)" : "transparent",
-                color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              {t("common.popular")}
-            </button>
-
+          <div className="mt-2 flex items-center">
             <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
               {filtered.length} {t("common.results")}
               {q.trim() && <> &middot; &quot;{q.trim()}&quot;</>}
@@ -273,10 +257,7 @@ export default function NGOPage() {
           )}
 
           {!loading && filtered.length === 0 && (
-            <div
-              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center b-animate-in"
-              style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
-            >
+            <div className="b-empty-state b-animate-in">
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
                 {t("ngo.noPostsYet")}

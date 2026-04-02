@@ -26,6 +26,7 @@ import {
   Briefcase,
   MoreHorizontal,
 } from "lucide-react";
+import SortDropdown from "@/app/components/SortDropdown";
 
 type Post = {
   id: string;
@@ -398,64 +399,45 @@ export default function HomePage() {
               style={{ color: "var(--deep-navy)" }}
             />
             {searchInput && (
-              <button type="button" onClick={clearSearch} className="text-xs font-medium hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+              <button type="button" onClick={clearSearch} className="text-xs font-medium whitespace-nowrap hover:opacity-70" style={{ color: "var(--text-muted)" }}>
                 {t("common.clear")}
               </button>
             )}
           </div>
           <Link
             href="/create"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
+            className="b-btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl no-underline"
           >
             <Plus className="h-5 w-5" />
           </Link>
         </div>
 
         {/* Category tabs + sort */}
-        <div className="mb-6 flex flex-col gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {catTabs.map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setActiveCat(k)}
-                className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
-              >
-                {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === k ? "#fff" : ci.color }} />; })()}
-                {catLabel(k)}
-              </button>
-            ))}
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
+              {catTabs.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setActiveCat(k)}
+                  className={activeCat === k ? "b-pill b-pill-active" : "b-pill b-pill-inactive"}
+                >
+                  {(() => { const ci = catIcon[k]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === k ? "#fff" : ci.color }} />; })()}
+                  {catLabel(k)}
+                </button>
+              ))}
+            </div>
+            <SortDropdown
+              options={[
+                { key: "latest", label: t("common.latest"), icon: <Clock className="h-3.5 w-3.5" /> },
+                { key: "likes", label: t("common.popular"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
+              ]}
+              value={sortMode}
+              onChange={(k) => setSortMode(k as "latest" | "likes")}
+            />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSortMode("latest")}
-              className="b-pill h-9 px-3 text-xs"
-              style={{
-                background: sortMode === "latest" ? "var(--primary)" : "transparent",
-                color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" style={{ color: sortMode === "latest" ? "#fff" : "var(--text-muted)" }} />
-              {t("common.latest")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("likes")}
-              className="b-pill h-9 px-3 text-xs"
-              style={{
-                background: sortMode === "likes" ? "var(--primary)" : "transparent",
-                color: sortMode === "likes" ? "#fff" : "var(--text-secondary)",
-                border: sortMode === "likes" ? "none" : "1px solid var(--border-soft)",
-              }}
-            >
-              <TrendingUp className="h-3.5 w-3.5" style={{ color: sortMode === "likes" ? "#fff" : "var(--text-muted)" }} />
-              {t("common.popular")}
-            </button>
-
+          <div className="mt-2 flex items-center">
             <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
               {filteredPosts.length} {t("common.posts")}
               {searchText && <> · &quot;{searchText}&quot;</>}

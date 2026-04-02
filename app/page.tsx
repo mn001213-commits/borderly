@@ -26,11 +26,15 @@ import {
   Wrench,
   PartyPopper,
   Rocket,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { swrCache } from "@/lib/swrCache";
 import { formatRelative } from "@/lib/format";
 import { CAT_COLORS } from "@/lib/constants";
+import { sortByEngagement } from "@/lib/sortingUtils";
 import { useT } from "@/app/components/LangProvider";
+import SortDropdown from "@/app/components/SortDropdown";
 
 type SearchTab = "posts" | "meets";
 type SortMode = "latest" | "popular" | "newest" | "soonest";
@@ -156,10 +160,17 @@ export default function BrowsePage() {
     []
   );
 
+  const sortedPosts = useMemo(() => {
+    if (sortMode === "popular") {
+      return sortByEngagement(posts);
+    }
+    return posts;
+  }, [posts, sortMode]);
+
   const resultCount = useMemo(() => {
-    if (tab === "posts") return posts.length;
+    if (tab === "posts") return sortedPosts.length;
     return meets.length;
-  }, [tab, posts.length, meets.length]);
+  }, [tab, sortedPosts.length, meets.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -204,9 +215,22 @@ export default function BrowsePage() {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
       setErrorMsg(null);
       const keyword = debouncedQ;
+      const cacheKey = `browse:${tab}:${tab === "posts" ? activeCat : activeMeetType}:${sortMode}:${keyword}`;
+
+      // SWR: show cached data instantly, skip skeleton
+      const cached = tab === "posts"
+        ? swrCache.get<PostRow[]>(cacheKey)
+        : swrCache.get<MeetRow[]>(cacheKey);
+
+      if (cached) {
+        if (tab === "posts") { setPosts(cached as PostRow[]); setMeets([]); }
+        else { setMeets(cached as MeetRow[]); setPosts([]); }
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
 
       try {
         if (tab === "posts") {
@@ -222,8 +246,39 @@ export default function BrowsePage() {
 
           const { data, error } = await query;
           if (error) throw error;
-          setPosts((data ?? []).map((p: any) => ({ ...p, like_count: 0, comment_count: 0 })) as PostRow[]);
+          const rawPosts = data ?? [];
+          const postIds = rawPosts.map((p: any) => p.id);
+
+          // Fetch actual engagement counts
+          let likeCounts = new Map<string, number>();
+          let commentCounts = new Map<string, number>();
+
+          if (postIds.length > 0) {
+            const [likesRes, commentsRes] = await Promise.all([
+              supabase.from("post_likes").select("post_id").in("post_id", postIds),
+              supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+            ]);
+
+            if (likesRes.data) {
+              for (const row of likesRes.data) {
+                likeCounts.set(row.post_id, (likeCounts.get(row.post_id) ?? 0) + 1);
+              }
+            }
+            if (commentsRes.data) {
+              for (const row of commentsRes.data) {
+                commentCounts.set(row.post_id, (commentCounts.get(row.post_id) ?? 0) + 1);
+              }
+            }
+          }
+
+          const fresh = rawPosts.map((p: any) => ({
+            ...p,
+            like_count: likeCounts.get(p.id) ?? 0,
+            comment_count: commentCounts.get(p.id) ?? 0,
+          })) as PostRow[];
+          setPosts(fresh);
           setMeets([]);
+          swrCache.set(cacheKey, fresh);
         }
 
         if (tab === "meets") {
@@ -247,14 +302,15 @@ export default function BrowsePage() {
 
           const { data, error } = await query;
           if (error) throw error;
-          setMeets((data ?? []) as MeetRow[]);
+          const fresh = (data ?? []) as MeetRow[];
+          setMeets(fresh);
           setPosts([]);
+          swrCache.set(cacheKey, fresh);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load data.";
         setErrorMsg(message);
-        setPosts([]);
-        setMeets([]);
+        if (!cached) { setPosts([]); setMeets([]); }
       } finally {
         setLoading(false);
       }
@@ -301,32 +357,40 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Search bar */}
+        {/* Search bar — glass card */}
         <div className="sticky top-2 z-20">
-          <div className="b-card p-3" style={{ backdropFilter: "blur(12px)" }}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("browse.searchAll")}
-                className="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm outline-none"
-                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
-              />
-              {q && (
-                <button
-                  type="button"
-                  onClick={() => setQ("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded-full transition hover:opacity-70"
-                  style={{ background: "var(--border-soft)" }}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
+          <div
+            className="b-card-glass p-3"
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3"
+                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
+              >
+                <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={t("browse.searchAll")}
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+                  style={{ color: "var(--deep-navy)" }}
+                />
+                {q && (
+                  <button type="button" onClick={() => setQ("")} className="text-xs font-medium whitespace-nowrap hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+                    {t("common.clear")}
+                  </button>
+                )}
+              </div>
+              <Link
+                href={tab === "meets" ? "/meet/new" : "/create"}
+                className="b-btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl no-underline"
+              >
+                <Plus className="h-5 w-5" />
+              </Link>
             </div>
 
             {/* Tabs */}
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex items-center gap-2">
               {(["posts", "meets"] as SearchTab[]).map((tb) => (
                 <button
                   key={tb}
@@ -337,12 +401,7 @@ export default function BrowsePage() {
                     if (tb === "posts") setSortMode("latest");
                     if (tb === "meets") setSortMode("newest");
                   }}
-                  className="b-pill shrink-0 h-9 px-3 text-xs inline-flex items-center gap-1.5"
-                  style={{
-                    background: tab === tb ? "var(--primary)" : "transparent",
-                    color: tab === tb ? "#fff" : "var(--text-secondary)",
-                    border: tab === tb ? "none" : "1px solid var(--border-soft)",
-                  }}
+                  className={`b-pill shrink-0 h-9 px-3 text-xs inline-flex items-center gap-1.5 ${tab === tb ? "b-pill-active" : "b-pill-inactive"}`}
                 >
                   {tabIcon(tb)}
                   {tabLabel(tb)}
@@ -352,83 +411,70 @@ export default function BrowsePage() {
           </div>
         </div>
 
-        {/* Category pills (posts only) */}
+        {/* Category pills + sort dropdown (posts) */}
         {tab === "posts" && (
-          <div className="mt-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
-            {cats.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveCat(c.id)}
-                className="b-pill shrink-0 h-9 px-3 text-xs"
-                style={{
-                  background: activeCat === c.id ? "var(--primary)" : "transparent",
-                  color: activeCat === c.id ? "#fff" : "var(--text-secondary)",
-                  border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
-                }}
-              >
-                {(() => { const ci = catIcon[c.id]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: ci.color }} />; })()}
-                {t("cat." + c.id)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Meet type pills */}
-        {tab === "meets" && (
-          <div className="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            {meetTypes.map((mt) => {
-              const mi = meetTypeIcon[mt];
-              const Icon = mi?.icon;
-              return (
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+              {cats.map((c) => (
                 <button
-                  key={mt}
-                  onClick={() => setActiveMeetType(mt)}
-                  className="b-pill shrink-0 h-9 px-3 text-xs"
-                  style={{
-                    background: activeMeetType === mt ? "var(--primary)" : "transparent",
-                    color: activeMeetType === mt ? "#fff" : "var(--text-secondary)",
-                    border: activeMeetType === mt ? "none" : "1px solid var(--border-soft)",
-                  }}
+                  key={c.id}
+                  onClick={() => setActiveCat(c.id)}
+                  className={`b-pill shrink-0 h-9 px-3 text-xs ${activeCat === c.id ? "b-pill-active" : "b-pill-inactive"}`}
                 >
-                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeMeetType === mt ? "#fff" : mi.color }} />}
-                  {mt === "all" ? t("common.all") : (MEET_TYPE_LABELS[mt] ? t(MEET_TYPE_LABELS[mt]) : mt)}
+                  {(() => { const ci = catIcon[c.id]; if (!ci) return null; const I = ci.icon; return <I className="h-3.5 w-3.5 shrink-0" style={{ color: activeCat === c.id ? "#fff" : ci.color }} />; })()}
+                  {t("cat." + c.id)}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <SortDropdown
+              options={[
+                { key: "latest", label: t("common.latest"), icon: <Clock3 className="h-3.5 w-3.5" /> },
+                { key: "popular", label: t("common.popular"), icon: <Sparkles className="h-3.5 w-3.5" /> },
+              ]}
+              value={sortMode}
+              onChange={(k) => setSortMode(k as SortMode)}
+            />
           </div>
         )}
 
+        {/* Meet type pills + sort dropdown */}
+        {tab === "meets" && (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+              {meetTypes.map((mt) => {
+                const mi = meetTypeIcon[mt];
+                const Icon = mi?.icon;
+                return (
+                  <button
+                    key={mt}
+                    onClick={() => setActiveMeetType(mt)}
+                    className={`b-pill shrink-0 h-9 px-3 text-xs ${activeMeetType === mt ? "b-pill-active" : "b-pill-inactive"}`}
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mr-1 inline" style={{ color: activeMeetType === mt ? "#fff" : mi.color }} />}
+                    {mt === "all" ? t("common.all") : (MEET_TYPE_LABELS[mt] ? t(MEET_TYPE_LABELS[mt]) : mt)}
+                  </button>
+                );
+              })}
+            </div>
+            <SortDropdown
+              options={[
+                { key: "newest", label: t("browse.newest"), icon: <Clock3 className="h-3.5 w-3.5" /> },
+                { key: "soonest", label: t("browse.soonest"), icon: <CalendarDays className="h-3.5 w-3.5" /> },
+              ]}
+              value={sortMode}
+              onChange={(k) => setSortMode(k as SortMode)}
+            />
+          </div>
+        )}
 
-        {/* Sort pills */}
-        <div className="mt-3 flex items-center gap-3">
-          {tab === "posts" && (
-            <>
-              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "latest" ? "var(--primary)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
-                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("common.latest")}
-              </button>
-              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "popular" ? "var(--primary)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
-                <Sparkles className="mr-1 inline h-3.5 w-3.5" />{t("common.popular")}
-              </button>
-            </>
-          )}
-          {tab === "meets" && (
-            <>
-              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "newest" ? "var(--primary)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
-                <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("browse.newest")}
-              </button>
-              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "soonest" ? "var(--primary)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
-                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />{t("browse.soonest")}
-              </button>
-            </>
-          )}
-
-          {/* Result count */}
-          {!loading && !errorMsg && (
+        {/* Result count */}
+        {!loading && !errorMsg && (
+          <div className="mt-3 flex items-center">
             <span className="ml-auto text-xs font-medium" style={{ color: "var(--text-muted)" }}>
               {resultCount} {tab === "posts" ? (resultCount === 1 ? t("browse.post") : t("browse.posts")) : (resultCount === 1 ? t("browse.meet") : t("browse.meets"))}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Recent searches */}
         {recentSearches.length > 0 && !debouncedQ && (
@@ -442,8 +488,8 @@ export default function BrowsePage() {
                 <button
                   key={idx}
                   onClick={() => applyRecentSearch(item)}
-                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition hover:opacity-80"
-                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium b-list-item"
+                  style={{ color: "var(--text-secondary)", boxShadow: "var(--ring-border)" }}
                 >
                   {tabIcon(item.tab)}
                   {item.keyword}
@@ -475,8 +521,8 @@ export default function BrowsePage() {
           )}
 
           {/* Empty states */}
-          {!loading && !errorMsg && tab === "posts" && posts.length === 0 && (
-            <div className="b-animate-in flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+          {!loading && !errorMsg && tab === "posts" && sortedPosts.length === 0 && (
+            <div className="b-animate-in b-empty-state">
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("browse.noPostsFound")}</div>
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
@@ -490,7 +536,7 @@ export default function BrowsePage() {
           )}
 
           {!loading && !errorMsg && tab === "meets" && meets.length === 0 && (
-            <div className="b-animate-in flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+            <div className="b-animate-in b-empty-state">
               <CalendarDays className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("browse.noMeetsFound")}</div>
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
@@ -507,7 +553,7 @@ export default function BrowsePage() {
           {/* Post results */}
           {!loading &&
             tab === "posts" &&
-            posts.map((p, idx) => {
+            sortedPosts.map((p, idx) => {
               const cc = CAT_COLORS[p.category] ?? CAT_COLORS.other;
               return (
                 <Link key={p.id} href={`/posts/${p.id}`} className="block no-underline text-inherit">
