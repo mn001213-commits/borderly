@@ -104,6 +104,8 @@ export default function PostDetailPage() {
 
   const [copiedToast, setCopiedToast] = useState(false);
 
+  const [authorProfile, setAuthorProfile] = useState<{ avatar_url: string | null; display_name: string | null } | null>(null);
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const myIdRef = useRef<string | null>(null);
@@ -283,6 +285,13 @@ export default function PostDetailPage() {
         setTimeout(() => router.replace("/"), 600);
         return;
       }
+
+      const { data: ap } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", p.user_id)
+        .maybeSingle();
+      setAuthorProfile(ap ?? null);
 
       await loadComments(postId);
       await loadLikeState(postId, meId);
@@ -1031,7 +1040,8 @@ export default function PostDetailPage() {
           </div>
         )}
 
-        <section className="b-card mt-4 p-5">
+        <div className="mt-4 xl:grid xl:grid-cols-[3fr_2fr] xl:items-start xl:gap-6">
+        <section className="b-card p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold leading-7 sm:text-xl" style={{ color: "var(--deep-navy)" }}>{post.title}</h1>
@@ -1048,7 +1058,22 @@ export default function PostDetailPage() {
                     </span>
                   );
                 })()}
-                <Link href={`/u/${post.user_id}`} className="font-medium hover:underline" style={{ color: "var(--text-secondary)" }}>{post.author_name ?? t("post.anonymous")}</Link>
+                <Link href={`/u/${post.user_id}`} className="inline-flex items-center gap-1.5 no-underline">
+                  <div
+                    className="h-6 w-6 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    {authorProfile?.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={authorProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      (authorProfile?.display_name ?? post.author_name ?? "?")[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
+                    {authorProfile?.display_name ?? post.author_name ?? t("post.anonymous")}
+                  </span>
+                </Link>
                 <span>·</span>
                 <span>{formatRelative(post.created_at, t)}</span>
               </div>
@@ -1193,7 +1218,7 @@ export default function PostDetailPage() {
           <div className="mt-4 whitespace-pre-wrap text-sm leading-7" style={{ color: "var(--text-secondary)" }}>{post.content}</div>
         </section>
 
-        <section className="b-card mt-4 p-5">
+        <section className="b-card mt-4 p-5 xl:mt-0 xl:sticky xl:top-[72px] xl:max-h-[calc(100vh-90px)] xl:overflow-y-auto">
           <div className="flex items-center justify-between">
             <div className="text-base font-semibold" style={{ color: "var(--deep-navy)" }}>{t("post.comments")}</div>
             <div className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -1247,6 +1272,7 @@ export default function PostDetailPage() {
             </div>
           </div>
         </section>
+        </div>
       </div>
 
       {copiedToast && (
