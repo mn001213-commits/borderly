@@ -384,6 +384,7 @@ export default function BrowsePage() {
               <Link
                 href={tab === "meets" ? "/meet/new" : "/create"}
                 className="b-btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white no-underline"
+                style={{ padding: 0 }}
               >
                 <Plus className="h-5 w-5" />
               </Link>
