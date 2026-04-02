@@ -238,11 +238,8 @@ export default function ChatsPage() {
             <button
               key={tb.key}
               onClick={() => setTab(tb.key)}
-              className="b-pill shrink-0"
+              className="b-pill shrink-0 h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: tab === tb.key ? "var(--primary)" : "transparent",
                 color: tab === tb.key ? "#fff" : "var(--text-secondary)",
                 border: tab === tb.key ? "none" : "1px solid var(--border-soft)",
@@ -272,7 +269,7 @@ export default function ChatsPage() {
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("chat.startConversation")}</div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* NGO Chats — green cards */}
               {(tab === "all" || tab === "ngo") &&
                 ngoGroups.map((g, idx) => (
@@ -347,7 +344,7 @@ export default function ChatsPage() {
                             <div className="flex items-center gap-2">
                               <div className="truncate text-sm font-medium">{r.other_display_name ?? "User"}</div>
                               {unread > 0 && (
-                                <span className="inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white" style={{ background: "var(--primary)" }}>{unread}</span>
+                                <span className="inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ background: "var(--primary)" }}>{unread}</span>
                               )}
                             </div>
                             <div className="mt-0.5 truncate text-sm" style={{ color: "var(--text-muted)" }}>

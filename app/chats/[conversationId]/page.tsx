@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Home, Send, ShieldBan, ShieldCheck, Users, LogOut, ImagePlus, X, SmilePlus } from "lucide-react";
+import { ArrowLeft, Send, ShieldBan, ShieldCheck, Users, LogOut, ImagePlus, X, SmilePlus, MoreVertical, UserX, Flag } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -57,6 +56,8 @@ export default function ChatRoomPage() {
   const [fullImage, setFullImage] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({});
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastTypingSentRef = useRef(0);
 
@@ -66,6 +67,18 @@ export default function ChatRoomPage() {
     lastTypingSentRef.current = now;
     sendTyping();
   }, [sendTyping]);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMoreMenu]);
 
   // Group member name map
   const memberNameMap = useMemo(() => {
@@ -251,104 +264,141 @@ export default function ChatRoomPage() {
   }, [messages.length]);
 
   return (
-    <div className="fixed inset-0 top-14 flex flex-col" style={{ color: "var(--deep-navy)", background: "var(--bg-snow)" }}>
+    <div className="fixed inset-0 flex flex-col" style={{ color: "var(--deep-navy)", background: "var(--bg-snow)" }}>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
         <header className="shrink-0 z-40" style={{ borderBottom: "1px solid var(--border-soft)" }}>
           <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => router.push("/chats")}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[var(--light-blue)]"
-                style={{ color: "var(--text-secondary)" }}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-[var(--light-blue)]"
+                style={{ color: "var(--deep-navy)" }}
                 aria-label="Back"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
 
-              <div>
-                <div className="text-base font-semibold tracking-tight">
+              {!isGroup && other?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={other.avatar_url}
+                  alt=""
+                  className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  style={{ border: "1px solid var(--border-soft)" }}
+                />
+              ) : (
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                  style={{ background: "var(--light-blue)", color: "var(--text-muted)", border: "1px solid var(--border-soft)" }}
+                >
+                  {isGroup
+                    ? (groupName ?? "G")[0].toUpperCase()
+                    : (other?.display_name ?? "U")[0].toUpperCase()}
+                </div>
+              )}
+
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold tracking-tight truncate">
                   {isGroup ? (groupName ?? t("chatGroup.groupChat")) : (other?.display_name ?? t("chat.user"))}
                 </div>
-                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  {blockedEither
-                    ? t("chat.conversationUnavailable")
-                    : isGroup
-                    ? `${groupMembers.length} ${t("chat.members")}`
-                    : t("chat.directMessage")}
-                </div>
+                {blockedEither ? (
+                  <div className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+                    {t("chat.conversationUnavailable")}
+                  </div>
+                ) : isGroup ? (
+                  <div className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+                    {groupMembers.length} {t("chat.members")}
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {isGroup ? (
-                <>
-                  <button
-                    onClick={() => setShowMembers((prev) => !prev)}
-                    className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition hover:bg-[var(--light-blue)]"
-                    style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
-                    title={t("chat.members")}
-                  >
-                    <Users className="h-4 w-4" />
-                    {groupMembers.length}
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      if (!confirm(t("chatGroup.leaveConfirm") || "Leave this group?")) return;
-
-                      try {
-                        const result = await leaveGroup(conversationId!);
-
-                        if (!result.success) {
-                          alert(result.error || "Failed to leave group");
-                          return;
-                        }
-
-                        router.push("/chats");
-                      } catch (err: any) {
-                        console.error("Leave group error:", err);
-                        alert(t("chatGroup.leaveError") || "Failed to leave group");
-                      }
-                    }}
-                    className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition hover:bg-[var(--light-blue)]"
-                    style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
-                    title={t("chatGroup.leaveGroup")}
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                </>
-              ) : me && otherId ? (
-                <button
-                  onClick={async () => {
-                    if (iBlocked) await unblock();
-                    else await block();
-                  }}
-                  className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition hover:bg-[var(--light-blue)]"
-                  style={{ border: "1px solid var(--border-soft)", background: "var(--bg-card)", color: "var(--text-secondary)" }}
-                  title={iBlocked ? t("chat.unblockUser") : t("chat.blockUser")}
-                >
-                  {iBlocked ? (
-                    <>
-                      <ShieldCheck className="h-4 w-4" />
-                      {t("chat.unblock")}
-                    </>
-                  ) : (
-                    <>
-                      <ShieldBan className="h-4 w-4" />
-                      {t("chat.block")}
-                    </>
-                  )}
-                </button>
-              ) : null}
-
-              <Link
-                href="/"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[var(--light-blue)]"
-                style={{ color: "var(--text-secondary)" }}
-                aria-label="Home"
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                onClick={() => setShowMoreMenu((v) => !v)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-[var(--light-blue)]"
+                style={{ color: "var(--deep-navy)" }}
+                aria-label="More options"
               >
-                <Home className="h-5 w-5" />
-              </Link>
+                <MoreVertical className="h-5 w-5" />
+              </button>
+
+              {showMoreMenu && (
+                <div
+                  className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl shadow-lg"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+                >
+                  {isGroup ? (
+                    <>
+                      <button
+                        onClick={() => { setShowMembers((prev) => !prev); setShowMoreMenu(false); }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                        style={{ color: "var(--deep-navy)" }}
+                      >
+                        <Users className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
+                        {t("chat.members")} ({groupMembers.length})
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setShowMoreMenu(false);
+                          if (!confirm(t("chatGroup.leaveConfirm") || "Leave this group?")) return;
+                          try {
+                            const result = await leaveGroup(conversationId!);
+                            if (!result.success) {
+                              alert(result.error || "Failed to leave group");
+                              return;
+                            }
+                            router.push("/chats");
+                          } catch (err: unknown) {
+                            console.error("Leave group error:", err);
+                            alert(t("chatGroup.leaveError") || "Failed to leave group");
+                          }
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                        style={{ color: "#e74c3c" }}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {t("chatGroup.leaveGroup")}
+                      </button>
+                    </>
+                  ) : me && otherId ? (
+                    <>
+                      <button
+                        onClick={async () => {
+                          setShowMoreMenu(false);
+                          if (iBlocked) await unblock();
+                          else await block();
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                        style={{ color: iBlocked ? "var(--deep-navy)" : "#e74c3c" }}
+                      >
+                        {iBlocked ? (
+                          <>
+                            <ShieldCheck className="h-4 w-4" />
+                            {t("chat.unblock")}
+                          </>
+                        ) : (
+                          <>
+                            <UserX className="h-4 w-4" />
+                            {t("chat.block")}
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          router.push(`/u/${otherId}`);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                        style={{ color: "var(--deep-navy)" }}
+                      >
+                        <Flag className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
+                        {t("chat.viewProfile") || "View profile"}
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -432,11 +432,8 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setSortMode("latest")}
-              className="b-pill"
+              className="b-pill h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: sortMode === "latest" ? "var(--primary)" : "transparent",
                 color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
@@ -448,11 +445,8 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setSortMode("likes")}
-              className="b-pill"
+              className="b-pill h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: sortMode === "likes" ? "var(--primary)" : "transparent",
                 color: sortMode === "likes" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "likes" ? "none" : "1px solid var(--border-soft)",
@@ -470,7 +464,7 @@ export default function HomePage() {
         </div>
 
         {/* Feed */}
-        <div className="space-y-8">
+        <div className="space-y-4">
             {/* Trending */}
             {!loading && !errorMsg && trendingTop3.length > 0 && (
               <section className="b-card p-5">
@@ -565,7 +559,7 @@ export default function HomePage() {
                             {initial}
                           </div>
                         )}
-                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
                           {displayName}
                         </span>
                       </Link>
@@ -577,12 +571,12 @@ export default function HomePage() {
                         >
                           ?
                         </div>
-                        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
                           {displayName}
                         </span>
                       </div>
                     )}
-                    <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
                       · {formatRelative(p.created_at)}
                     </span>
                   </div>
@@ -598,7 +592,7 @@ export default function HomePage() {
                   {/* Category tag */}
                   <div className="mt-2.5">
                     <span
-                      className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${
+                      className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${
                         CAT_COLOR[(p.category ?? "general") as Category]
                       }`}
                     >
@@ -608,7 +602,7 @@ export default function HomePage() {
 
                   {/* Content preview */}
                   <p
-                    className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
+                    className="mt-3 line-clamp-3 text-sm leading-relaxed"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {p.content.length > 200 ? `${p.content.slice(0, 200)}...` : p.content}
@@ -648,11 +642,11 @@ export default function HomePage() {
                   <div className="mt-4 flex items-center gap-5">
                     <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
                       <Heart className="h-[18px] w-[18px]" />
-                      <span className="text-[13px] font-medium">{p.like_count ?? 0}</span>
+                      <span className="text-xs font-medium">{p.like_count ?? 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5 transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>
                       <MessageCircle className="h-[18px] w-[18px]" />
-                      <span className="text-[13px] font-medium">{p.comment_count ?? 0}</span>
+                      <span className="text-xs font-medium">{p.comment_count ?? 0}</span>
                     </div>
                   </div>
                 </article>

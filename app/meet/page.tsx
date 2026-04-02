@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { checkAndSendMeetReminders } from "@/lib/meetReminderService";
 import { createNotification } from "@/lib/notificationService";
@@ -122,6 +123,7 @@ function scoreMeet(meet: MeetRow, prefs: { topTypes: string[]; topCities: string
 
 export default function MeetPage() {
   const { t } = useT();
+  const router = useRouter();
   const [meets, setMeets] = useState<MeetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -471,11 +473,8 @@ export default function MeetPage() {
             <button
               type="button"
               onClick={() => setSortMode("recommend")}
-              className="b-pill"
+              className="b-pill h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: sortMode === "recommend" ? "var(--primary)" : "transparent",
                 color: sortMode === "recommend" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "recommend" ? "none" : "1px solid var(--border-soft)",
@@ -487,11 +486,8 @@ export default function MeetPage() {
             <button
               type="button"
               onClick={() => setSortMode("latest")}
-              className="b-pill"
+              className="b-pill h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: sortMode === "latest" ? "var(--primary)" : "transparent",
                 color: sortMode === "latest" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)",
@@ -503,11 +499,8 @@ export default function MeetPage() {
             <button
               type="button"
               onClick={() => setSortMode("popular")}
-              className="b-pill"
+              className="b-pill h-9 px-3 text-xs"
               style={{
-                height: 36,
-                padding: "0 14px",
-                fontSize: 13,
                 background: sortMode === "popular" ? "var(--primary)" : "transparent",
                 color: sortMode === "popular" ? "#fff" : "var(--text-secondary)",
                 border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)",
@@ -524,7 +517,7 @@ export default function MeetPage() {
         </div>
 
         {/* Meet cards */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {loading && (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -603,14 +596,14 @@ export default function MeetPage() {
                     {/* Tags */}
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span
-                        className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold b-meet-${m.type}`}
+                        className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold b-meet-${m.type}`}
                       >
                         {meetTypeLabel(m.type)}
                         {m.type === "sports" && m.sport ? ` · ${m.sport}` : ""}
                       </span>
 
                       <span
-                        className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
+                        className="inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold"
                         style={{
                           background: isPending ? "#FEF9C3" : joined ? "var(--primary)" : "var(--light-blue)",
                           color: isPending ? "#854D0E" : joined ? "#fff" : (ended || m.is_closed || isFull) ? "var(--text-muted)" : "var(--text-secondary)",
@@ -629,7 +622,7 @@ export default function MeetPage() {
                     </h2>
 
                     {/* Details */}
-                    <div className="mt-4 space-y-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                    <div className="mt-4 space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
                         <span>{when}</span>
@@ -675,10 +668,9 @@ export default function MeetPage() {
                     )}
 
                     {/* Host profile — between quota bars and description */}
-                    <Link
-                      href={`/u/${m.host_id}`}
-                      className="mt-3 flex items-center gap-2 no-underline group w-fit"
-                      onClick={(e) => e.stopPropagation()}
+                    <div
+                      className="mt-3 flex items-center gap-2 no-underline group w-fit cursor-pointer"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/u/${m.host_id}`); }}
                     >
                       {m.host_avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -690,7 +682,7 @@ export default function MeetPage() {
                         />
                       ) : (
                         <div
-                          className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
+                          className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
                           style={{ background: "var(--primary)" }}
                         >
                           {(m.host_display_name ?? "?")[0]?.toUpperCase()}
@@ -699,11 +691,11 @@ export default function MeetPage() {
                       <span className="text-xs font-semibold group-hover:underline" style={{ color: "var(--text-secondary)" }}>
                         {m.host_display_name ?? t("common.unknown")}
                       </span>
-                    </Link>
+                    </div>
 
                     {/* Description */}
                     <p
-                      className="mt-3 line-clamp-3 text-[14px] leading-relaxed"
+                      className="mt-3 line-clamp-3 text-sm leading-relaxed"
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {m.description.length > 200 ? `${m.description.slice(0, 200)}...` : m.description}

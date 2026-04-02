@@ -402,7 +402,7 @@ export default function ProfilePage() {
                             />
                           )
                         )}
-                        <div className="p-4">
+                        <div className="p-5">
                           <div className="flex items-start justify-between gap-3">
                             <h2 className="line-clamp-2 text-sm font-semibold leading-5 sm:text-base" style={{ color: "var(--deep-navy)" }}>
                               {p.title}
@@ -474,7 +474,7 @@ export default function ProfilePage() {
                         className="b-card b-card-hover b-animate-in flex items-center gap-3 px-4 py-3"
                         style={{ animationDelay: `${idx * 0.04}s` }}
                       >
-                        <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold shrink-0 b-meet-${m.type}`}>
+                        <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold shrink-0 b-meet-${m.type}`}>
                           {m.type}
                         </span>
                         <div className="flex-1 min-w-0">

@@ -337,14 +337,8 @@ export default function BrowsePage() {
                     if (tb === "posts") setSortMode("latest");
                     if (tb === "meets") setSortMode("newest");
                   }}
-                  className="b-pill shrink-0"
+                  className="b-pill shrink-0 h-9 px-3 text-xs inline-flex items-center gap-1.5"
                   style={{
-                    height: 34,
-                    padding: "0 14px",
-                    fontSize: 13,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
                     background: tab === tb ? "var(--primary)" : "transparent",
                     color: tab === tb ? "#fff" : "var(--text-secondary)",
                     border: tab === tb ? "none" : "1px solid var(--border-soft)",
@@ -365,11 +359,8 @@ export default function BrowsePage() {
               <button
                 key={c.id}
                 onClick={() => setActiveCat(c.id)}
-                className="b-pill shrink-0"
+                className="b-pill shrink-0 h-9 px-3 text-xs"
                 style={{
-                  height: 36,
-                  padding: "0 14px",
-                  fontSize: 13,
                   background: activeCat === c.id ? "var(--primary)" : "transparent",
                   color: activeCat === c.id ? "#fff" : "var(--text-secondary)",
                   border: activeCat === c.id ? "none" : "1px solid var(--border-soft)",
@@ -392,11 +383,8 @@ export default function BrowsePage() {
                 <button
                   key={mt}
                   onClick={() => setActiveMeetType(mt)}
-                  className="b-pill shrink-0"
+                  className="b-pill shrink-0 h-9 px-3 text-xs"
                   style={{
-                    height: 36,
-                    padding: "0 14px",
-                    fontSize: 13,
                     background: activeMeetType === mt ? "var(--primary)" : "transparent",
                     color: activeMeetType === mt ? "#fff" : "var(--text-secondary)",
                     border: activeMeetType === mt ? "none" : "1px solid var(--border-soft)",
@@ -415,20 +403,20 @@ export default function BrowsePage() {
         <div className="mt-3 flex items-center gap-3">
           {tab === "posts" && (
             <>
-              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "latest" ? "var(--primary)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("latest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "latest" ? "var(--primary)" : "transparent", color: sortMode === "latest" ? "#fff" : "var(--text-secondary)", border: sortMode === "latest" ? "none" : "1px solid var(--border-soft)" }}>
                 <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("common.latest")}
               </button>
-              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "popular" ? "var(--primary)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("popular")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "popular" ? "var(--primary)" : "transparent", color: sortMode === "popular" ? "#fff" : "var(--text-secondary)", border: sortMode === "popular" ? "none" : "1px solid var(--border-soft)" }}>
                 <Sparkles className="mr-1 inline h-3.5 w-3.5" />{t("common.popular")}
               </button>
             </>
           )}
           {tab === "meets" && (
             <>
-              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "newest" ? "var(--primary)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("newest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "newest" ? "var(--primary)" : "transparent", color: sortMode === "newest" ? "#fff" : "var(--text-secondary)", border: sortMode === "newest" ? "none" : "1px solid var(--border-soft)" }}>
                 <Clock3 className="mr-1 inline h-3.5 w-3.5" />{t("browse.newest")}
               </button>
-              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0" style={{ height: 36, padding: "0 14px", fontSize: 13, background: sortMode === "soonest" ? "var(--primary)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
+              <button onClick={() => setSortMode("soonest")} className="b-pill shrink-0 h-9 px-3 text-xs" style={{ background: sortMode === "soonest" ? "var(--primary)" : "transparent", color: sortMode === "soonest" ? "#fff" : "var(--text-secondary)", border: sortMode === "soonest" ? "none" : "1px solid var(--border-soft)" }}>
                 <CalendarDays className="mr-1 inline h-3.5 w-3.5" />{t("browse.soonest")}
               </button>
             </>
@@ -446,15 +434,15 @@ export default function BrowsePage() {
         {recentSearches.length > 0 && !debouncedQ && (
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{t("browse.recent")}</span>
-              <button onClick={clearRecentSearches} className="text-[11px] font-medium transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>{t("common.clear")}</button>
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{t("browse.recent")}</span>
+              <button onClick={clearRecentSearches} className="text-xs font-medium transition hover:opacity-70" style={{ color: "var(--text-muted)" }}>{t("common.clear")}</button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {recentSearches.map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => applyRecentSearch(item)}
-                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition hover:opacity-80"
+                  className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition hover:opacity-80"
                   style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
                 >
                   {tabIcon(item.tab)}
@@ -472,7 +460,7 @@ export default function BrowsePage() {
         )}
 
         {/* Results */}
-        <div className="mt-5 space-y-6">
+        <div className="mt-6 space-y-4">
           {errorMsg && (
             <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>
           )}
@@ -495,8 +483,8 @@ export default function BrowsePage() {
                 {debouncedQ ? `Nothing matched "${debouncedQ}". Try another keyword.` : "There are no posts in this section yet."}
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/create" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.writePost")}</Link>
+                <button onClick={resetSearch} className="b-pill h-9 px-3 text-xs" style={{ border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/create" className="b-pill no-underline h-9 px-3 text-xs" style={{ background: "var(--primary)", color: "#fff" }}>{t("browse.writePost")}</Link>
               </div>
             </div>
           )}
@@ -509,8 +497,8 @@ export default function BrowsePage() {
                 {debouncedQ ? `No meets matched "${debouncedQ}". Try a city or keyword.` : "No meet results yet."}
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={resetSearch} className="b-pill" style={{ height: 36, padding: "0 14px", fontSize: 13, border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
-                <Link href="/meet" className="b-pill no-underline" style={{ height: 36, padding: "0 14px", fontSize: 13, background: "var(--primary)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
+                <button onClick={resetSearch} className="b-pill h-9 px-3 text-xs" style={{ border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{t("browse.reset")}</button>
+                <Link href="/meet" className="b-pill no-underline h-9 px-3 text-xs" style={{ background: "var(--primary)", color: "#fff" }}>{t("browse.viewMeets")}</Link>
               </div>
             </div>
           )}
@@ -529,7 +517,7 @@ export default function BrowsePage() {
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-semibold">{p.title}</div>
                           <span
-                            className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold"
+                            className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold"
                             style={{ background: cc.bg, color: cc.color }}
                           >
                             {catBadge(p.category)}
@@ -565,12 +553,12 @@ export default function BrowsePage() {
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-semibold">{m.title}</div>
                           {m.type && (
-                            <span className={`shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${typeClass}`}>
+                            <span className={`shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${typeClass}`}>
                               {MEET_TYPE_LABELS[m.type] ? t(MEET_TYPE_LABELS[m.type]) : m.type}
                             </span>
                           )}
                           {m.is_closed && (
-                            <span className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold bg-red-100 text-red-600">
+                            <span className="shrink-0 inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold bg-red-100 text-red-600">
                               Closed
                             </span>
                           )}
