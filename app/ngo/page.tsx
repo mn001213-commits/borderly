@@ -93,7 +93,7 @@ export default function NGOPage() {
       }
 
       try {
-        const list = await listNgoPosts(80);
+        const list = await listNgoPosts(undefined, 80);
         setPosts(list);
       } catch {
         setPosts([]);
