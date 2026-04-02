@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, DragEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowLeft, ImagePlus, Film, X, MessageCircle, Info, HelpCircle, Sun, Briefcase, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ImagePlus, Film, X, Upload, MessageCircle, Info, HelpCircle, Sun, Briefcase, MoreHorizontal } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 import { isVideoFile, isVideoUrl } from "@/lib/format";
 import { type Category } from "@/lib/constants";
-import { DragDropUpload } from "@/components/DragDropUpload";
 
 const MAX_VIDEO_MB = 50;
 
@@ -82,6 +81,37 @@ export default function CreatePage() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const addFiles = useCallback((newFiles: File[]) => {
+    const accepted = ["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/quicktime"];
+    const valid = newFiles.filter((f) => {
+      if (!accepted.some((t) => f.type.startsWith(t.split("/")[0]))) return false;
+      if (isVideoFile(f) && f.size > MAX_VIDEO_MB * 1024 * 1024) return false;
+      return true;
+    });
+    if (valid.length === 0) return;
+    setFiles((prev) => [...prev, ...valid].slice(0, 5));
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    addFiles(Array.from(e.dataTransfer.files));
+  }, [addFiles]);
 
   useEffect(() => {
     if (files.length === 0) {
@@ -261,10 +291,15 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* Image area */}
-        <div className="b-card b-animate-in overflow-hidden mb-4">
+        {/* Image area — always supports drag & drop */}
+        <div
+          className={`b-card b-animate-in overflow-hidden mb-4 transition-all ${isDragging ? "ring-2 ring-[var(--primary)] scale-[1.01]" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           {previewUrls.length > 0 ? (
-            <div>
+            <div className="relative">
               <div className="flex gap-3 overflow-x-auto p-3 scrollbar-hide">
                 {previewUrls.map((url, i) => (
                   <div key={i} className="relative shrink-0">
@@ -297,10 +332,18 @@ export default function CreatePage() {
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="flex shrink-0 items-center justify-center rounded-xl"
-                    style={{ height: 200, width: 100, background: "var(--light-blue)", border: "2px dashed var(--border-soft)" }}
+                    className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-xl transition hover:opacity-80"
+                    style={{ height: 200, width: 120, background: "var(--light-blue)", border: "2px dashed var(--border-soft)" }}
                   >
-                    <ImagePlus className="h-6 w-6" style={{ color: "var(--primary)" }} />
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-full"
+                      style={{ background: "var(--primary)" }}
+                    >
+                      <ImagePlus className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs font-medium" style={{ color: "var(--primary)" }}>
+                      {t("create.addMoreMedia")}
+                    </span>
                   </button>
                 )}
               </div>
@@ -317,21 +360,36 @@ export default function CreatePage() {
                   {t("create.removeAll")}
                 </button>
               </div>
+              {isDragging && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="h-8 w-8" style={{ color: "var(--primary)" }} />
+                    <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+                      Drop to add
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="p-4">
-              <DragDropUpload
-                onFilesSelected={(newFiles) => {
-                  setFiles((prev) => {
-                    const combined = [...prev, ...newFiles];
-                    return combined.slice(0, 5);
-                  });
-                }}
-                maxFiles={5}
-                acceptedTypes={["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4"]}
-                maxSizeMB={MAX_VIDEO_MB}
-                existingFiles={files}
-              />
+            <div
+              className="flex cursor-pointer flex-col items-center gap-3 p-8 text-center transition hover:opacity-80"
+              onClick={() => fileRef.current?.click()}
+            >
+              <div
+                className={`flex h-14 w-14 items-center justify-center rounded-full transition ${isDragging ? "scale-110" : ""}`}
+                style={{ background: isDragging ? "var(--primary)" : "var(--light-blue)" }}
+              >
+                <Upload className="h-6 w-6" style={{ color: isDragging ? "#fff" : "var(--primary)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>
+                  {isDragging ? "Drop files here" : "Drag & drop files"}
+                </p>
+                <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                  or click to browse (max 5 files, {MAX_VIDEO_MB}MB video)
+                </p>
+              </div>
             </div>
           )}
           <input
@@ -342,10 +400,7 @@ export default function CreatePage() {
             onChange={(e) => {
               const selected = Array.from(e.target.files ?? []);
               if (selected.length === 0) return;
-              setFiles((prev) => {
-                const combined = [...prev, ...selected];
-                return combined.slice(0, 5);
-              });
+              addFiles(selected);
               if (fileRef.current) fileRef.current.value = "";
             }}
             className="hidden"
@@ -363,7 +418,7 @@ export default function CreatePage() {
                 key={o.value}
                 type="button"
                 onClick={() => setCategory(o.value)}
-                className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition ${
+                className={`inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
                   category === o.value
                     ? o.color
                     : ""
@@ -402,20 +457,6 @@ export default function CreatePage() {
           />
         </div>
 
-        {/* Bottom action bar (mobile) */}
-        {previewUrls.length > 0 && files.length < 5 && (
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition hover:opacity-80"
-              style={{ background: "var(--light-blue)", color: "var(--primary)", border: "1px solid var(--border-soft)" }}
-            >
-              <ImagePlus className="h-4 w-4" />
-              {t("create.addMoreMedia")}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

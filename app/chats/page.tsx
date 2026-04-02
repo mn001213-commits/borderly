@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
-import { Bell, MessageCircle, User, Users, Plus, ShieldCheck } from "lucide-react";
+import { Bell, MessageCircle, User, Users, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 import { formatRelative } from "@/lib/format";
 
@@ -30,6 +30,7 @@ type GroupRow = {
   last_message_content: string | null;
   last_message_at: string | null;
   type: string;
+  meet_id?: string | null;
 };
 
 export default function ChatsPage() {
@@ -39,7 +40,7 @@ export default function ChatsPage() {
   const [groupRows, setGroupRows] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [tab, setTab] = useState<"all" | "dm" | "group" | "ngo">("all");
+  const [tab, setTab] = useState<"all" | "dm" | "group" | "meet" | "ngo">("all");
 
   const prevMessageIds = useRef<Set<string>>(new Set());
 
@@ -108,6 +109,17 @@ export default function ChatsPage() {
           }
         }
 
+        // Fetch meet linkage for group conversations
+        const { data: meetLinks } = await supabase
+          .from("group_conversations")
+          .select("conversation_id, meet_id")
+          .in("conversation_id", groupConvIds);
+
+        const meetLinkMap: Record<string, string> = {};
+        for (const ml of meetLinks ?? []) {
+          if (ml.meet_id) meetLinkMap[ml.conversation_id] = ml.meet_id;
+        }
+
         const groups: GroupRow[] = convs.map((gc: any) => ({
           conversation_id: gc.id,
           name: gc.name ?? null,
@@ -116,6 +128,7 @@ export default function ChatsPage() {
           last_message_content: lastMsgMap[gc.id]?.body ?? null,
           last_message_at: lastMsgMap[gc.id]?.created_at ?? null,
           type: gc.type,
+          meet_id: meetLinkMap[gc.id] ?? null,
         }));
 
         groups.sort((a, b) => {
@@ -208,11 +221,13 @@ export default function ChatsPage() {
   }, [me]);
 
   const ngoGroups = groupRows.filter((g) => g.type === "ngo");
-  const normalGroups = groupRows.filter((g) => g.type === "group");
+  const meetGroups = groupRows.filter((g) => g.type === "group" && g.meet_id);
+  const normalGroups = groupRows.filter((g) => g.type === "group" && !g.meet_id);
 
   const tabs = [
     { key: "all" as const, label: t("common.all") },
     { key: "dm" as const, label: t("chat.direct") },
+    { key: "meet" as const, label: t("chat.meets"), count: meetGroups.length },
     { key: "group" as const, label: t("chat.groups"), count: normalGroups.length },
     { key: "ngo" as const, label: t("nav.ngo"), count: ngoGroups.length },
   ];
@@ -297,11 +312,38 @@ export default function ChatsPage() {
                   </Link>
                 ))}
 
+              {/* Meet Chats */}
+              {(tab === "all" || tab === "meet") &&
+                meetGroups.map((g, idx) => (
+                  <Link key={g.conversation_id} href={`/chats/${g.conversation_id}`} className="block no-underline text-inherit">
+                    <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${(ngoGroups.length + idx) * 0.05}s` }}>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full" style={{ background: "var(--accent)", border: "2px solid var(--border-soft)" }}>
+                          {g.avatar_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={g.avatar_url} alt={g.name ?? "Meet"} className="h-full w-full object-cover" />
+                          ) : (
+                            <Sparkles className="h-5 w-5 text-white" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="truncate text-sm font-medium">{g.name ?? t("chat.meets")}</div>
+                            <span className="inline-flex h-5 items-center rounded-full px-2 text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent)" }}>{g.member_count}</span>
+                          </div>
+                          <div className="mt-0.5 truncate text-sm" style={{ color: "var(--text-muted)" }}>{g.last_message_content ?? t("chat.noMessagesYet")}</div>
+                        </div>
+                        <div className="shrink-0 text-xs" style={{ color: "var(--text-muted)" }}>{formatRelative(g.last_message_at)}</div>
+                      </div>
+                    </article>
+                  </Link>
+                ))}
+
               {/* Group Chats */}
               {(tab === "all" || tab === "group") &&
                 normalGroups.map((g, idx) => (
                   <Link key={g.conversation_id} href={`/chats/${g.conversation_id}`} className="block no-underline text-inherit">
-                    <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${(ngoGroups.length + idx) * 0.05}s` }}>
+                    <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${(ngoGroups.length + meetGroups.length + idx) * 0.05}s` }}>
                       <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full" style={{ background: "var(--light-blue)", border: "2px solid var(--border-soft)" }}>
                           {g.avatar_url ? (
@@ -330,7 +372,7 @@ export default function ChatsPage() {
                   const unread = r.unread_count ?? 0;
                   return (
                     <Link key={r.conversation_id} href={`/chats/${r.conversation_id}`} className="block no-underline text-inherit">
-                      <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${(ngoGroups.length + normalGroups.length + idx) * 0.05}s` }}>
+                      <article className="b-card b-card-hover b-animate-in p-5" style={{ animationDelay: `${(ngoGroups.length + meetGroups.length + normalGroups.length + idx) * 0.05}s` }}>
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full" style={{ background: "var(--light-blue)", border: "2px solid var(--border-soft)" }}>
                             {r.other_avatar_url ? (

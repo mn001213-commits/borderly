@@ -170,6 +170,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "meet.timeNotSet": { en: "Time not set", ko: "시간 미정", ja: "時間未定" },
   "meet.locationNotSet": { en: "Location not set", ko: "장소 미정", ja: "場所未定" },
   "meet.joined_count": { en: "joined", ko: "명 참가", ja: "人参加" },
+  "meet.host": { en: "Host", ko: "주최자", ja: "ホスト" },
   "meet.hangout": { en: "Hangout", ko: "행아웃", ja: "ハングアウト" },
   "meet.study": { en: "Study", ko: "스터디", ja: "勉強会" },
   "meet.language": { en: "Language", ko: "언어교환", ja: "言語交換" },
@@ -347,6 +348,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "chat.newGroup": { en: "New Group", ko: "새 그룹", ja: "新規グループ" },
   "chat.direct": { en: "Direct", ko: "1:1", ja: "DM" },
   "chat.groups": { en: "Groups", ko: "그룹", ja: "グループ" },
+  "chat.meets": { en: "Meets", ko: "모임", ja: "ミート" },
   "chat.noConversations": { en: "No conversations yet", ko: "대화가 없습니다", ja: "まだ会話はありません" },
   "chat.startConversation": { en: "Start a conversation and your chats will appear here.", ko: "대화를 시작하면 여기에 표시됩니다.", ja: "会話を始めると、ここに表示されます。" },
   "chat.noMessagesYet": { en: "No messages yet", ko: "메시지 없음", ja: "メッセージなし" },
@@ -382,6 +384,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "chat.signInToChat": { en: "Sign in to chat", ko: "로그인하여 채팅하세요", ja: "ログインしてチャット" },
   "chat.blockedCannotSend": { en: "You cannot send messages in a blocked conversation", ko: "차단된 대화에서는 메시지를 보낼 수 없습니다", ja: "ブロックされた会話ではメッセージを送信できません" },
   "chat.read": { en: "Read", ko: "읽음", ja: "既読" },
+  "chat.leaveChat": { en: "Leave chat", ko: "채팅 나가기", ja: "チャットを退出" },
+  "chat.leaveConfirm": { en: "Leave this chat? You won't see this conversation anymore.", ko: "이 채팅을 나가시겠습니까? 더 이상 이 대화를 볼 수 없습니다.", ja: "このチャットを退出しますか？この会話は表示されなくなります。" },
+  "chat.leaveError": { en: "Failed to leave chat", ko: "채팅 나가기에 실패했습니다", ja: "チャットの退出に失敗しました" },
 
   // Group Chat
   "chatGroup.newGroupChat": { en: "New Group Chat", ko: "새 그룹 채팅", ja: "新規グループチャット" },
@@ -582,12 +587,15 @@ const translations: Record<string, Record<Locale, string>> = {
   "settings.noResults": { en: "No results", ko: "결과 없음", ja: "結果なし" },
 
   // Sidebar
-  "sidebar.connectedNow": { en: "Connected Now", ko: "현재 접속 중", ja: "オンライン" },
+  "sidebar.connectedNow": { en: "Friends", ko: "친구 목록", ja: "フレンド" },
   "sidebar.online": { en: "online", ko: "접속중", ja: "オンライン" },
+  "sidebar.offline": { en: "offline", ko: "오프라인", ja: "オフライン" },
   "sidebar.following": { en: "following", ko: "팔로잉", ja: "フォロー中" },
+  "sidebar.mutualFriends": { en: "mutual", ko: "서로 팔로잉", ja: "相互フォロー" },
   "sidebar.searchFriends": { en: "Search friends...", ko: "친구 검색...", ja: "友達を検索..." },
   "sidebar.noFriendsYet": { en: "No friends yet", ko: "아직 친구가 없습니다", ja: "まだ友達がいません" },
   "sidebar.noOneOnline": { en: "No one online", ko: "접속 중인 친구 없음", ja: "オンラインの友達なし" },
+  "sidebar.noMatchingFriends": { en: "No matching friends", ko: "일치하는 친구 없음", ja: "一致する友達なし" },
   "sidebar.followToConnect": { en: "Follow people to connect", ko: "사람들을 팔로우하세요", ja: "フォローして繋がりましょう" },
   "sidebar.appearWhenActive": { en: "Friends appear when active", ko: "접속 중인 친구가 표시됩니다", ja: "アクティブな友達が表示されます" },
   "sidebar.explore": { en: "Explore", ko: "탐색", ja: "探す" },
@@ -622,7 +630,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "pageInfo.post.desc": { en: "Read, like, and comment on community posts.", ko: "게시글을 읽고, 좋아요하고, 댓글을 남기세요.", ja: "投稿を読んで、いいね、コメントしましょう。" },
   "pageInfo.user.title": { en: "User Profile", ko: "사용자 프로필", ja: "ユーザープロフィール" },
   "pageInfo.user.desc": { en: "View profile, posts, and connect with this person.", ko: "프로필, 게시글을 보고 소통하세요.", ja: "プロフィール、投稿を見てつながりましょう。" },
-  "pageInfo.default.title": { en: "Borderly", ko: "보더리", ja: "Borderly" },
+  "pageInfo.default.title": { en: "Borderly", ko: "Borderly", ja: "Borderly" },
   "pageInfo.default.desc": { en: "Connecting people beyond borders.", ko: "국경을 넘어 사람들을 연결합니다.", ja: "国境を越えて人々をつなぐ。" },
 
   // User Profile

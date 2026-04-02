@@ -29,7 +29,7 @@ export default function NgoApplicationsPage() {
       setMyUid(user.id);
 
       try {
-        const all = await listNgoPosts(200);
+        const all = await listNgoPosts(undefined, 200);
         const mine = all.filter((p) => p.ngo_user_id === user.id);
         setPosts(mine);
         if (mine.length > 0) {

@@ -1,13 +1,27 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { createNgoPost } from "@/lib/ngoService";
+import { createNgoPost, type NgoCategory } from "@/lib/ngoService";
 import { ArrowLeft, ImagePlus, Plus, X, Trash2 } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
 const BUCKET = "post-images";
+
+const CATEGORY_LABELS: Record<NgoCategory, string> = {
+  general: "General",
+  environment: "Environment",
+  education: "Education",
+  health: "Health",
+  human_rights: "Human Rights",
+  community: "Community",
+  animal_welfare: "Animal Welfare",
+  disaster_relief: "Disaster Relief",
+  refugee_support: "Refugee Support",
+  arts_culture: "Arts & Culture",
+  social_gathering: "Social Gathering",
+};
 
 async function compressImage(file: File): Promise<{ blob: Blob; ext: string }> {
   const dataUrl = await new Promise<string>((res, rej) => {
@@ -46,6 +60,7 @@ export default function NgoNewPage() {
   const { t } = useT();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [category, setCategory] = useState<NgoCategory>("general");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -56,6 +71,7 @@ export default function NgoNewPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (!file) { setPreviewUrl(null); return; }
@@ -89,13 +105,23 @@ export default function NgoNewPage() {
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         imageUrl = data.publicUrl;
       }
-      const id = await createNgoPost({ title: title.trim(), description: description.trim(), location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
+      const id = await createNgoPost({ title: title.trim(), description: description.trim(), category, location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
       router.push(`/ngo/${id}`);
     } catch (e: any) {
       setErrorMsg(e?.message || "Failed to create post");
       setLoading(false);
     }
   };
+
+  function handleCoverDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && f.type.startsWith("image/")) {
+      setFile(f);
+    }
+  }
 
   const canSubmit = !loading && !!title.trim() && !!description.trim() && questions.some((q) => q.trim());
 
@@ -115,7 +141,12 @@ export default function NgoNewPage() {
         {errorMsg && <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{errorMsg}</div>}
 
         {/* Image */}
-        <div className="b-card b-animate-in overflow-hidden mb-4">
+        <div
+          className="b-card b-animate-in overflow-hidden mb-4"
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+          onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+          onDrop={handleCoverDrop}
+        >
           {previewUrl ? (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -123,11 +154,13 @@ export default function NgoNewPage() {
               <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"><X className="h-4 w-4" /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => fileRef.current?.click()} className="flex w-full flex-col items-center justify-center gap-3 py-12 transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "2px dashed var(--border-soft)" }}>
-                <ImagePlus className="h-6 w-6" style={{ color: "#43A047" }} />
+            <button type="button" onClick={() => fileRef.current?.click()} className={`flex w-full flex-col items-center justify-center gap-3 py-12 transition ${isDragging ? "scale-[1.01]" : "hover:opacity-70"}`} style={{ background: isDragging ? "color-mix(in srgb, var(--primary) 5%, var(--light-blue))" : "var(--light-blue)" }}>
+              <div className={`flex h-14 w-14 items-center justify-center rounded-full transition-colors ${isDragging ? "border-[var(--primary)]" : ""}`} style={{ background: "var(--bg-card)", border: isDragging ? "2px dashed var(--primary)" : "2px dashed var(--border-soft)" }}>
+                <ImagePlus className="h-6 w-6" style={{ color: isDragging ? "var(--primary)" : "#43A047" }} />
               </div>
-              <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{t("createNgo.addCover")}</div>
+              <div className="text-sm font-medium" style={{ color: isDragging ? "var(--primary)" : "var(--text-secondary)" }}>
+                {isDragging ? "Drop image here" : t("createNgo.addCover")}
+              </div>
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="hidden" />
@@ -135,6 +168,15 @@ export default function NgoNewPage() {
 
         {/* Details */}
         <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.05s" }}>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Category *</div>
+            <select value={category} onChange={(e) => setCategory(e.target.value as NgoCategory)} className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}>
+              {(Object.keys(CATEGORY_LABELS) as NgoCategory[]).map((key) => (
+                <option key={key} value={key}>{CATEGORY_LABELS[key]}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ borderTop: "1px solid var(--border-soft)" }} />
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("createNgo.activityPurpose")}</div>
             <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.activityPurposePlaceholder")} className="w-full min-h-[80px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />

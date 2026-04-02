@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, type FormEvent } from "react";
+import { useEffect, useState, useRef, type FormEvent, type DragEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -112,6 +112,7 @@ export default function EditPostPage() {
   const [newPreviewUrls, setNewPreviewUrls] = useState<string[]>([]);
 
   const totalMedia = existingUrls.length + newFiles.length;
+  const [isDragging, setIsDragging] = useState(false);
 
   // Generate preview URLs for new files
   useEffect(() => {
@@ -203,6 +204,14 @@ export default function EditPostPage() {
     setNewFiles([]);
     if (fileRef.current) fileRef.current.value = "";
   };
+
+  function handleMediaDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) onFilesSelected(files);
+  }
 
   const onFilesSelected = (selected: File[]) => {
     setErrorMsg(null);
@@ -389,7 +398,12 @@ export default function EditPostPage() {
             />
 
             {/* Multi-image section */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div
+              className={`rounded-2xl border p-4 shadow-sm transition-colors ${isDragging ? "border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_5%,white)]" : "border-gray-100 bg-white"}`}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+              onDrop={handleMediaDrop}
+            >
               <div className="mb-2 text-sm font-semibold text-gray-700">
                 {t("editPost.imagesVideo")} ({MAX_FILES}, {t("editPost.autoCompressed")})
               </div>
@@ -483,10 +497,12 @@ export default function EditPostPage() {
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-10 hover:bg-[#F0F7FF] transition"
+                  className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-10 transition ${isDragging ? "border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_5%,white)] scale-[1.01]" : "border-gray-200 bg-gray-50 hover:bg-[#F0F7FF]"}`}
                 >
-                  <ImagePlus className="h-8 w-8 text-gray-400" />
-                  <span className="text-sm text-gray-500">{t("editPost.tapToAdd")}</span>
+                  <ImagePlus className={`h-8 w-8 ${isDragging ? "text-[var(--primary)]" : "text-gray-400"}`} />
+                  <span className={`text-sm ${isDragging ? "text-[var(--primary)] font-medium" : "text-gray-500"}`}>
+                    {isDragging ? "Drop files here" : t("editPost.tapToAdd")}
+                  </span>
                 </button>
               )}
 

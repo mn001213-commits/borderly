@@ -10,7 +10,7 @@ const QUICK_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u
 
 type Reaction = { id: string; emoji: string; user_id: string; message_id: string };
 
-import { leaveGroup } from "@/lib/groupChatService";
+import { leaveGroup, leaveConversation, getLinkedMeetStatus } from "@/lib/groupChatService";
 import { useT } from "@/app/components/LangProvider";
 
 function formatMessageTime(iso?: string | null) {
@@ -57,9 +57,18 @@ export default function ChatRoomPage() {
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({});
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [activeMeetChat, setActiveMeetChat] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastTypingSentRef = useRef(0);
+
+  // Check if this chat is linked to an active meet
+  useEffect(() => {
+    if (!conversationId || !isGroup) return;
+    getLinkedMeetStatus(conversationId).then((result) => {
+      setActiveMeetChat(result.linked && !result.isClosed);
+    });
+  }, [conversationId, isGroup]);
 
   const handleTyping = useCallback(() => {
     const now = Date.now();
@@ -292,8 +301,8 @@ export default function ChatRoomPage() {
                   style={{ background: "var(--light-blue)", color: "var(--text-muted)", border: "1px solid var(--border-soft)" }}
                 >
                   {isGroup
-                    ? (groupName ?? "G")[0].toUpperCase()
-                    : (other?.display_name ?? "U")[0].toUpperCase()}
+                    ? (groupName || "G")[0].toUpperCase()
+                    : (other?.display_name || "U")[0].toUpperCase()}
                 </div>
               )}
 
@@ -338,28 +347,38 @@ export default function ChatRoomPage() {
                         <Users className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
                         {t("chat.members")} ({groupMembers.length})
                       </button>
-                      <button
-                        onClick={async () => {
-                          setShowMoreMenu(false);
-                          if (!confirm(t("chatGroup.leaveConfirm") || "Leave this group?")) return;
-                          try {
-                            const result = await leaveGroup(conversationId!);
-                            if (!result.success) {
-                              alert(result.error || "Failed to leave group");
-                              return;
+                      {activeMeetChat ? (
+                        <div
+                          className="flex w-full items-center gap-3 px-4 py-3 text-xs"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          {t("chatGroup.meetChatLocked")}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            setShowMoreMenu(false);
+                            if (!confirm(t("chatGroup.leaveConfirm") || "Leave this group?")) return;
+                            try {
+                              const result = await leaveGroup(conversationId!);
+                              if (!result.success) {
+                                alert(result.error || "Failed to leave group");
+                                return;
+                              }
+                              router.push("/chats");
+                            } catch (err: unknown) {
+                              console.error("Leave group error:", err);
+                              alert(t("chatGroup.leaveError") || "Failed to leave group");
                             }
-                            router.push("/chats");
-                          } catch (err: unknown) {
-                            console.error("Leave group error:", err);
-                            alert(t("chatGroup.leaveError") || "Failed to leave group");
-                          }
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
-                        style={{ color: "#e74c3c" }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        {t("chatGroup.leaveGroup")}
-                      </button>
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                          style={{ color: "#e74c3c" }}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          {t("chatGroup.leaveGroup")}
+                        </button>
+                      )}
                     </>
                   ) : me && otherId ? (
                     <>
@@ -394,6 +413,28 @@ export default function ChatRoomPage() {
                       >
                         <Flag className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
                         {t("chat.viewProfile") || "View profile"}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setShowMoreMenu(false);
+                          if (!confirm(t("chat.leaveConfirm") || "Leave this chat?")) return;
+                          try {
+                            const result = await leaveConversation(conversationId!);
+                            if (!result.success) {
+                              alert(result.error || "Failed to leave chat");
+                              return;
+                            }
+                            router.push("/chats");
+                          } catch (err: unknown) {
+                            console.error("Leave chat error:", err);
+                            alert(t("chat.leaveError") || "Failed to leave chat");
+                          }
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-[var(--light-blue)]"
+                        style={{ color: "#e74c3c" }}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {t("chat.leaveChat") || "Leave chat"}
                       </button>
                     </>
                   ) : null}

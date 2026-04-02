@@ -10,6 +10,7 @@ import {
   markRead,
   type NotificationRow,
 } from "@/lib/notificationService";
+import { swrCache } from "@/lib/swrCache";
 import { useAuth } from "@/app/components/AuthProvider";
 import { useT } from "@/app/components/LangProvider";
 
@@ -59,19 +60,31 @@ export default function NotificationsPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = async () => {
-    setLoading(true);
+    // SWR: show cached notifications instantly
+    const cached = swrCache.get<NotificationRow[]>("notifications");
+    if (cached) {
+      setRows(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const list = await listNotifications(80);
       setRows(list);
+      swrCache.set("notifications", list);
       // Auto-mark all as read when visiting the page
       const hasUnread = list.some((n) => !n.is_read);
       if (hasUnread) {
         await markAllRead();
-        setRows(list.map((n) => ({ ...n, is_read: true })));
+        const readList = list.map((n) => ({ ...n, is_read: true }));
+        setRows(readList);
+        swrCache.set("notifications", readList);
+        window.dispatchEvent(new CustomEvent("notifications-read"));
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("listNotifications error:", error);
-      setRows([]);
+      if (!cached) setRows([]);
     } finally {
       setLoading(false);
     }
@@ -184,9 +197,9 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <div className="b-card mb-4 flex items-center justify-between gap-3 px-4 py-4">
+        <div className="b-card mb-4 flex items-center justify-between gap-3 p-5">
           <div>
-            <div className="text-xl font-bold">{t("notif.title")}</div>
+            <div className="text-xl font-bold" style={{ letterSpacing: "-0.02em" }}>{t("notif.title")}</div>
             <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
               {unreadCount > 0 ? `${unreadCount} ${t("notif.unread")}` : t("notif.allCaughtUp")}
             </div>
@@ -195,15 +208,13 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/"
-              className="rounded-2xl px-3 py-2 text-sm font-semibold no-underline transition hover:opacity-80"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+              className="b-btn-secondary rounded-xl px-3 py-2 text-sm no-underline"
             >
               {t("nav.home")}
             </Link>
 
             <button
-              className="rounded-2xl px-3 py-2 text-sm font-semibold transition hover:opacity-80 disabled:opacity-50"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+              className="b-btn-secondary rounded-xl px-3 py-2 text-sm disabled:opacity-50"
               onClick={onMarkAll}
               disabled={markingAll || rows.length === 0 || unreadCount === 0}
             >
@@ -219,10 +230,7 @@ export default function NotificationsPage() {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center b-animate-in"
-            style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
-          >
+          <div className="b-empty-state b-animate-in">
             <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("notif.noNotifications")}</div>
             <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("notif.allCaughtUpDesc")}</div>
           </div>

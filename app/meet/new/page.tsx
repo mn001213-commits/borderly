@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useT } from "@/app/components/LangProvider";
@@ -39,7 +39,6 @@ export default function NewMeetPage() {
   const [sport, setSport] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [city, setCity] = useState("");
   const [placeHint, setPlaceHint] = useState("");
   const [mapUrl, setMapUrl] = useState("");
   const [onlineUrl, setOnlineUrl] = useState("");
@@ -50,6 +49,7 @@ export default function NewMeetPage() {
   // Cover image
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -151,7 +151,7 @@ export default function NewMeetPage() {
           sport: type === "sports" ? sport : null,
           title: title.trim(),
           description: description.trim(),
-          city: city.trim() || null,
+          city: null,
           place_hint: placeHint.trim() || null,
           map_url: mapUrl.trim() || null,
           online_url: onlineUrl.trim() || null,
@@ -207,9 +207,9 @@ export default function NewMeetPage() {
         return;
       }
 
-      // 4) Add host to conversation_members
+      // 4) Add host to conversation_members as admin
       const { error: e3 } = await supabase.from("conversation_members").upsert(
-        [{ conversation_id: conversationId, user_id: user.id }],
+        [{ conversation_id: conversationId, user_id: user.id, role: "admin" }],
         { onConflict: "conversation_id,user_id" }
       );
 
@@ -227,6 +227,10 @@ export default function NewMeetPage() {
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
+    setCoverFromFile(f);
+  }
+
+  function setCoverFromFile(f: File | null) {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
     setCoverFile(f);
     if (f) setCoverPreview(URL.createObjectURL(f));
@@ -239,6 +243,16 @@ export default function NewMeetPage() {
     setCoverPreview(null);
   }
 
+  function handleCoverDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setCoverFromFile(file);
+    }
+  }
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-snow)", color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
@@ -246,18 +260,22 @@ export default function NewMeetPage() {
         <header className="flex items-center gap-3 py-3 b-animate-in">
           <button
             onClick={() => router.back()}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition hover:opacity-80"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
+            className="b-btn-secondary h-10 rounded-xl px-3 text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("common.back")}
           </button>
-          <h1 className="text-xl font-bold">{t("createMeet.title")}</h1>
+          <h1 className="text-xl font-bold" style={{ letterSpacing: "-0.02em" }}>{t("createMeet.title")}</h1>
         </header>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
           {/* Cover Image */}
-          <div className="b-card b-animate-in overflow-hidden">
+          <div
+            className="b-card b-animate-in overflow-hidden"
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+            onDrop={handleCoverDrop}
+          >
             {coverPreview ? (
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -271,10 +289,10 @@ export default function NewMeetPage() {
                 </button>
               </div>
             ) : (
-              <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 transition hover:opacity-70">
-                <Camera className="h-8 w-8" style={{ color: "var(--text-muted)" }} />
-                <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-                  {t("createMeet.addCover")}
+              <label className={`flex h-40 cursor-pointer flex-col items-center justify-center gap-2 transition ${isDragging ? "bg-[var(--primary)]/5 border-2 border-dashed border-[var(--primary)] scale-[1.01]" : "hover:opacity-70"}`}>
+                <Camera className={`h-8 w-8 transition-colors ${isDragging ? "text-[var(--primary)]" : ""}`} style={isDragging ? undefined : { color: "var(--text-muted)" }} />
+                <span className="text-sm font-medium" style={{ color: isDragging ? "var(--primary)" : "var(--text-muted)" }}>
+                  {isDragging ? "Drop image here" : t("createMeet.addCover")}
                 </span>
                 <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
               </label>
@@ -292,12 +310,7 @@ export default function NewMeetPage() {
                   key={mt.value}
                   type="button"
                   onClick={() => setType(mt.value)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition"
-                  style={
-                    type === mt.value
-                      ? { background: "var(--primary)", color: "#fff" }
-                      : { background: "var(--light-blue)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)" }
-                  }
+                  className={`b-pill px-4 py-2 text-sm font-semibold ${type === mt.value ? "b-pill-active" : "b-pill-inactive"}`}
                 >
                   <span>{mt.emoji}</span>
                   {t("meet." + mt.value)}
@@ -311,8 +324,7 @@ export default function NewMeetPage() {
                   value={sport}
                   onChange={(e) => setSport(e.target.value)}
                   placeholder={t("createMeet.sportPlaceholder")}
-                  className="w-full rounded-2xl px-4 py-3 text-sm outline-none"
-                  style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  className="b-search w-full px-4 py-3 text-sm"
                 />
               </div>
             )}
@@ -346,8 +358,8 @@ export default function NewMeetPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t("createMeet.descPlaceholder")}
                 maxLength={4000}
-                className="mt-2 w-full rounded-2xl px-4 py-3 text-sm outline-none resize-none"
-                style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)", minHeight: 120 }}
+                className="b-search mt-2 w-full px-4 py-3 text-sm resize-none"
+                style={{ minHeight: 120 }}
               />
               <div className="mt-1 text-right text-xs" style={{ color: "var(--text-muted)" }}>
                 {description.length}/4000
@@ -551,20 +563,9 @@ export default function NewMeetPage() {
               <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
                 <MapPin className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
                 <input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder={t("createMeet.cityPlaceholder")}
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-                  style={{ color: "var(--deep-navy)" }}
-                />
-              </div>
-
-              <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}>
-                <MapPin className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
-                <input
                   value={placeHint}
                   onChange={(e) => setPlaceHint(e.target.value)}
-                  placeholder={t("createMeet.placePlaceholder")}
+                  placeholder={t("createMeet.locationPlaceholder")}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
                   style={{ color: "var(--deep-navy)" }}
                 />
@@ -708,8 +709,8 @@ export default function NewMeetPage() {
           <button
             type="submit"
             disabled={loading || (!skipRatio && showRatio && !ratioValid)}
-            className="b-animate-in w-full rounded-2xl py-3.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-            style={{ background: "var(--primary)", animationDelay: "0.25s" }}
+            className="b-btn-primary b-animate-in w-full rounded-2xl py-3.5 text-sm disabled:opacity-50"
+            style={{ animationDelay: "0.25s" }}
           >
             {loading ? t("createMeet.creating") : t("createMeet.submit")}
           </button>
