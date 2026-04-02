@@ -545,7 +545,7 @@ export default function MeetPage() {
           {!loading &&
             !errorMsg &&
             filtered.map((m, idx) => {
-              const where = [m.city, m.place_hint].filter(Boolean).join(" · ") || t("meet.locationNotSet");
+              const where = m.place_hint || m.city || t("meet.locationNotSet");
               const when = formatWhen(m.start_at) ?? t("meet.timeNotSet");
               const ended = isPastMeet(m.start_at);
 
@@ -575,11 +575,8 @@ export default function MeetPage() {
               return (
                 <Link key={m.id} href={`/meet/${m.id}`} className="no-underline text-inherit">
                   <article
-                    className={`b-card b-animate-in overflow-hidden ${isInactive ? "" : "b-card-hover"}`}
-                    style={{
-                      animationDelay: `${idx * 0.05}s`,
-                      ...(isInactive ? { opacity: 0.55 } : {}),
-                    }}
+                    className={`b-animate-in overflow-hidden ${isInactive ? "b-card-inactive" : "b-card b-card-hover"}`}
+                    style={{ animationDelay: `${idx * 0.05}s` }}
                   >
                     {/* Image — full width, top of card */}
                     {m.image_url && (
