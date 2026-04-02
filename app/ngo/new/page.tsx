@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { createNgoPost } from "@/lib/ngoService";
+import { createNgoPost, type NgoCategory } from "@/lib/ngoService";
 import { ArrowLeft, ImagePlus, Plus, X, Trash2 } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
@@ -51,6 +51,7 @@ export default function NgoNewPage() {
   const [location, setLocation] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [questions, setQuestions] = useState<string[]>([""]);
+  const [category, setCategory] = useState<NgoCategory>("general");
   const [maxApplicants, setMaxApplicants] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export default function NgoNewPage() {
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         imageUrl = data.publicUrl;
       }
-      const id = await createNgoPost({ title: title.trim(), description: description.trim(), location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
+      const id = await createNgoPost({ title: title.trim(), description: description.trim(), category, location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
       router.push(`/ngo/${id}`);
     } catch (e: any) {
       setErrorMsg(e?.message || "Failed to create post");
@@ -133,8 +134,29 @@ export default function NgoNewPage() {
           <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="hidden" />
         </div>
 
+        {/* Category */}
+        <div className="b-card b-animate-in p-4 mb-4" style={{ animationDelay: "0.05s" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>{t("createNgo.category")}</div>
+          <div className="flex flex-wrap gap-2">
+            {(["general","environment","education","health","human_rights","community","animal_welfare","disaster_relief","refugee_support","arts_culture","social_gathering"] as NgoCategory[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                className="inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold transition"
+                style={category === c
+                  ? { background: "#43A047", color: "#fff" }
+                  : { background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }
+                }
+              >
+                {t(`ngo.cat.${c}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Details */}
-        <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.05s" }}>
+        <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.1s" }}>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("createNgo.activityPurpose")}</div>
             <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.activityPurposePlaceholder")} className="w-full min-h-[80px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />

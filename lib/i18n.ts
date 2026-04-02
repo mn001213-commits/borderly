@@ -502,6 +502,18 @@ const translations: Record<string, Record<Locale, string>> = {
   "createNgo.titleRequired": { en: "Title is required", ko: "제목은 필수입니다", ja: "タイトルは必須です" },
   "createNgo.descRequired": { en: "Description is required", ko: "설명은 필수입니다", ja: "説明は必須です" },
   "createNgo.questionRequired": { en: "Add at least one question", ko: "최소 하나의 질문을 추가하세요", ja: "少なくとも1つの質問を追加してください" },
+  "createNgo.category": { en: "Category", ko: "카테고리", ja: "カテゴリ" },
+  "ngo.cat.general": { en: "General", ko: "일반", ja: "一般" },
+  "ngo.cat.environment": { en: "Environment", ko: "환경", ja: "環境" },
+  "ngo.cat.education": { en: "Education", ko: "교육", ja: "教育" },
+  "ngo.cat.health": { en: "Health", ko: "건강", ja: "健康" },
+  "ngo.cat.human_rights": { en: "Human Rights", ko: "인권", ja: "人権" },
+  "ngo.cat.community": { en: "Community", ko: "커뮤니티", ja: "コミュニティ" },
+  "ngo.cat.animal_welfare": { en: "Animal Welfare", ko: "동물복지", ja: "動物福祉" },
+  "ngo.cat.disaster_relief": { en: "Disaster Relief", ko: "재난구호", ja: "災害救援" },
+  "ngo.cat.refugee_support": { en: "Refugee Support", ko: "난민지원", ja: "難民支援" },
+  "ngo.cat.arts_culture": { en: "Arts & Culture", ko: "문화예술", ja: "芸術文化" },
+  "ngo.cat.social_gathering": { en: "Social Gathering", ko: "소셜모임", ja: "社会的集まり" },
 
   // Edit NGO
   "editNgo.title": { en: "Edit Supporter Post", ko: "협력 단체 게시글 수정", ja: "協力団体投稿を編集" },
