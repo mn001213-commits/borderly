@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/app/components/AuthProvider";
-import { Building2, Globe, FileText, Send } from "lucide-react";
+import { ArrowLeft, Building2, Globe, FileText, Send } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
 export default function NgoOnboardingPage() {
@@ -55,7 +55,8 @@ export default function NgoOnboardingPage() {
     });
 
     if (!res.ok) {
-      const { error: msg } = await res.json().catch(() => ({ error: "Failed to submit" }));
+      const body = await res.json().catch(() => ({ error: "Failed to submit" }));
+      const msg = body.detail ? `${body.error}: ${body.detail}` : body.error;
       setError(msg || "Failed to submit");
       setBusy(false);
       return;
@@ -87,6 +88,14 @@ export default function NgoOnboardingPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-snow)", color: "var(--deep-navy)" }}>
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-8">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm font-medium mb-4 hover:opacity-70 transition"
+          style={{ color: "var(--primary)" }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("common.back") || "Back"}
+        </button>
         <div className="b-card b-animate-in p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--light-blue)" }}>
