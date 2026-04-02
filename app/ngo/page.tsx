@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { listNgoPosts, type NgoPost } from "@/lib/ngoService";
+import { listNgoPosts, type NgoPost, type NgoCategory } from "@/lib/ngoService";
 import NgoVerifiedBadge from "@/app/components/NgoVerifiedBadge";
 import { useT } from "@/app/components/LangProvider";
 import {

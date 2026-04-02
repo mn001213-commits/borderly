@@ -44,8 +44,8 @@ export default function NewMeetPage() {
   const [mapUrl, setMapUrl] = useState("");
   const [onlineUrl, setOnlineUrl] = useState("");
   const [startAt, setStartAt] = useState("");
-  const [maxForeigners, setMaxForeigners] = useState("");
-  const [maxLocals, setMaxLocals] = useState("");
+  const [maxForeigners, setMaxForeigners] = useState("5");
+  const [maxLocals, setMaxLocals] = useState("5");
 
   // Cover image
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -57,13 +57,26 @@ export default function NewMeetPage() {
     };
   }, [coverPreview]);
 
+  // Set default values based on type
+  useEffect(() => {
+    if (type === "study") {
+      // Study: total count only, no foreigner/local distinction
+      setMaxForeigners("");
+      setMaxLocals("");
+    } else {
+      // All other types including language exchange: foreigner/local ratio
+      setMaxForeigners("5");
+      setMaxLocals("5");
+    }
+  }, [type]);
+
   // Ratio calculation
   const nf = maxForeigners ? Number(maxForeigners) : 0;
   const nl = maxLocals ? Number(maxLocals) : 0;
   const total = nf + nl;
   const foreignerPct = total > 0 ? Math.round((nf / total) * 100) : 0;
   const localPct = total > 0 ? 100 - foreignerPct : 0;
-  const skipRatio = type === "study" || type === "language";
+  const skipRatio = type === "study"; // Only study skips foreigner/local ratio
   const ratioValid = skipRatio || total === 0 || (nf / total <= 0.7 && nf / total >= 0.3);
   const showRatio = nf > 0 && nl > 0;
 
@@ -120,6 +133,15 @@ export default function NewMeetPage() {
         image_url = data?.publicUrl ?? null;
       }
 
+      // Calculate max_people - null means unlimited
+      // For study: use total only, no foreigner/local distinction
+      // For others (including language exchange): use foreigner/local counts
+      const finalMaxForeigners = skipRatio ? null : (nf > 0 ? nf : null);
+      const finalMaxLocals = skipRatio ? null : (nl > 0 ? nl : null);
+      const finalMaxPeople = skipRatio
+        ? (nf > 0 ? nf : null)  // Study: nf contains total count
+        : ((finalMaxForeigners || 0) + (finalMaxLocals || 0)) || null;
+
       // 1) Create meet_posts
       const { data: createdMeet, error: e1 } = await supabase
         .from("meet_posts")
@@ -134,16 +156,21 @@ export default function NewMeetPage() {
           map_url: mapUrl.trim() || null,
           online_url: onlineUrl.trim() || null,
           start_at: startAt ? new Date(startAt).toISOString() : null,
-          max_people: nf + nl,
-          max_foreigners: nf,
-          max_locals: nl,
+          max_people: finalMaxPeople,
+          max_foreigners: finalMaxForeigners,
+          max_locals: finalMaxLocals,
           image_url,
         })
         .select("id")
         .single();
 
       if (e1 || !createdMeet) {
-        alert(e1?.message || "Failed to create meetup");
+        // User-friendly error messages
+        let errorMsg = t("createMeet.createFailed") || "Failed to create meetup";
+        if (e1?.message?.includes("max_people_check")) {
+          errorMsg = t("createMeet.invalidParticipants") || "Please set valid participant numbers (at least 1 person)";
+        }
+        alert(errorMsg);
         return;
       }
 

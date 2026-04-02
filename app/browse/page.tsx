@@ -8,6 +8,7 @@ import { useAuth } from "@/app/components/AuthProvider";
 import { useT } from "@/app/components/LangProvider";
 import { isVideoUrl, formatRelative } from "@/lib/format";
 import { type Category } from "@/lib/constants";
+import { sortByEngagement } from "@/lib/sortingUtils";
 import {
   Heart,
   MessageCircle,
@@ -203,6 +204,8 @@ export default function HomePage() {
     startedRef.current = true;
 
     let ch: ReturnType<typeof supabase.channel> | null = null;
+    let likeChannel: ReturnType<typeof supabase.channel> | null = null;
+    let commentChannel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
 
     const start = async () => {
@@ -241,6 +244,52 @@ export default function HomePage() {
           if (oldId) setPosts((prev) => prev.filter((p) => p.id !== oldId));
         })
         .subscribe();
+
+      // Real-time like count updates
+      likeChannel = supabase
+        .channel("browse-likes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, (payload) => {
+          if (payload.eventType === "INSERT" && payload.new) {
+            const postId = (payload.new as any).post_id;
+            setPosts((prev) =>
+              prev.map((post) =>
+                post.id === postId
+                  ? { ...post, like_count: (post.like_count || 0) + 1 }
+                  : post
+              )
+            );
+          } else if (payload.eventType === "DELETE" && payload.old) {
+            const postId = (payload.old as any).post_id;
+            setPosts((prev) =>
+              prev.map((post) =>
+                post.id === postId
+                  ? { ...post, like_count: Math.max(0, (post.like_count || 0) - 1) }
+                  : post
+              )
+            );
+          }
+        })
+        .subscribe();
+
+      // Real-time comment count updates
+      commentChannel = supabase
+        .channel("browse-comments")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "comments" }, (payload) => {
+          if (payload.new) {
+            const postId = (payload.new as any).post_id;
+            const isHidden = (payload.new as any).is_hidden;
+            if (!isHidden) {
+              setPosts((prev) =>
+                prev.map((post) =>
+                  post.id === postId
+                    ? { ...post, comment_count: (post.comment_count || 0) + 1 }
+                    : post
+                )
+              );
+            }
+          }
+        })
+        .subscribe();
     };
 
     start();
@@ -249,6 +298,8 @@ export default function HomePage() {
       cancelled = true;
       startedRef.current = false;
       if (ch) supabase.removeChannel(ch);
+      if (likeChannel) supabase.removeChannel(likeChannel);
+      if (commentChannel) supabase.removeChannel(commentChannel);
     };
   }, [enrichPosts]);
 
@@ -270,16 +321,7 @@ export default function HomePage() {
       return Number.isFinite(t) && t >= cutoff;
     });
 
-    const score = (p: Post) => (p.like_count ?? 0) * 2 + (p.comment_count ?? 0);
-
-    return cand
-      .slice()
-      .sort((a, b) => {
-        const d = score(b) - score(a);
-        if (d !== 0) return d;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      })
-      .slice(0, 3);
+    return sortByEngagement(cand).slice(0, 3);
   }, [posts]);
 
   const filteredPosts = useMemo(() => {
@@ -299,15 +341,13 @@ export default function HomePage() {
       });
     }
 
-    arr = arr.slice().sort((a, b) => {
-      if (sortMode === "likes") {
-        const scoreA = (a.like_count ?? 0) + (a.comment_count ?? 0);
-        const scoreB = (b.like_count ?? 0) + (b.comment_count ?? 0);
-        const diff = scoreB - scoreA;
-        if (diff !== 0) return diff;
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    if (sortMode === "likes") {
+      arr = sortByEngagement(arr);
+    } else {
+      arr = arr.slice().sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
 
     return arr;
   }, [posts, searchText, activeCat, sortMode]);

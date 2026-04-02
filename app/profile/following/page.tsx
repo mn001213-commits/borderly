@@ -73,12 +73,13 @@ export default function FollowingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
         <header className="flex items-center gap-3 py-3">
           <Link
             href="/profile"
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-[#F0F7FF] no-underline"
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium no-underline transition hover:opacity-80"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
           >
             <ArrowLeft className="h-4 w-4" />
             {t("common.back")}
@@ -88,12 +89,15 @@ export default function FollowingPage() {
 
         <div className="mt-4 space-y-2">
           {loading ? (
-            <div className="text-sm text-gray-500">{t("common.loading")}</div>
+            <div className="text-sm" style={{ color: "var(--text-muted)" }}>{t("common.loading")}</div>
           ) : following.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-              <User className="mb-3 h-10 w-10 text-gray-300" />
-              <div className="text-sm font-semibold text-gray-800">{t("following.empty")}</div>
-              <div className="mt-1 text-sm text-gray-500">
+            <div
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center"
+              style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)" }}
+            >
+              <User className="mb-3 h-10 w-10" style={{ color: "var(--border-soft)" }} />
+              <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("following.empty")}</div>
+              <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
                 {t("following.emptyDesc")}
               </div>
             </div>
@@ -101,7 +105,8 @@ export default function FollowingPage() {
             following.map((f) => (
               <div
                 key={f.id}
-                className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                className="flex items-center gap-3 rounded-2xl p-4 shadow-sm"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
               >
                 <Link
                   href={`/u/${f.id}`}
@@ -112,14 +117,18 @@ export default function FollowingPage() {
                     <img
                       src={f.avatar_url}
                       alt={f.display_name ?? t("userProfile.user")}
-                      className="h-11 w-11 rounded-full object-cover ring-1 ring-gray-200"
+                      className="h-11 w-11 rounded-full object-cover"
+                      style={{ border: "1px solid var(--border-soft)" }}
                     />
                   ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200">
-                      <User className="h-5 w-5 text-gray-400" />
+                    <div
+                      className="flex h-11 w-11 items-center justify-center rounded-full"
+                      style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)" }}
+                    >
+                      <User className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
                     </div>
                   )}
-                  <div className="truncate text-sm font-medium text-gray-900">
+                  <div className="truncate text-sm font-medium" style={{ color: "var(--deep-navy)" }}>
                     {f.display_name ?? t("userProfile.user")}
                   </div>
                 </Link>
@@ -127,7 +136,8 @@ export default function FollowingPage() {
                 <button
                   onClick={() => handleUnfollow(f.id)}
                   disabled={!!busy[f.id]}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
                 >
                   <UserMinus className="h-4 w-4" />
                   {t("following.unfollow")}

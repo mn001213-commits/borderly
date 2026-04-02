@@ -384,6 +384,12 @@ export default function MeetDetailPage() {
   async function joinOrRequest() {
     if (!meet || !meId) return;
 
+    // Prevent host from joining their own meet
+    if (meet.host_id === meId) {
+      setJoinMsg({ type: "error", text: t("meetDetail.cannotJoinOwnMeet") });
+      return;
+    }
+
     setJoining(true);
     setJoinMsg(null);
 

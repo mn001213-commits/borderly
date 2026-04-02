@@ -146,6 +146,8 @@ export default function NotificationsPage() {
           is_read: true,
         }))
       );
+      // Notify NotificationBell to refresh
+      window.dispatchEvent(new CustomEvent("notifications-read"));
     } catch (error) {
       if (process.env.NODE_ENV === "development") console.error("markAllRead error:", error);
     } finally {
@@ -162,6 +164,8 @@ export default function NotificationsPage() {
             row.id === n.id ? { ...row, is_read: true } : row
           )
         );
+        // Notify NotificationBell to refresh
+        window.dispatchEvent(new CustomEvent("notifications-read"));
       }
 
       if (n.link) {

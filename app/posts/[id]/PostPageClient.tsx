@@ -392,29 +392,54 @@ export default function PostDetailPage() {
     setSaving(true);
     setErrorMsg(null);
 
+    // 1. Optimistic update - 임시 댓글 추가
+    const tempId = `temp-${Date.now()}`;
+    const author = await getMyDisplayName(user.id);
+
+    const optimisticComment = {
+      id: tempId,
+      post_id: postId,
+      user_id: user.id,
+      parent_id: null,
+      content,
+      created_at: new Date().toISOString(),
+      author_name: author ?? t("post.anonymous"),
+      is_hidden: false,
+    };
+
+    setComments((prev) => [optimisticComment, ...prev]);
+    const savedContent = content;
+    setCommentBody("");
+
     try {
-      const author = await getMyDisplayName(user.id);
+      // 2. 실제 DB 삽입
+      const { data, error } = await supabase
+        .from("comments")
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          parent_id: null,
+          content: savedContent,
+          author_name: author ?? t("post.anonymous"),
+        })
+        .select()
+        .single();
 
-      const { error } = await supabase.from("comments").insert({
-        post_id: postId,
-        user_id: user.id,
-        parent_id: null,
-        content,
-        author_name: author ?? t("post.anonymous"),
-      });
+      if (error) throw error;
 
-      if (error) {
-        setErrorMsg(error.message);
-        return;
-      }
+      // 3. 임시 댓글을 실제 데이터로 교체
+      setComments((prev) =>
+        prev.map((c) => (c.id === tempId ? data : c))
+      );
 
+      // 알림 생성
       if (post && post.user_id !== user.id) {
         try {
           await createNotification({
             userId: post.user_id,
             type: "comment",
             title: "New comment",
-            body: `${author ?? t("post.someone")} commented: ${content}`,
+            body: `${author ?? t("post.someone")} commented: ${savedContent}`,
             link: `/posts/${postId}`,
             meta: { post_id: postId },
           });
@@ -422,8 +447,13 @@ export default function PostDetailPage() {
           if (process.env.NODE_ENV === "development") console.error("comment notification error:", notifError);
         }
       }
+    } catch (err: any) {
+      console.error("addComment error:", err);
+      setErrorMsg(err.message || "Failed to post comment");
 
-      setCommentBody("");
+      // 4. Rollback - 임시 댓글 제거
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setCommentBody(savedContent);
     } finally {
       setSaving(false);
     }
@@ -447,29 +477,56 @@ export default function PostDetailPage() {
     setReplySavingId(parentId);
     setErrorMsg(null);
 
+    // 1. Optimistic update - 임시 댓글 추가
+    const tempId = `temp-${Date.now()}`;
+    const author = await getMyDisplayName(user.id);
+
+    const optimisticComment = {
+      id: tempId,
+      post_id: postId,
+      user_id: user.id,
+      parent_id: parentId,
+      content,
+      created_at: new Date().toISOString(),
+      author_name: author ?? t("post.anonymous"),
+      is_hidden: false,
+    };
+
+    setComments((prev) => [optimisticComment, ...prev]);
+    const savedContent = content;
+    setReplyBodyById((prev) => ({ ...prev, [parentId]: "" }));
+    setReplyOpenById((prev) => ({ ...prev, [parentId]: false }));
+    setRepliesHiddenById((prev) => ({ ...prev, [parentId]: false }));
+
     try {
-      const author = await getMyDisplayName(user.id);
+      // 2. 실제 DB 삽입
+      const { data, error } = await supabase
+        .from("comments")
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          parent_id: parentId,
+          content: savedContent,
+          author_name: author ?? t("post.anonymous"),
+        })
+        .select()
+        .single();
 
-      const { error } = await supabase.from("comments").insert({
-        post_id: postId,
-        user_id: user.id,
-        parent_id: parentId,
-        content,
-        author_name: author ?? t("post.anonymous"),
-      });
+      if (error) throw error;
 
-      if (error) {
-        setErrorMsg(error.message);
-        return;
-      }
+      // 3. 임시 댓글을 실제 데이터로 교체
+      setComments((prev) =>
+        prev.map((c) => (c.id === tempId ? data : c))
+      );
 
+      // 알림 생성
       if (post && post.user_id !== user.id) {
         try {
           await createNotification({
             userId: post.user_id,
             type: "comment",
             title: "New reply",
-            body: `${author ?? t("post.someone")} replied: ${content}`,
+            body: `${author ?? t("post.someone")} replied: ${savedContent}`,
             link: `/posts/${postId}`,
             meta: {
               post_id: postId,
@@ -480,10 +537,13 @@ export default function PostDetailPage() {
           if (process.env.NODE_ENV === "development") console.error("reply notification error:", notifError);
         }
       }
+    } catch (err: any) {
+      console.error("addReply error:", err);
+      setErrorMsg(err.message || "Failed to post reply");
 
-      setReplyBodyById((prev) => ({ ...prev, [parentId]: "" }));
-      setReplyOpenById((prev) => ({ ...prev, [parentId]: false }));
-      setRepliesHiddenById((prev) => ({ ...prev, [parentId]: false }));
+      // 4. Rollback - 임시 댓글 제거
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setReplyBodyById((prev) => ({ ...prev, [parentId]: savedContent }));
     } finally {
       setReplySavingId(null);
     }

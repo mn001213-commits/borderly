@@ -346,8 +346,11 @@ export default function SignupPage() {
     }
 
     setBusy(false);
-    setOkMsg(t("signup.accountCreated"));
-    router.push(userType === "ngo" ? "/onboarding/ngo/pending" : "/");
+    // NGO users go to pending page, regular users go to email verification page
+    const redirectUrl = userType === "ngo"
+      ? "/onboarding/ngo/pending"
+      : `/signup/verify-email?email=${encodeURIComponent(email.trim())}`;
+    router.push(redirectUrl);
   };
 
   return (
