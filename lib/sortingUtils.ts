@@ -1,6 +1,6 @@
 export interface Engagement {
-  like_count?: number;
-  comment_count?: number;
+  like_count?: number | null;
+  comment_count?: number | null;
   created_at: string;
 }
 
