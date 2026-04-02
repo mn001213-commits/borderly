@@ -131,6 +131,17 @@ body::before {
   border-color: var(--border-focus);
 }
 
+.b-card-inactive {
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-soft);
+  border-radius: 16px;
+  box-shadow: none;
+  opacity: 0.7;
+}
+.b-card-inactive img {
+  filter: saturate(0.3);
+}
+
 .b-card-featured {
   border: none;
   background:
