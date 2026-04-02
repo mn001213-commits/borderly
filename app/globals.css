@@ -30,8 +30,8 @@ html, body {
   --deep-navy: #1E2A3A;
   --text-secondary: #5A6B7F;
   --text-muted: #94A3B8;
-  --border-soft: #E2E8F0;
-  --border-focus: #CBD5E1;
+  --border-soft: #D6DEE8;
+  --border-focus: #B8C4D0;
   --accent-yellow: #FFE066;
 
   /* Compat aliases */
@@ -119,7 +119,7 @@ body::before {
   background: var(--bg-card);
   border: 1px solid var(--border-soft);
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .b-card-hover {
