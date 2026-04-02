@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Geist_Mono } from "next/font/google";
 import { LangProvider } from "./components/LangProvider";
 import { AuthProvider } from "./components/AuthProvider";
 import AuthLayout from "./components/AuthLayout";
@@ -7,9 +7,16 @@ import PWAInstall from "./components/PWAInstall";
 import DevAgentation from "./components/DevAgentation";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const inter = Inter({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 const geistMono = Geist_Mono({
@@ -59,7 +66,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("borderly-theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}` }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${plusJakarta.variable} ${inter.variable} ${geistMono.variable} antialiased`}
         style={{ background: "var(--bg-snow)", color: "var(--deep-navy)" }}
       >
         <LangProvider>

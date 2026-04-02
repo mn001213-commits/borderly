@@ -266,7 +266,7 @@ export default function ChatsPage() {
           ) : err ? (
             <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C" }}>{err}</div>
           ) : rows.length === 0 && groupRows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center b-animate-in" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center b-animate-in" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
               <MessageCircle className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("chat.noConversations")}</div>
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("chat.startConversation")}</div>

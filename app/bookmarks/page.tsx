@@ -158,7 +158,7 @@ export default function BookmarksPage() {
           {/* Empty state */}
           {!loading && posts.length === 0 && (
             <div
-              className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center b-animate-in"
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center b-animate-in"
               style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
             >
               <Bookmark className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />

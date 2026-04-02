@@ -9,7 +9,7 @@ import type { NotificationRow } from "@/lib/notificationService";
 import { MessageCircle, Heart, Mail, Handshake, UserPlus, X } from "lucide-react";
 
 const TYPE_ICON: Record<string, { icon: React.ElementType; color: string }> = {
-  comment: { icon: MessageCircle, color: "#4DA6FF" },
+  comment: { icon: MessageCircle, color: "#4361EE" },
   like: { icon: Heart, color: "#F87171" },
   dm: { icon: Mail, color: "#34D399" },
   meet: { icon: Handshake, color: "#A78BFA" },
