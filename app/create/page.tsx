@@ -62,12 +62,12 @@ async function compressImage(
 }
 
 const CATEGORY_OPTIONS: Array<{ value: Category; color: string; icon: React.ElementType; iconColor: string }> = [
-  { value: "general", color: "bg-[#EAF4FF] text-[#4DA6FF]", icon: MessageCircle, iconColor: "#7EC8E3" },
-  { value: "info", color: "bg-[#E8F5E9] text-[#43A047]", icon: Info, iconColor: "#95E1D3" },
-  { value: "question", color: "bg-[#FFF3E0] text-[#EF6C00]", icon: HelpCircle, iconColor: "#F9D56E" },
-  { value: "daily", color: "bg-[#F3E5F5] text-[#8E24AA]", icon: Sun, iconColor: "#F3A683" },
-  { value: "jobs", color: "bg-[#FFF8E1] text-[#F9A825]", icon: Briefcase, iconColor: "#AA96DA" },
-  { value: "other", color: "bg-[#ECEFF1] text-[#546E7A]", icon: MoreHorizontal, iconColor: "#C4C4C4" },
+  { value: "general", color: "bg-[#F0F4FF] text-[#4361EE]", icon: MessageCircle, iconColor: "#4361EE" },
+  { value: "info", color: "bg-[#EEFBF3] text-[#06D6A0]", icon: Info, iconColor: "#06D6A0" },
+  { value: "question", color: "bg-[#FFF4EC] text-[#F77F00]", icon: HelpCircle, iconColor: "#F77F00" },
+  { value: "daily", color: "bg-[#F5F0FF] text-[#7B2FF2]", icon: Sun, iconColor: "#7B2FF2" },
+  { value: "jobs", color: "bg-[#FFF8EB] text-[#E6A817]", icon: Briefcase, iconColor: "#E6A817" },
+  { value: "other", color: "bg-[#F5F5F3] text-[#737373]", icon: MoreHorizontal, iconColor: "#737373" },
 ];
 
 export default function CreatePage() {

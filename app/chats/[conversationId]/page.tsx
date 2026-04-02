@@ -251,7 +251,7 @@ export default function ChatRoomPage() {
   }, [messages.length]);
 
   return (
-    <div className="fixed inset-0 top-[60px] flex flex-col" style={{ color: "var(--deep-navy)", background: "var(--bg-snow)" }}>
+    <div className="fixed inset-0 top-14 flex flex-col" style={{ color: "var(--deep-navy)", background: "var(--bg-snow)" }}>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
         <header className="shrink-0 z-40" style={{ borderBottom: "1px solid var(--border-soft)" }}>
           <div className="flex items-center justify-between gap-3 py-3">

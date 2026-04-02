@@ -53,13 +53,13 @@ export default function NGOPage() {
   const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    jobs: { icon: Briefcase, color: "#AA96DA" },
-    housing: { icon: Home, color: "#7EC8E3" },
-    legal: { icon: Scale, color: "#F9D56E" },
-    education: { icon: GraduationCap, color: "#95E1D3" },
-    health: { icon: HeartPulse, color: "#F3A683" },
-    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    jobs: { icon: Briefcase, color: "#E6A817" },
+    housing: { icon: Home, color: "#4361EE" },
+    legal: { icon: Scale, color: "#C1292E" },
+    education: { icon: GraduationCap, color: "#06D6A0" },
+    health: { icon: HeartPulse, color: "#FF6B6B" },
+    other: { icon: MoreHorizontal, color: "#737373" },
   };
   const catLabel = (k: NgoCat) => {
     if (k === "all") return t("common.all");
@@ -274,7 +274,7 @@ export default function NGOPage() {
 
           {!loading && filtered.length === 0 && (
             <div
-              className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center b-animate-in"
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center b-animate-in"
               style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
             >
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />

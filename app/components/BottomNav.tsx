@@ -37,13 +37,11 @@ export default function BottomNav() {
     }
 
     async function start() {
-      // Set auth token for realtime
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (token) supabase.realtime.setAuth(token);
       if (!mounted) return;
 
-      // Fetch once on mount
       if (!fetchedRef.current) {
         fetchedRef.current = true;
         fetchUnread();
@@ -85,10 +83,13 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md xl:hidden"
-      style={{ borderTop: "1px solid var(--border-soft)", boxShadow: "0 -2px 12px rgba(30,42,56,0.04)" }}
+      className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg xl:hidden"
+      style={{
+        background: "color-mix(in srgb, var(--bg-card) 98%, transparent)",
+        borderTop: "1px solid var(--border-soft)",
+      }}
     >
-      <div className="mx-auto grid h-[72px] max-w-lg grid-cols-5">
+      <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
         {items.map(({ href, icon: Icon, label, badge }) => {
           const on = isActive(href);
           return (
@@ -96,20 +97,26 @@ export default function BottomNav() {
               key={href}
               href={href}
               aria-label={label}
-              className="flex flex-col items-center justify-center gap-1 no-underline transition"
+              className="flex flex-col items-center justify-center gap-0.5 no-underline transition-colors"
               style={{ color: on ? "var(--primary)" : "var(--text-muted)" }}
             >
+              {/* Active dot indicator */}
               <div
-                className="relative flex h-9 w-9 items-center justify-center rounded-full transition"
-                style={{ background: on ? "var(--light-blue)" : "transparent" }}
-              >
-                <Icon className="h-[22px] w-[22px]" />
+                className="h-1 w-1 rounded-full mb-0.5 transition-all"
+                style={{
+                  background: on ? "var(--primary)" : "transparent",
+                  transform: on ? "scale(1)" : "scale(0)",
+                }}
+              />
+              <div className="relative flex h-8 w-8 items-center justify-center">
+                <Icon className="h-5 w-5" strokeWidth={on ? 2.5 : 2} />
                 {badge !== undefined && badge > 0 && (
-                  <span className="absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white" style={{ background: "var(--primary)" }}>
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
               </div>
+              <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );
         })}

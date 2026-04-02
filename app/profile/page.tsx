@@ -359,7 +359,7 @@ export default function ProfilePage() {
             <section>
               {!loading && !msg && posts.length === 0 ? (
                 <div
-                  className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-12 text-center b-animate-in"
+                  className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center b-animate-in"
                   style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
                 >
                   <FileText className="mb-3 h-10 w-10" style={{ color: "var(--border-soft)" }} />
@@ -446,7 +446,7 @@ export default function ProfilePage() {
             <section>
               {!loading && !msg && meets.length === 0 ? (
                 <div
-                  className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-12 text-center b-animate-in"
+                  className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center b-animate-in"
                   style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
                 >
                   <CalendarHeart className="mb-3 h-10 w-10" style={{ color: "var(--border-soft)" }} />

@@ -97,7 +97,7 @@ export default function OnlineSidebar() {
 
   return (
     <aside
-      className="hidden xl:flex fixed right-0 top-[60px] h-[calc(100vh-60px)] w-[340px] flex-col gap-5 p-5 pb-20 overflow-y-auto scrollbar-hide"
+      className="hidden xl:flex fixed right-0 top-14 h-[calc(100vh-56px)] w-[340px] flex-col gap-5 p-5 pb-20 overflow-y-auto scrollbar-hide"
       style={{ background: "transparent" }}
     >
       {/* Page Info Card */}

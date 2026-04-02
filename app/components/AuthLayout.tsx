@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <>
       {!isPublicPage && <TopBar />}
 
-      <main className={`min-h-screen ${isPublicPage ? "" : "pt-[60px] pb-[80px]"} ${showFullLayout ? "xl:mr-[340px]" : ""}`}>
+      <main className={`min-h-screen ${isPublicPage ? "" : "pt-14 pb-[72px]"} ${showFullLayout ? "xl:mr-[340px]" : ""}`}>
         {children}
       </main>
 

@@ -1,14 +1,14 @@
 export type Category = "info" | "question" | "daily" | "general" | "jobs" | "other";
 
 export const CAT_COLORS: Record<string, { bg: string; color: string }> = {
-  general: { bg: "#E3F2FD", color: "#1565C0" },
-  info: { bg: "#FFF3E0", color: "#EF6C00" },
-  question: { bg: "#F3E5F5", color: "#8E24AA" },
-  daily: { bg: "#E8F5E9", color: "#2E7D32" },
-  jobs: { bg: "#FFF8E1", color: "#F57F17" },
-  meet: { bg: "#E3F2FD", color: "#1565C0" },
-  skill: { bg: "#F3E5F5", color: "#8E24AA" },
-  ngo: { bg: "#E8F5E9", color: "#2E7D32" },
-  legal: { bg: "#FFF3E0", color: "#EF6C00" },
-  other: { bg: "#F5F5F5", color: "#616161" },
+  general: { bg: "#F0F4FF", color: "#4361EE" },
+  info:    { bg: "#FFF4EC", color: "#F77F00" },
+  question:{ bg: "#F5F0FF", color: "#7B2FF2" },
+  daily:   { bg: "#EEFBF3", color: "#06D6A0" },
+  jobs:    { bg: "#FFF8EB", color: "#E6A817" },
+  meet:    { bg: "#FFF0F3", color: "#FF6B6B" },
+  skill:   { bg: "#EDF8FF", color: "#0096C7" },
+  ngo:     { bg: "#F0FFF4", color: "#2D9F5D" },
+  legal:   { bg: "#FFF5F5", color: "#C1292E" },
+  other:   { bg: "#F5F5F3", color: "#737373" },
 };

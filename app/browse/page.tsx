@@ -49,12 +49,12 @@ type AuthorProfile = {
 };
 
 const CAT_COLOR: Record<Category, string> = {
-  general: "bg-[#EAF4FF] text-[#4DA6FF]",
-  info: "bg-[#E8F5E9] text-[#43A047]",
-  question: "bg-[#FFF3E0] text-[#EF6C00]",
-  daily: "bg-[#F3E5F5] text-[#8E24AA]",
-  jobs: "bg-[#FFF8E1] text-[#F9A825]",
-  other: "bg-[#ECEFF1] text-[#546E7A]",
+  general: "bg-[#F0F4FF] text-[#4361EE]",
+  info: "bg-[#EEFBF3] text-[#06D6A0]",
+  question: "bg-[#FFF4EC] text-[#F77F00]",
+  daily: "bg-[#F5F0FF] text-[#7B2FF2]",
+  jobs: "bg-[#FFF8EB] text-[#E6A817]",
+  other: "bg-[#F5F5F3] text-[#737373]",
 };
 
 // Fetch like & comment counts for a list of post IDs
@@ -367,13 +367,13 @@ export default function HomePage() {
   }
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    general: { icon: MessageCircle, color: "#7EC8E3" },
-    info: { icon: Info, color: "#95E1D3" },
-    question: { icon: HelpCircle, color: "#F9D56E" },
-    daily: { icon: Sun, color: "#F3A683" },
-    jobs: { icon: Briefcase, color: "#AA96DA" },
-    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    general: { icon: MessageCircle, color: "#4361EE" },
+    info: { icon: Info, color: "#06D6A0" },
+    question: { icon: HelpCircle, color: "#F77F00" },
+    daily: { icon: Sun, color: "#7B2FF2" },
+    jobs: { icon: Briefcase, color: "#E6A817" },
+    other: { icon: MoreHorizontal, color: "#737373" },
   };
   const catLabel = (k: string) => t(`cat.${k}`);
 
@@ -527,7 +527,7 @@ export default function HomePage() {
             )}
 
             {errorMsg && (
-              <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
                 {errorMsg}
               </div>
             )}
@@ -669,7 +669,7 @@ export default function HomePage() {
 
             {!loading && !errorMsg && filteredPosts.length === 0 && (
               <div
-                className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center"
+                className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center"
                 style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
               >
                 <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />

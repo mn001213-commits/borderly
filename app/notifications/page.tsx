@@ -220,7 +220,7 @@ export default function NotificationsPage() {
           </div>
         ) : rows.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-12 text-center b-animate-in"
+            className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center b-animate-in"
             style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
           >
             <div className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t("notif.noNotifications")}</div>
@@ -232,7 +232,7 @@ export default function NotificationsPage() {
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
-                className="b-card b-animate-in rounded-[20px] p-4 text-left transition"
+                className="b-card b-animate-in rounded-2xl p-4 text-left transition"
                 style={{
                   animationDelay: `${idx * 0.04}s`,
                   background: n.is_read ? "var(--bg-card)" : "var(--light-blue)",

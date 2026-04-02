@@ -278,12 +278,12 @@ export default function MeetPage() {
   ];
 
   const typeIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    hangout: { icon: Handshake, color: "#7EC8E3" },
-    study: { icon: BookOpen, color: "#95E1D3" },
-    language: { icon: MessageSquare, color: "#F9D56E" },
-    meal: { icon: UtensilsCrossed, color: "#F3A683" },
-    sports: { icon: Dumbbell, color: "#AA96DA" },
+    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    hangout: { icon: Handshake, color: "#F77F00" },
+    study: { icon: BookOpen, color: "#06D6A0" },
+    language: { icon: MessageSquare, color: "#7B2FF2" },
+    meal: { icon: UtensilsCrossed, color: "#E6A817" },
+    sports: { icon: Dumbbell, color: "#4361EE" },
   };
   const meetTypeLabel = (type: MeetType) => {
     return `${typeEmoji(type)} ${t(`meet.${type}`)}`;
@@ -534,7 +534,7 @@ export default function MeetPage() {
           )}
 
           {errorMsg && (
-            <div className="rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
@@ -774,7 +774,7 @@ export default function MeetPage() {
 
           {!loading && !errorMsg && filtered.length === 0 && (
             <div
-              className="flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center"
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center"
               style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}
             >
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />

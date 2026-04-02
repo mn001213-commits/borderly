@@ -117,13 +117,13 @@ export default function BrowsePage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const catIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    general: { icon: MessageCircle, color: "#7EC8E3" },
-    info: { icon: Info, color: "#95E1D3" },
-    question: { icon: HelpCircle, color: "#F9D56E" },
-    daily: { icon: Sun, color: "#F3A683" },
-    jobs: { icon: Briefcase, color: "#AA96DA" },
-    other: { icon: MoreHorizontal, color: "#C4C4C4" },
+    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    general: { icon: MessageCircle, color: "#4361EE" },
+    info: { icon: Info, color: "#06D6A0" },
+    question: { icon: HelpCircle, color: "#F77F00" },
+    daily: { icon: Sun, color: "#7B2FF2" },
+    jobs: { icon: Briefcase, color: "#E6A817" },
+    other: { icon: MoreHorizontal, color: "#737373" },
   };
   const cats = useMemo(
     () => [
@@ -141,15 +141,15 @@ export default function BrowsePage() {
   const catBadge = (k: string) => t(`cat.${k}`);
 
   const meetTypeIcon: Record<string, { icon: React.ElementType; color: string }> = {
-    all: { icon: LayoutGrid, color: "#4DA6FF" },
-    hangout: { icon: Handshake, color: "#EF6C00" },
-    study: { icon: BookOpen, color: "#2E7D32" },
-    language: { icon: Languages, color: "#8E24AA" },
-    meal: { icon: UtensilsCrossed, color: "#F57F17" },
-    sports: { icon: Dumbbell, color: "#1565C0" },
-    skill: { icon: Wrench, color: "#00838F" },
-    party: { icon: PartyPopper, color: "#C2185B" },
-    project: { icon: Rocket, color: "#283593" },
+    all: { icon: LayoutGrid, color: "#FF6B6B" },
+    hangout: { icon: Handshake, color: "#F77F00" },
+    study: { icon: BookOpen, color: "#06D6A0" },
+    language: { icon: Languages, color: "#7B2FF2" },
+    meal: { icon: UtensilsCrossed, color: "#E6A817" },
+    sports: { icon: Dumbbell, color: "#4361EE" },
+    skill: { icon: Wrench, color: "#0096C7" },
+    party: { icon: PartyPopper, color: "#FF6B6B" },
+    project: { icon: Rocket, color: "#4361EE" },
   };
   const meetTypes = useMemo(
     () => ["all", "hangout", "study", "language", "meal", "sports", "skill", "party", "project"],
@@ -488,7 +488,7 @@ export default function BrowsePage() {
 
           {/* Empty states */}
           {!loading && !errorMsg && tab === "posts" && posts.length === 0 && (
-            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
               <FileText className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("browse.noPostsFound")}</div>
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
@@ -502,7 +502,7 @@ export default function BrowsePage() {
           )}
 
           {!loading && !errorMsg && tab === "meets" && meets.length === 0 && (
-            <div className="b-animate-in flex flex-col items-center justify-center rounded-[20px] border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
+            <div className="b-animate-in flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-16 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
               <CalendarDays className="mb-4 h-12 w-12" style={{ color: "var(--border-soft)" }} />
               <div className="text-sm font-semibold">{t("browse.noMeetsFound")}</div>
               <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
