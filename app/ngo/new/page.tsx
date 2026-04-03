@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { createNgoPost, type NgoCategory } from "@/lib/ngoService";
-import { ArrowLeft, ImagePlus, Plus, X, Trash2 } from "lucide-react";
+import { createNgoPost, type NgoCategory, type NgoChatType } from "@/lib/ngoService";
+import { ArrowLeft, ImagePlus, Plus, X, Trash2, Users, MessageCircle } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
 const BUCKET = "post-images";
@@ -67,6 +67,7 @@ export default function NgoNewPage() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [questions, setQuestions] = useState<string[]>([""]);
   const [maxApplicants, setMaxApplicants] = useState("");
+  const [chatType, setChatType] = useState<NgoChatType>("group");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function NgoNewPage() {
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         imageUrl = data.publicUrl;
       }
-      const id = await createNgoPost({ title: title.trim(), description: description.trim(), category, location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null });
+      const id = await createNgoPost({ title: title.trim(), description: description.trim(), category, location: location.trim(), website_url: websiteUrl.trim(), image_url: imageUrl, questions: validQ, max_applicants: maxApplicants ? parseInt(maxApplicants, 10) : null, chat_type: chatType });
       router.push(`/ngo/${id}`);
     } catch (e: any) {
       setErrorMsg(e?.message || "Failed to create post");
@@ -213,8 +214,39 @@ export default function NgoNewPage() {
           <input value={maxApplicants} onChange={(e) => setMaxApplicants(e.target.value.replace(/\D/g, ""))} placeholder={t("createNgo.maxApplicants")} className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
         </div>
 
+        {/* Chat Type */}
+        <div className="b-card b-animate-in p-4 mb-4" style={{ animationDelay: "0.1s" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>{t("createNgo.chatType")}</div>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: "group" as NgoChatType, icon: Users, label: t("createNgo.chatTypeGroup"), desc: t("createNgo.chatTypeGroupDesc") },
+              { value: "dm" as NgoChatType, icon: MessageCircle, label: t("createNgo.chatTypeDm"), desc: t("createNgo.chatTypeDmDesc") },
+            ]).map(({ value, icon: Icon, label, desc }) => {
+              const active = chatType === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setChatType(value)}
+                  className="flex flex-col items-start gap-1.5 rounded-2xl p-3 text-left transition"
+                  style={{
+                    background: active ? "color-mix(in srgb, var(--primary) 12%, var(--bg-card))" : "var(--light-blue)",
+                    border: active ? "2px solid var(--primary)" : "2px solid transparent",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "var(--primary)" : "var(--text-secondary)" }} />
+                    <span className="text-sm font-semibold" style={{ color: active ? "var(--primary)" : "var(--deep-navy)" }}>{label}</span>
+                  </div>
+                  <span className="text-xs leading-tight" style={{ color: "var(--text-muted)" }}>{desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Questions */}
-        <div className="b-card b-animate-in p-4" style={{ animationDelay: "0.1s" }}>
+        <div className="b-card b-animate-in p-4" style={{ animationDelay: "0.15s" }}>
           <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>{t("createNgo.questions")}</div>
           <div className="space-y-3">
             {questions.map((q, idx) => (

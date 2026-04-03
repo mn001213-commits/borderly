@@ -15,6 +15,8 @@ export type NgoCategory =
   | "arts_culture"
   | "social_gathering";
 
+export type NgoChatType = "group" | "dm";
+
 export type NgoPost = {
   id: string;
   ngo_user_id: string;
@@ -27,6 +29,8 @@ export type NgoPost = {
   questions: string[];
   max_applicants: number | null;
   is_closed: boolean;
+  chat_type: NgoChatType;
+  group_conversation_id: string | null;
   created_at: string;
   // from view
   ngo_name?: string;
@@ -87,6 +91,7 @@ export async function createNgoPost(post: {
   image_url?: string | null;
   questions: string[];
   max_applicants?: number | null;
+  chat_type?: NgoChatType;
 }) {
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id;
@@ -104,6 +109,7 @@ export async function createNgoPost(post: {
       image_url: post.image_url,
       questions: post.questions,
       max_applicants: post.max_applicants ?? null,
+      chat_type: post.chat_type ?? "group",
     })
     .select("id")
     .single();
@@ -227,14 +233,53 @@ export async function updateApplicationStatus(
 export async function createNgoConversation(
   ngoUserId: string,
   applicantId: string,
-  ngoPostTitle: string
+  post: Pick<NgoPost, "id" | "title" | "chat_type" | "group_conversation_id">
 ) {
-  // Create conversation with type 'ngo'
+  if (post.chat_type === "dm") {
+    // DM mode: create a new 1:1 conversation for each approved applicant
+    const { data: conv, error: convErr } = await supabase
+      .from("conversations")
+      .insert({
+        type: "ngo",
+        name: null,
+        created_by: ngoUserId,
+      })
+      .select("id")
+      .single();
+
+    if (convErr) throw convErr;
+
+    const { error: memErr } = await supabase
+      .from("conversation_members")
+      .insert([
+        { conversation_id: conv.id, user_id: ngoUserId, role: "admin" },
+        { conversation_id: conv.id, user_id: applicantId, role: "member" },
+      ]);
+
+    if (memErr) throw memErr;
+
+    return conv.id as string;
+  }
+
+  // Group mode: reuse shared group conversation or create it on first approval
+  if (post.group_conversation_id) {
+    // Add new member to existing group
+    const { error: memErr } = await supabase
+      .from("conversation_members")
+      .insert({ conversation_id: post.group_conversation_id, user_id: applicantId, role: "member" });
+
+    // Ignore duplicate member error (idempotent)
+    if (memErr && !memErr.message.includes("duplicate")) throw memErr;
+
+    return post.group_conversation_id;
+  }
+
+  // First approval: create the group conversation
   const { data: conv, error: convErr } = await supabase
     .from("conversations")
     .insert({
       type: "ngo",
-      name: `Supporters: ${ngoPostTitle}`,
+      name: `Supporters: ${post.title}`,
       created_by: ngoUserId,
     })
     .select("id")
@@ -242,19 +287,22 @@ export async function createNgoConversation(
 
   if (convErr) throw convErr;
 
-  const convId = conv.id;
-
-  // Add both members
   const { error: memErr } = await supabase
     .from("conversation_members")
     .insert([
-      { conversation_id: convId, user_id: ngoUserId, role: "admin" },
-      { conversation_id: convId, user_id: applicantId, role: "member" },
+      { conversation_id: conv.id, user_id: ngoUserId, role: "admin" },
+      { conversation_id: conv.id, user_id: applicantId, role: "member" },
     ]);
 
   if (memErr) throw memErr;
 
-  return convId as string;
+  // Save group_conversation_id back to the post for future approvals
+  await supabase
+    .from("ngo_posts")
+    .update({ group_conversation_id: conv.id })
+    .eq("id", post.id);
+
+  return conv.id as string;
 }
 
 // ── Admin: list unverified NGOs ──
