@@ -96,7 +96,12 @@ export default function NgoPortalPage() {
     try {
       await updateApplicationStatus(app.id, "approved");
       const post = posts.find((p) => p.id === selectedPostId);
-      const convId = await createNgoConversation(myUid, app.applicant_id, post?.title ?? "Supporter");
+      const convId = await createNgoConversation(myUid, app.applicant_id, {
+        id: post!.id,
+        title: post?.title ?? "Supporter",
+        chat_type: post?.chat_type ?? "group",
+        group_conversation_id: post?.group_conversation_id ?? null,
+      });
       await createNotification({
         userId: app.applicant_id,
         type: "meet",
@@ -105,9 +110,15 @@ export default function NgoPortalPage() {
         link: `/chats/${convId}`,
       });
       setApps((prev) => prev.map((a) => a.id === app.id ? { ...a, status: "approved" as const } : a));
-      setPosts((prev) => prev.map((p) => p.id === selectedPostId
-        ? { ...p, approved_count: (p.approved_count ?? 0) + 1 }
-        : p));
+      setPosts((prev) => prev.map((p) => {
+        if (p.id !== selectedPostId) return p;
+        const updated: typeof p = { ...p, approved_count: (p.approved_count ?? 0) + 1 };
+        // Update group_conversation_id if this was the first group approval
+        if (p.chat_type !== "dm" && !p.group_conversation_id) {
+          updated.group_conversation_id = convId;
+        }
+        return updated;
+      }));
     } catch (e: any) {
       setErr(e?.message || t("ngoApp.failedApprove"));
     }

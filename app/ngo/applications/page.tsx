@@ -64,9 +64,19 @@ export default function NgoApplicationsPage() {
     try {
       await updateApplicationStatus(app.id, "approved");
 
-      // Create NGO conversation
+      // Create NGO conversation (group or DM based on post setting)
       const post = posts.find((p) => p.id === selectedPostId);
-      const convId = await createNgoConversation(myUid, app.applicant_id, post?.title ?? "Supporter");
+      const convId = await createNgoConversation(myUid, app.applicant_id, {
+        id: post!.id,
+        title: post?.title ?? "Supporter",
+        chat_type: post?.chat_type ?? "group",
+        group_conversation_id: post?.group_conversation_id ?? null,
+      });
+
+      // Update local post state with group_conversation_id if it was just created
+      if (post?.chat_type !== "dm" && !post?.group_conversation_id) {
+        setPosts((prev) => prev.map((p) => p.id === selectedPostId ? { ...p, group_conversation_id: convId } : p));
+      }
 
       // Notify applicant
       await createNotification({
