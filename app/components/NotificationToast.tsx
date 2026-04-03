@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "./AuthProvider";
 import { useT } from "./LangProvider";
-import type { NotificationRow } from "@/lib/notificationService";
+import { resolveNotifText, type NotificationRow } from "@/lib/notificationService";
 import { MessageCircle, Heart, Mail, Handshake, UserPlus, X } from "lucide-react";
 
 const TYPE_ICON: Record<string, { icon: React.ElementType; color: string }> = {
@@ -111,6 +111,7 @@ export default function NotificationToast() {
         const n = toast.notification;
         const typeInfo = TYPE_ICON[n.type] ?? TYPE_ICON.comment;
         const Icon = typeInfo.icon;
+        const { title: notifTitle, body: notifBody } = resolveNotifText(n, t);
 
         return (
           <div
@@ -138,11 +139,11 @@ export default function NotificationToast() {
 
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold truncate" style={{ color: "var(--deep-navy)" }}>
-                {n.title}
+                {notifTitle}
               </div>
-              {n.body && (
+              {notifBody && (
                 <div className="mt-0.5 text-xs truncate" style={{ color: "var(--text-secondary)" }}>
-                  {n.body}
+                  {notifBody}
                 </div>
               )}
               <div className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>

@@ -400,6 +400,7 @@ export default function MeetPage() {
             title: "New join request",
             body: `${requesterName} wants to join "${meetData.title}"`,
             link: `/meet/${meetId}/manage`,
+            meta: { title_key: "notif.tpl.meetRequestTitle", body_key: "notif.tpl.meetRequestBody", actor: requesterName, meet_title: meetData.title },
           });
         }
       }

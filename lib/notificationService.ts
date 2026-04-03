@@ -1,4 +1,32 @@
 import { supabase } from "@/lib/supabaseClient";
+import { t as rawT } from "@/lib/i18n";
+
+/**
+ * Resolves localized title/body for a notification.
+ * If meta contains title_key/body_key, translates using those keys and fills in variables.
+ * Falls back to stored title/body for legacy notifications.
+ */
+export function resolveNotifText(
+  n: { title: string; body: string | null; meta?: any },
+  tFn: (key: string) => string = rawT
+): { title: string; body: string | null } {
+  const meta = n.meta ?? {};
+
+  function fillVars(template: string, vars: Record<string, string>): string {
+    return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+  }
+
+  const vars: Record<string, string> = {
+    actor: meta.actor ?? "",
+    content: meta.content ?? "",
+    title: meta.meet_title ?? "",
+  };
+
+  const title = meta.title_key ? fillVars(tFn(meta.title_key), vars) : n.title;
+  const body = meta.body_key ? fillVars(tFn(meta.body_key), vars) : n.body;
+
+  return { title, body };
+}
 
 export type NotificationType = "comment" | "like" | "dm" | "meet" | "follow";
 

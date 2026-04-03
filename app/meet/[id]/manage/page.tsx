@@ -221,6 +221,7 @@ export default function MeetManagePage() {
         title: "Request approved",
         body: `Your request to join "${meetTitle}" has been approved. You can now enter the group chat!`,
         link: `/meet/${id}`,
+        meta: { title_key: "notif.tpl.meetApprovedTitle", body_key: "notif.tpl.meetApprovedBody", meet_title: meetTitle },
       });
     }
 
@@ -300,6 +301,7 @@ export default function MeetManagePage() {
         title: "Request declined",
         body: `Your request to join "${meetTitle}" was declined.`,
         link: `/meet/${id}`,
+        meta: { title_key: "notif.tpl.meetDeclinedTitle", body_key: "notif.tpl.meetDeclinedBody", meet_title: meetTitle },
       });
     }
 

@@ -8,6 +8,7 @@ import {
   listNotifications,
   markAllRead,
   markRead,
+  resolveNotifText,
   type NotificationRow,
 } from "@/lib/notificationService";
 import { swrCache } from "@/lib/swrCache";
@@ -236,7 +237,9 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {rows.map((n, idx) => (
+            {rows.map((n, idx) => {
+              const { title: notifTitle, body: notifBody } = resolveNotifText(n, t);
+              return (
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
@@ -251,7 +254,7 @@ export default function NotificationsPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="truncate text-sm font-bold" style={{ color: "var(--deep-navy)" }}>
-                        {n.title}
+                        {notifTitle}
                       </div>
 
                       {!n.is_read ? (
@@ -261,9 +264,9 @@ export default function NotificationsPage() {
                       ) : null}
                     </div>
 
-                    {n.body ? (
+                    {notifBody ? (
                       <div className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                        {n.body}
+                        {notifBody}
                       </div>
                     ) : null}
 
@@ -279,7 +282,8 @@ export default function NotificationsPage() {
                   </div>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

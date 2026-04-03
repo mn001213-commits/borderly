@@ -20,7 +20,7 @@ export async function followUser(myId: string, targetId: string) {
       type: "follow",
       title: `${name} started following you`,
       link: `/u/${myId}`,
-      meta: { follower_id: myId },
+      meta: { follower_id: myId, title_key: "notif.tpl.followTitle", actor: name },
     });
   }
 
