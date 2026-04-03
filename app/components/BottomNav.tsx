@@ -14,6 +14,7 @@ export default function BottomNav() {
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
   const fetchedRef = useRef(false);
+  const fetchUnreadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -35,6 +36,8 @@ export default function BottomNav() {
         setUnread(total);
       }
     }
+
+    fetchUnreadRef.current = fetchUnread;
 
     async function start() {
       const { data } = await supabase.auth.getSession();
@@ -66,9 +69,17 @@ export default function BottomNav() {
 
     return () => {
       mounted = false;
+      fetchUnreadRef.current = null;
       if (channel) supabase.removeChannel(channel);
     };
   }, [user]);
+
+  // Re-fetch unread count on navigation (entering or leaving a chat room)
+  useEffect(() => {
+    if (fetchUnreadRef.current) {
+      fetchUnreadRef.current();
+    }
+  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
