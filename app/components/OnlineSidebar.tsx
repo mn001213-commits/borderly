@@ -309,7 +309,7 @@ export default function OnlineSidebar() {
             {isAdmin && (
               <>
                 <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-                  Admin
+                  {t("admin.section")}
                 </div>
                 <Link
                   href="/admin/dashboard"
@@ -318,7 +318,7 @@ export default function OnlineSidebar() {
                 >
                   <span className="flex items-center gap-2">
                     <ShieldAlert className="h-3.5 w-3.5" />
-                    대시보드
+                    {t("admin.dashboard")}
                   </span>
                   <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
                 </Link>
@@ -327,10 +327,9 @@ export default function OnlineSidebar() {
                   className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
                   style={{ color: pathname === "/admin/reports" ? "var(--primary)" : "var(--text-secondary)" }}
                 >
-
                   <span className="flex items-center gap-2">
                     <ShieldAlert className="h-3.5 w-3.5" />
-                    신고 관리
+                    {t("admin.reports")}
                   </span>
                   <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
                 </Link>
@@ -341,7 +340,7 @@ export default function OnlineSidebar() {
                 >
                   <span className="flex items-center gap-2">
                     <ShieldCheck className="h-3.5 w-3.5" />
-                    협력단체 승인
+                    {t("admin.ngo")}
                   </span>
                   <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
                 </Link>

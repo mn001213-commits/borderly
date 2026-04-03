@@ -885,6 +885,30 @@ const translations: Record<string, Record<Locale, string>> = {
   "myPage.noFollowers": { en: "No followers yet.", ko: "아직 팔로워가 없습니다.", ja: "まだフォロワーがいません。" },
   "myPage.notFollowingAnyone": { en: "Not following anyone yet.", ko: "아직 팔로우하는 사람이 없습니다.", ja: "まだ誰もフォローしていません。" },
   "myPage.noName": { en: "No name", ko: "이름 없음", ja: "名前なし" },
+
+  // Admin common
+  "admin.dashboard": { en: "Dashboard", ko: "대시보드", ja: "ダッシュボード" },
+  "admin.reports": { en: "Reports", ko: "신고 관리", ja: "通報管理" },
+  "admin.ngo": { en: "NGO Approval", ko: "협력단체 승인", ja: "協力団体承認" },
+  "admin.section": { en: "Admin", ko: "관리자", ja: "管理者" },
+
+  // Admin dashboard
+  "adminDash.title": { en: "Dashboard", ko: "대시보드", ja: "ダッシュボード" },
+  "adminDash.totalUsers": { en: "Total Users", ko: "전체 가입자", ja: "総ユーザー数" },
+  "adminDash.totalPosts": { en: "Total Posts", ko: "전체 게시물", ja: "総投稿数" },
+  "adminDash.pendingNgo": { en: "NGO Pending", ko: "NGO 대기", ja: "NGO審査待ち" },
+  "adminDash.pendingReports": { en: "Pending Reports", ko: "미처리 신고", ja: "未処理通報" },
+  "adminDash.registrations": { en: "New Registrations", ko: "신규 가입자", ja: "新規登録者" },
+  "adminDash.posts": { en: "Posts", ko: "게시물", ja: "投稿" },
+  "adminDash.comments": { en: "Comments", ko: "댓글", ja: "コメント" },
+  "adminDash.meets": { en: "Meet Events", ko: "Meet 이벤트", ja: "ミートイベント" },
+  "adminDash.reports": { en: "Reports", ko: "신고", ja: "通報" },
+  "adminDash.messages": { en: "Messages", ko: "메시지", ja: "メッセージ" },
+  "adminDash.follows": { en: "Follows", ko: "팔로우", ja: "フォロー" },
+  "adminDash.ngoApplications": { en: "NGO Applications", ko: "NGO 신청", ja: "NGO申請" },
+  "adminDash.days": { en: "days", ko: "일간", ja: "日間" },
+  "adminDash.max": { en: "Max", ko: "최대", ja: "最大" },
+  "adminDash.dailyAvg": { en: "Daily avg", ko: "일평균", ja: "日平均" },
 };
 
 export function getLocale(): Locale {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { useT } from "@/app/components/LangProvider";
 import {
   ArrowLeft, Users, FileText, MessageCircle, CalendarHeart,
   ShieldAlert, Send, UserPlus, ShieldCheck, RefreshCw,
@@ -12,7 +13,7 @@ import {
 type DayRange = 7 | 14 | 30;
 
 type ChartSeries = {
-  label: string;
+  labelKey: string;
   data: number[];
   color: string;
   icon: React.ReactNode;
@@ -107,6 +108,7 @@ async function fetchCount(table: string, filter?: { col: string; val: string }) 
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
+  const { t } = useT();
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
   const [range, setRange] = useState<DayRange>(30);
@@ -116,7 +118,6 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // admin check
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -158,62 +159,14 @@ export default function AdminDashboardPage() {
     setLabels(buildLabels(days));
     setTotals({ totalUsers, totalPosts, pendingNgo, pendingReports });
     setSeries([
-      {
-        label: "신규 가입자",
-        data: groupByDate(regRows, days),
-        color: "#4A8FE7",
-        icon: <UserPlus className="h-4 w-4" />,
-        total: regRows.length,
-      },
-      {
-        label: "게시물",
-        data: groupByDate(postRows, days),
-        color: "#2EC4B6",
-        icon: <FileText className="h-4 w-4" />,
-        total: postRows.length,
-      },
-      {
-        label: "댓글",
-        data: groupByDate(commentRows, days),
-        color: "#8B5CF6",
-        icon: <MessageCircle className="h-4 w-4" />,
-        total: commentRows.length,
-      },
-      {
-        label: "Meet 이벤트",
-        data: groupByDate(meetRows, days),
-        color: "#F59E0B",
-        icon: <CalendarHeart className="h-4 w-4" />,
-        total: meetRows.length,
-      },
-      {
-        label: "신고",
-        data: groupByDate(reportRows, days),
-        color: "#EF4444",
-        icon: <ShieldAlert className="h-4 w-4" />,
-        total: reportRows.length,
-      },
-      {
-        label: "메시지",
-        data: groupByDate(msgRows, days),
-        color: "#06B6D4",
-        icon: <Send className="h-4 w-4" />,
-        total: msgRows.length,
-      },
-      {
-        label: "팔로우",
-        data: groupByDate(followRows, days),
-        color: "#10B981",
-        icon: <Users className="h-4 w-4" />,
-        total: followRows.length,
-      },
-      {
-        label: "NGO 신청",
-        data: groupByDate(ngoRows, days),
-        color: "#F97316",
-        icon: <ShieldCheck className="h-4 w-4" />,
-        total: ngoRows.length,
-      },
+      { labelKey: "adminDash.registrations", data: groupByDate(regRows, days), color: "#4A8FE7", icon: <UserPlus className="h-4 w-4" />, total: regRows.length },
+      { labelKey: "adminDash.posts",         data: groupByDate(postRows, days), color: "#2EC4B6", icon: <FileText className="h-4 w-4" />, total: postRows.length },
+      { labelKey: "adminDash.comments",      data: groupByDate(commentRows, days), color: "#8B5CF6", icon: <MessageCircle className="h-4 w-4" />, total: commentRows.length },
+      { labelKey: "adminDash.meets",         data: groupByDate(meetRows, days), color: "#F59E0B", icon: <CalendarHeart className="h-4 w-4" />, total: meetRows.length },
+      { labelKey: "adminDash.reports",       data: groupByDate(reportRows, days), color: "#EF4444", icon: <ShieldAlert className="h-4 w-4" />, total: reportRows.length },
+      { labelKey: "adminDash.messages",      data: groupByDate(msgRows, days), color: "#06B6D4", icon: <Send className="h-4 w-4" />, total: msgRows.length },
+      { labelKey: "adminDash.follows",       data: groupByDate(followRows, days), color: "#10B981", icon: <Users className="h-4 w-4" />, total: followRows.length },
+      { labelKey: "adminDash.ngoApplications", data: groupByDate(ngoRows, days), color: "#F97316", icon: <ShieldCheck className="h-4 w-4" />, total: ngoRows.length },
     ]);
 
     setLoading(false);
@@ -224,10 +177,10 @@ export default function AdminDashboardPage() {
 
   const summaryCards = totals
     ? [
-        { label: "전체 가입자", value: totals.totalUsers, color: "#4A8FE7", icon: <Users className="h-5 w-5" /> },
-        { label: "전체 게시물", value: totals.totalPosts, color: "#2EC4B6", icon: <FileText className="h-5 w-5" /> },
-        { label: "NGO 대기", value: totals.pendingNgo, color: "#F97316", icon: <ShieldCheck className="h-5 w-5" />, href: "/admin/ngo" },
-        { label: "미처리 신고", value: totals.pendingReports, color: "#EF4444", icon: <ShieldAlert className="h-5 w-5" />, href: "/admin/reports" },
+        { labelKey: "adminDash.totalUsers",    value: totals.totalUsers,    color: "#4A8FE7", icon: <Users className="h-5 w-5" /> },
+        { labelKey: "adminDash.totalPosts",    value: totals.totalPosts,    color: "#2EC4B6", icon: <FileText className="h-5 w-5" /> },
+        { labelKey: "adminDash.pendingNgo",    value: totals.pendingNgo,    color: "#F97316", icon: <ShieldCheck className="h-5 w-5" />, href: "/admin/ngo" },
+        { labelKey: "adminDash.pendingReports",value: totals.pendingReports,color: "#EF4444", icon: <ShieldAlert className="h-5 w-5" />, href: "/admin/reports" },
       ]
     : [];
 
@@ -244,7 +197,7 @@ export default function AdminDashboardPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-bold">대시보드</h1>
+          <h1 className="text-lg font-bold">{t("adminDash.title")}</h1>
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={load}
@@ -254,7 +207,6 @@ export default function AdminDashboardPage() {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </button>
-            {/* Range tabs */}
             <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-soft)" }}>
               {([7, 14, 30] as DayRange[]).map((d) => (
                 <button
@@ -266,7 +218,7 @@ export default function AdminDashboardPage() {
                     color: range === d ? "#fff" : "var(--text-secondary)",
                   }}
                 >
-                  {d}일
+                  {d}{t("adminDash.days")}
                 </button>
               ))}
             </div>
@@ -275,9 +227,9 @@ export default function AdminDashboardPage() {
 
         {/* Admin nav */}
         <div className="flex gap-2 mb-6 text-xs font-medium">
-          <span className="px-3 py-1.5 rounded-full text-white" style={{ background: "var(--primary)" }}>대시보드</span>
-          <Link href="/admin/reports" className="px-3 py-1.5 rounded-full no-underline transition hover:opacity-80" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>신고 관리</Link>
-          <Link href="/admin/ngo" className="px-3 py-1.5 rounded-full no-underline transition hover:opacity-80" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>협력단체 승인</Link>
+          <span className="px-3 py-1.5 rounded-full text-white" style={{ background: "var(--primary)" }}>{t("admin.dashboard")}</span>
+          <Link href="/admin/reports" className="px-3 py-1.5 rounded-full no-underline transition hover:opacity-80" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>{t("admin.reports")}</Link>
+          <Link href="/admin/ngo" className="px-3 py-1.5 rounded-full no-underline transition hover:opacity-80" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>{t("admin.ngo")}</Link>
         </div>
 
         {loading ? (
@@ -297,16 +249,16 @@ export default function AdminDashboardPage() {
                 const inner = (
                   <div className="b-card p-4 flex flex-col gap-2 h-full">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>{c.label}</span>
+                      <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>{t(c.labelKey)}</span>
                       <span style={{ color: c.color }}>{c.icon}</span>
                     </div>
                     <div className="text-2xl font-bold" style={{ color: c.color }}>{c.value.toLocaleString()}</div>
                   </div>
                 );
                 return c.href ? (
-                  <Link key={c.label} href={c.href} className="no-underline block">{inner}</Link>
+                  <Link key={c.labelKey} href={c.href} className="no-underline block">{inner}</Link>
                 ) : (
-                  <div key={c.label}>{inner}</div>
+                  <div key={c.labelKey}>{inner}</div>
                 );
               })}
             </div>
@@ -318,20 +270,20 @@ export default function AdminDashboardPage() {
                 const sum = s.data.reduce((a, b) => a + b, 0);
                 const avg = sum > 0 ? (sum / s.data.filter(v => v > 0).length).toFixed(1) : "0";
                 return (
-                  <div key={s.label} className="b-card p-4">
+                  <div key={s.labelKey} className="b-card p-4">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
                         <span style={{ color: s.color }}>{s.icon}</span>
-                        <span className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{s.label}</span>
+                        <span className="text-sm font-semibold" style={{ color: "var(--deep-navy)" }}>{t(s.labelKey)}</span>
                       </div>
                       <div className="text-right">
                         <div className="text-base font-bold" style={{ color: s.color }}>{s.total.toLocaleString()}</div>
-                        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{range}일간</div>
+                        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{range}{t("adminDash.days")}</div>
                       </div>
                     </div>
                     <div className="flex gap-3 mb-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
-                      <span>최대 <b style={{ color: "var(--deep-navy)" }}>{max}</b></span>
-                      <span>일평균 <b style={{ color: "var(--deep-navy)" }}>{avg}</b></span>
+                      <span>{t("adminDash.max")} <b style={{ color: "var(--deep-navy)" }}>{max}</b></span>
+                      <span>{t("adminDash.dailyAvg")} <b style={{ color: "var(--deep-navy)" }}>{avg}</b></span>
                     </div>
                     <MiniChart data={s.data} color={s.color} />
                     <XLabels labels={labels} range={range} />
