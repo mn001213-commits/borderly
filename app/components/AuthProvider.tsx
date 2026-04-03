@@ -8,6 +8,7 @@ type AuthUser = {
   displayName: string | null;
   avatarUrl: string | null;
   role: string | null;
+  ngoVerified: boolean;
 } | null;
 
 const AuthContext = createContext<{
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url, residence_country, origin_country, languages, use_purpose, role")
+        .select("display_name, avatar_url, residence_country, origin_country, languages, use_purpose, role, ngo_verified")
         .eq("id", authUser.id)
         .maybeSingle();
 
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: prof?.display_name ?? authUser.email ?? null,
           avatarUrl: prof?.avatar_url ?? null,
           role: prof?.role ?? null,
+          ngoVerified: prof?.ngo_verified === true,
         });
         setLoading(false);
       }

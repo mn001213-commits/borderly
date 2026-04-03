@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useAuth } from "./AuthProvider";
-import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldAlert, ShieldCheck, Globe, ChevronRight, Settings } from "lucide-react";
+import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldAlert, ShieldCheck, Globe, ChevronRight, Settings, ClipboardList, Building2 } from "lucide-react";
 import { countryName } from "@/lib/countries";
 import { useT } from "./LangProvider";
 
@@ -49,6 +49,7 @@ export default function OnlineSidebar() {
   const { user: authUser } = useAuth();
   const myId = authUser?.id ?? null;
   const isAdmin = authUser?.role === "admin";
+  const isNgoVerified = authUser?.ngoVerified === true;
   const [following, setFollowing] = useState<FollowingProfile[]>([]);
   const [q, setQ] = useState("");
   const onlineUserIds = useOnlinePresence(myId);
@@ -307,6 +308,19 @@ export default function OnlineSidebar() {
               </span>
               <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
             </Link>
+            {isNgoVerified && (
+              <Link
+                href="/ngo/portal"
+                className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
+                style={{ color: pathname === "/ngo/portal" ? "var(--primary)" : "var(--text-secondary)" }}
+              >
+                <span className="flex items-center gap-2">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  {t("sidebar.ngoPortal")}
+                </span>
+                <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+              </Link>
+            )}
             <Link
               href="/settings"
               className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
