@@ -312,10 +312,22 @@ export default function OnlineSidebar() {
                   Admin
                 </div>
                 <Link
+                  href="/admin/dashboard"
+                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
+                  style={{ color: pathname === "/admin/dashboard" ? "var(--primary)" : "var(--text-secondary)" }}
+                >
+                  <span className="flex items-center gap-2">
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                    대시보드
+                  </span>
+                  <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                </Link>
+                <Link
                   href="/admin/reports"
                   className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
                   style={{ color: pathname === "/admin/reports" ? "var(--primary)" : "var(--text-secondary)" }}
                 >
+
                   <span className="flex items-center gap-2">
                     <ShieldAlert className="h-3.5 w-3.5" />
                     신고 관리
