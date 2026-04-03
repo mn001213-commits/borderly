@@ -760,6 +760,25 @@ const translations: Record<string, Record<Locale, string>> = {
   "notif.typeMeet": { en: "Meet", ko: "모임", ja: "ミート" },
   "notif.typeFollow": { en: "Follow", ko: "팔로우", ja: "フォロー" },
 
+  // Notification content templates ({actor}, {content}, {title} are replaced at render time)
+  "notif.tpl.commentTitle": { en: "New comment", ko: "새 댓글", ja: "新しいコメント" },
+  "notif.tpl.commentBody": { en: "{actor} commented: {content}", ko: "{actor}님이 댓글을 달았습니다: {content}", ja: "{actor}さんがコメントしました: {content}" },
+  "notif.tpl.replyTitle": { en: "New reply", ko: "새 답글", ja: "新しい返信" },
+  "notif.tpl.replyBody": { en: "{actor} replied: {content}", ko: "{actor}님이 답글을 달았습니다: {content}", ja: "{actor}さんが返信しました: {content}" },
+  "notif.tpl.likeTitle": { en: "New like", ko: "새 좋아요", ja: "新しいいいね" },
+  "notif.tpl.likeBody": { en: "{actor} liked your post.", ko: "{actor}님이 회원님의 게시글을 좋아합니다.", ja: "{actor}さんがあなたの投稿にいいねしました。" },
+  "notif.tpl.followTitle": { en: "{actor} started following you", ko: "{actor}님이 팔로우했습니다", ja: "{actor}さんがフォローしました" },
+  "notif.tpl.dmTitle": { en: "New message", ko: "새 메시지", ja: "新しいメッセージ" },
+  "notif.tpl.dmBody": { en: "You received a new message", ko: "새 메시지가 도착했습니다", ja: "新しいメッセージが届きました" },
+  "notif.tpl.meetRequestTitle": { en: "New join request", ko: "새 참가 요청", ja: "新しい参加リクエスト" },
+  "notif.tpl.meetRequestBody": { en: "{actor} wants to join \"{title}\"", ko: "{actor}님이 \"{title}\" 모임에 참가를 요청했습니다", ja: "{actor}さんが\"{title}\"への参加をリクエストしました" },
+  "notif.tpl.meetApprovedTitle": { en: "Request approved", ko: "참가 요청 승인됨", ja: "参加リクエスト承認" },
+  "notif.tpl.meetApprovedBody": { en: "Your request to join \"{title}\" has been approved. You can now enter the group chat!", ko: "\"{title}\" 모임 참가 요청이 승인되었습니다. 그룹 채팅에 입장할 수 있습니다!", ja: "\"{title}\"への参加リクエストが承認されました。グループチャットに入室できます！" },
+  "notif.tpl.meetDeclinedTitle": { en: "Request declined", ko: "참가 요청 거절됨", ja: "参加リクエスト拒否" },
+  "notif.tpl.meetDeclinedBody": { en: "Your request to join \"{title}\" was declined.", ko: "\"{title}\" 모임 참가 요청이 거절되었습니다.", ja: "\"{title}\"への参加リクエストが拒否されました。" },
+  "notif.tpl.meetCommentTitle": { en: "New comment on your meet", ko: "모임에 새 댓글", ja: "ミートに新しいコメント" },
+  "notif.tpl.meetCommentBody": { en: "{actor} commented: {content}", ko: "{actor}님이 댓글을 달았습니다: {content}", ja: "{actor}さんがコメントしました: {content}" },
+
   // Bookmarks page
   "bookmarks.title": { en: "Saved Posts", ko: "저장한 게시글", ja: "保存した投稿" },
   "bookmarks.empty": { en: "No saved posts yet", ko: "아직 저장한 게시글이 없습니다", ja: "保存した投稿はまだありません" },

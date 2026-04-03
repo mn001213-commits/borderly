@@ -164,7 +164,7 @@ export default function ChatsPage() {
           if (!msg || prevMessageIds.current.has(msg.id) || msg.user_id === me) return;
           prevMessageIds.current.add(msg.id);
           try {
-            await createNotification({ userId: me, type: "dm", title: "New message", body: msg.body ?? "You received a new message", link: `/chats/${msg.conversation_id}`, meta: { conversation_id: msg.conversation_id } });
+            await createNotification({ userId: me, type: "dm", title: "New message", body: msg.body ?? "You received a new message", link: `/chats/${msg.conversation_id}`, meta: { conversation_id: msg.conversation_id, title_key: "notif.tpl.dmTitle", body_key: "notif.tpl.dmBody" } });
           } catch {}
 
           // Update only the affected DM row instead of full reload

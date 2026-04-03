@@ -448,7 +448,7 @@ export default function PostDetailPage() {
             title: "New comment",
             body: `${author ?? t("post.someone")} commented: ${savedContent}`,
             link: `/posts/${postId}`,
-            meta: { post_id: postId },
+            meta: { post_id: postId, title_key: "notif.tpl.commentTitle", body_key: "notif.tpl.commentBody", actor: author ?? t("post.someone"), content: savedContent },
           });
         } catch (notifError) {
           if (process.env.NODE_ENV === "development") console.error("comment notification error:", notifError);
@@ -537,6 +537,10 @@ export default function PostDetailPage() {
             link: `/posts/${postId}`,
             meta: {
               post_id: postId,
+              title_key: "notif.tpl.replyTitle",
+              body_key: "notif.tpl.replyBody",
+              actor: author ?? t("post.someone"),
+              content: savedContent,
               parent_id: parentId,
             },
           });
@@ -717,7 +721,7 @@ export default function PostDetailPage() {
             title: "New like",
             body: `${actorName} liked your post.`,
             link: `/posts/${postId}`,
-            meta: { post_id: postId },
+            meta: { post_id: postId, title_key: "notif.tpl.likeTitle", body_key: "notif.tpl.likeBody", actor: actorName },
           });
         } catch (notifError) {
           if (process.env.NODE_ENV === "development") console.error("like notification error:", notifError);

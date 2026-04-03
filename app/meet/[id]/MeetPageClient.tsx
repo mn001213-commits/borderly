@@ -353,7 +353,7 @@ export default function MeetDetailPage() {
           userId: meet.host_id, type: "comment",
           title: "New comment on your meet",
           body: `${author ?? t("post.someone")} commented: ${body.slice(0, 80)}`,
-          link: `/meet/${meetId}`, meta: { meet_id: meetId },
+          link: `/meet/${meetId}`, meta: { meet_id: meetId, title_key: "notif.tpl.meetCommentTitle", body_key: "notif.tpl.meetCommentBody", actor: author ?? t("post.someone"), content: body.slice(0, 80) },
         }).catch(() => {});
       }
     } catch (err: any) {
@@ -597,6 +597,7 @@ export default function MeetDetailPage() {
       title: "New join request",
       body: `${requesterName} wants to join "${meet.title}"`,
       link: `/meet/${meet.id}/manage`,
+      meta: { title_key: "notif.tpl.meetRequestTitle", body_key: "notif.tpl.meetRequestBody", actor: requesterName, meet_title: meet.title },
     });
 
     setJoinMsg({ type: "info", text: t("meetDetail.requestSent") });
