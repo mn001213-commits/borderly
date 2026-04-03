@@ -32,6 +32,7 @@ export default function AdminNgoPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Reject modal state
   const [rejectTarget, setRejectTarget] = useState<NgoProfile | null>(null);
@@ -77,15 +78,19 @@ export default function AdminNgoPage() {
 
   const sendEmail = async (userId: string, approved: boolean) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      fetch("/api/ngo-approve", {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch("/api/ngo-approve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ user_id: userId, approved }),
-      }).catch(() => {});
+      });
+      if (!res.ok) setEmailError("Email notification failed to send.");
+    } catch {
+      setEmailError("Email notification failed to send.");
     }
   };
 
@@ -131,9 +136,9 @@ export default function AdminNgoPage() {
   };
 
   const statusColor = (n: NgoProfile) => {
-    if (n.ngo_verified) return "#43A047";
-    if (n.ngo_status === "rejected") return "#E53935";
-    return "#F59E0B";
+    if (n.ngo_verified) return "var(--accent)";
+    if (n.ngo_status === "rejected") return "var(--error, #E53935)";
+    return "var(--warning, #F59E0B)";
   };
 
   const statusLabel = (n: NgoProfile) => {
@@ -154,6 +159,12 @@ export default function AdminNgoPage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-4">
+        {emailError && (
+          <div className="mb-4 rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "color-mix(in srgb, #E53935 12%, var(--bg-card))", color: "#E53935", border: "1px solid color-mix(in srgb, #E53935 30%, transparent)" }}>
+            ⚠️ {emailError}
+            <button className="ml-3 underline text-xs" onClick={() => setEmailError(null)}>Dismiss</button>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:opacity-70" style={{ background: "var(--light-blue)" }}>

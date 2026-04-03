@@ -327,19 +327,23 @@ export default function SignupPage() {
       }
     }
 
-    // Send NGO request email
+    // Send NGO request email (best-effort)
     if (userType === "ngo") {
       try {
-        await fetch("/api/ngo-request", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            org_name: orgName.trim(),
-            org_purpose: orgPurpose.trim(),
-            org_url: orgUrl.trim(),
-            purpose: ngoPurpose.trim(),
-          }),
-        });
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token) {
+          await fetch("/api/ngo-request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              org_name: orgName.trim(),
+              org_purpose: orgPurpose.trim(),
+              org_url: orgUrl.trim(),
+              purpose: ngoPurpose.trim(),
+            }),
+          });
+        }
       } catch {
         // Email notification is best-effort
       }

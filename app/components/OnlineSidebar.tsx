@@ -297,6 +297,17 @@ export default function OnlineSidebar() {
 
           <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
             <Link
+              href="/users"
+              className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
+              style={{ color: pathname === "/users" ? "var(--primary)" : "var(--text-secondary)" }}
+            >
+              <span className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                {t("sidebar.partnerAccounts")}
+              </span>
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            </Link>
+            <Link
               href="/settings"
               className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
               style={{ color: pathname === "/settings" ? "var(--primary)" : "var(--text-secondary)" }}

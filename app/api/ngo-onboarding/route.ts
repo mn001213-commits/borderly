@@ -39,13 +39,13 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id);
 
     if (updateErr) {
-      console.error("[ngo-onboarding] DB error:", updateErr.message, updateErr.details, updateErr.hint);
-      return NextResponse.json({ error: "Failed to update profile", detail: updateErr.message }, { status: 500 });
+      if (process.env.NODE_ENV === "development") console.error("[ngo-onboarding] DB error:", updateErr.message, updateErr.details, updateErr.hint);
+      return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("[ngo-onboarding] Unexpected error:", e);
-    return NextResponse.json({ error: "Invalid request", detail: String(e) }, { status: 400 });
+    if (process.env.NODE_ENV === "development") console.error("[ngo-onboarding] Unexpected error:", e);
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
