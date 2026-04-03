@@ -5,26 +5,27 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { countryName } from "@/lib/countries";
 import { useT } from "@/app/components/LangProvider";
+import { useRouter } from "next/navigation";
+import { Building2 } from "lucide-react";
 
-type User = {
+type NgoUser = {
   id: string;
   display_name: string | null;
-  country_code: string | null;
+  residence_country: string | null;
   languages: string[] | null;
-  social_status: string | null;
 };
 
 export default function UsersPage() {
   const { t } = useT();
-  const [users, setUsers] = useState<User[]>([]);
+  const router = useRouter();
+  const [users, setUsers] = useState<NgoUser[]>([]);
   const [country, setCountry] = useState("");
-  const [social, setSocial] = useState("");
   const [authorized, setAuthorized] = useState(false);
 
   const checkAdmin = useCallback(async () => {
     const { data: au } = await supabase.auth.getUser();
     const uid = au.user?.id ?? null;
-    if (!uid) { window.location.href = "/"; return; }
+    if (!uid) { router.replace("/"); return; }
 
     const { data: prof } = await supabase
       .from("profiles")
@@ -32,78 +33,86 @@ export default function UsersPage() {
       .eq("id", uid)
       .maybeSingle();
 
-    if ((prof as any)?.role !== "admin") { window.location.href = "/"; return; }
+    if (prof?.role !== "admin") { router.replace("/"); return; }
     setAuthorized(true);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     checkAdmin();
   }, [checkAdmin]);
 
-  useEffect(() => {
-    if (authorized) load();
-  }, [country, social, authorized]);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     let q = supabase
       .from("profiles")
-      .select("id, display_name, country_code, languages, social_status")
+      .select("id, display_name, residence_country, languages")
       .eq("user_type", "ngo");
 
-    if (country) q = q.eq("country_code", country);
-    if (social) q = q.eq("social_status", social);
+    if (country) q = q.eq("residence_country", country);
 
-    const { data } = await q.limit(50);
-    setUsers((data as User[]) ?? []);
-  };
+    const { data } = await q.order("display_name").limit(100);
+    setUsers((data as NgoUser[]) ?? []);
+  }, [country]);
+
+  useEffect(() => {
+    if (authorized) load();
+  }, [authorized, load]);
 
   if (!authorized) return null;
 
   return (
-    <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
-        <h1 className="text-xl font-bold">{t("users.title")}</h1>
+    <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
+      <div className="mx-auto max-w-2xl px-4 pt-4 pb-24">
+        <div className="b-card mb-4 p-5">
+          <h1 className="text-xl font-bold">{t("users.title")}</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+            {t("pageInfo.partners.desc")}
+          </p>
+        </div>
 
-        <div className="mt-4 flex gap-3">
+        <div className="mb-4">
           <input
             placeholder={t("users.countryCodePlaceholder")}
             value={country}
             onChange={(e) => setCountry(e.target.value.toUpperCase())}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+            style={{
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border-soft)",
+              color: "var(--deep-navy)",
+            }}
           />
-
-          <select
-            value={social}
-            onChange={(e) => setSocial(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400"
-          >
-            <option value="">{t("common.all")}</option>
-            <option value="worker">{t("users.employee")}</option>
-            <option value="job_seeker">{t("users.jobSeeker")}</option>
-            <option value="student">{t("users.student")}</option>
-            <option value="homemaker">{t("users.homemaker")}</option>
-            <option value="freelancer">{t("users.freelancer")}</option>
-          </select>
         </div>
 
-        <div className="mt-5 grid gap-3">
-          {users.map((u) => (
-            <Link
-              key={u.id}
-              href={`/u/${u.id}`}
-              className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm no-underline text-inherit flex items-center gap-4"
-            >
-              <div className="h-12 w-12 flex-shrink-0 rounded-full bg-gray-200 grid place-items-center text-lg font-bold">
-                {(u.display_name?.[0] ?? "?").toUpperCase()}
+        <div className="grid gap-3">
+          {users.length === 0 ? (
+            <div className="b-empty-state">
+              <Building2 className="h-8 w-8" style={{ color: "var(--text-muted)" }} />
+              <div className="mt-2 text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+                {t("notif.noNotifications")}
               </div>
-              <div>
-                <div className="font-bold">{u.display_name}</div>
-                <div className="text-sm text-gray-500">
-                  {countryName(u.country_code, "ko")} · {u.social_status}
+            </div>
+          ) : (
+            users.map((u) => (
+              <Link
+                key={u.id}
+                href={`/u/${u.id}`}
+                className="b-card flex items-center gap-4 p-4 no-underline text-inherit"
+              >
+                <div
+                  className="h-12 w-12 flex-shrink-0 rounded-full grid place-items-center text-lg font-bold"
+                  style={{ background: "var(--light-blue)", color: "var(--primary)" }}
+                >
+                  {(u.display_name?.[0] ?? "?").toUpperCase()}
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div>
+                  <div className="text-sm font-semibold">{u.display_name}</div>
+                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {countryName(u.residence_country, "ko")}
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

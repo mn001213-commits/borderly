@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (adminProfile?.role !== "admin") {
+    if (!adminProfile || adminProfile.role !== "admin") {
       return NextResponse.json({ error: "Admin only" }, { status: 403 });
     }
 
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       .eq("id", user_id);
 
     if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 
     // Get NGO user email
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       .from("profiles")
       .select("ngo_org_name, display_name")
       .eq("id", user_id)
-      .single();
+      .maybeSingle();
 
     const orgName = ngoProfile?.ngo_org_name || ngoProfile?.display_name || "Organization";
 

@@ -25,15 +25,17 @@ export async function middleware(request: NextRequest) {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");
 
-    if (origin && host) {
-      try {
-        const originHost = new URL(origin).host;
-        if (originHost !== host) {
-          return NextResponse.json({ error: "CSRF: origin mismatch" }, { status: 403 });
-        }
-      } catch {
-        return NextResponse.json({ error: "CSRF: invalid origin" }, { status: 403 });
+    if (!origin || !host) {
+      return NextResponse.json({ error: "CSRF: missing origin or host" }, { status: 403 });
+    }
+
+    try {
+      const originHost = new URL(origin).host;
+      if (originHost !== host) {
+        return NextResponse.json({ error: "CSRF: origin mismatch" }, { status: 403 });
       }
+    } catch {
+      return NextResponse.json({ error: "CSRF: invalid origin" }, { status: 403 });
     }
   }
 

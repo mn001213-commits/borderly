@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (mrErr) return NextResponse.json({ error: mrErr.message }, { status: 500 });
+  if (mrErr) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 
   const { data: cr, error: crErr } = await supabaseAdmin
     .from("conversation_reports")
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (crErr) return NextResponse.json({ error: crErr.message }, { status: 500 });
+  if (crErr) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 
   return NextResponse.json({
     message_reports: mr ?? [],

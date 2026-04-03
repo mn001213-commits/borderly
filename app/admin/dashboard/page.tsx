@@ -173,7 +173,14 @@ export default function AdminDashboardPage() {
     setRefreshing(false);
   }
 
-  if (!authed) return null;
+  if (!authed) return (
+    <div className="mx-auto max-w-4xl px-4 pb-24 pt-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="b-skeleton h-24 rounded-2xl" />)}
+      </div>
+      <div className="b-skeleton h-64 rounded-2xl" />
+    </div>
+  );
 
   const summaryCards = totals
     ? [
