@@ -146,6 +146,13 @@ export default function ChatsPage() {
 
   useEffect(() => { loadMeAndList(); }, []);
 
+  // Reload list when window regains focus (e.g. after returning from a chat room)
+  useEffect(() => {
+    const onFocus = () => loadMeAndList();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   useEffect(() => {
     if (!me) return;
     let cancelled = false;
@@ -204,6 +211,21 @@ export default function ChatsPage() {
                 const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
                 return tb - ta;
               });
+              return updated;
+            }
+            return prev;
+          });
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "message_read_receipts" }, (payload) => {
+          // When a read receipt is updated (by the current user reading a conversation),
+          // immediately clear the unread badge for that conversation in local state
+          const receipt = (payload.new ?? payload.old) as any;
+          if (!receipt?.conversation_id || receipt?.user_id !== me) return;
+          setRows((prev) => {
+            const idx = prev.findIndex((r) => r.conversation_id === receipt.conversation_id);
+            if (idx >= 0 && (prev[idx].unread_count ?? 0) > 0) {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], unread_count: 0 };
               return updated;
             }
             return prev;
