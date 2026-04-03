@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { countryName } from "@/lib/countries";
@@ -19,10 +19,30 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [country, setCountry] = useState("");
   const [social, setSocial] = useState("");
+  const [authorized, setAuthorized] = useState(false);
+
+  const checkAdmin = useCallback(async () => {
+    const { data: au } = await supabase.auth.getUser();
+    const uid = au.user?.id ?? null;
+    if (!uid) { window.location.href = "/"; return; }
+
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", uid)
+      .maybeSingle();
+
+    if ((prof as any)?.role !== "admin") { window.location.href = "/"; return; }
+    setAuthorized(true);
+  }, []);
 
   useEffect(() => {
-    load();
-  }, [country, social]);
+    checkAdmin();
+  }, [checkAdmin]);
+
+  useEffect(() => {
+    if (authorized) load();
+  }, [country, social, authorized]);
 
   const load = async () => {
     let q = supabase
@@ -36,6 +56,8 @@ export default function UsersPage() {
     const { data } = await q.limit(50);
     setUsers((data as User[]) ?? []);
   };
+
+  if (!authorized) return null;
 
   return (
     <div className="min-h-screen bg-[#F0F7FF] text-gray-900">
