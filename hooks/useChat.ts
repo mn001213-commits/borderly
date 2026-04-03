@@ -464,10 +464,18 @@ export function useChat(conversationId?: string) {
   const markAsRead = useCallback(
     async (messageId: string) => {
       if (!conversationId || !me) return;
+      // Update message_read_receipts (for DM read indicators)
       await supabase.rpc("mark_messages_read", {
         p_conversation_id: conversationId,
         p_message_id: messageId,
       });
+      // Update conversation_members.last_read_at — this is what v_chat_list uses
+      // to calculate unread_count, so this is what clears the badge
+      await supabase
+        .from("conversation_members")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId)
+        .eq("user_id", me);
     },
     [conversationId, me]
   );
