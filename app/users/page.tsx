@@ -27,7 +27,8 @@ export default function UsersPage() {
   const load = async () => {
     let q = supabase
       .from("profiles")
-      .select("id, display_name, country_code, languages, social_status");
+      .select("id, display_name, country_code, languages, social_status")
+      .eq("user_type", "ngo");
 
     if (country) q = q.eq("country_code", country);
     if (social) q = q.eq("social_status", social);
