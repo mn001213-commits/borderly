@@ -176,12 +176,12 @@ export default function NGOPage() {
           )}
           {isNgo && (
             <Link
-              href="/ngo/applications"
+              href="/ngo/portal"
               className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold no-underline transition hover:opacity-80"
-              style={{ background: "var(--light-blue)", color: "var(--primary)", border: "1px solid var(--border-soft)" }}
+              style={{ background: "var(--primary)", color: "#fff" }}
             >
               <ClipboardList className="h-4 w-4" />
-              {t("ngo.applications")}
+              {t("ngoPortal.title")}
             </Link>
           )}
           {isLoggedIn && !isNgo && !ngoStatus && (
