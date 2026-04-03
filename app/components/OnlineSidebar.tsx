@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useAuth } from "./AuthProvider";
-import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldCheck, Globe, ChevronRight, Settings } from "lucide-react";
+import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldAlert, ShieldCheck, Globe, ChevronRight, Settings } from "lucide-react";
 import { countryName } from "@/lib/countries";
 import { useT } from "./LangProvider";
 
