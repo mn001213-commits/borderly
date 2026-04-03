@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useAuth } from "./AuthProvider";
-import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldAlert, ShieldCheck, Globe, ChevronRight, Settings, ClipboardList, Building2 } from "lucide-react";
+import { User, Users, Home, FileText, Search, CalendarHeart, MessageCircle, ShieldAlert, ShieldCheck, Globe, ChevronRight, Settings, ClipboardList } from "lucide-react";
 import { countryName } from "@/lib/countries";
 import { useT } from "./LangProvider";
 
@@ -297,17 +297,6 @@ export default function OnlineSidebar() {
           ))}
 
           <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
-            <Link
-              href="/users"
-              className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
-              style={{ color: pathname === "/users" ? "var(--primary)" : "var(--text-secondary)" }}
-            >
-              <span className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                {t("sidebar.partnerAccounts")}
-              </span>
-              <ChevronRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
-            </Link>
             {isNgoVerified && (
               <Link
                 href="/ngo/portal"
