@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import NotificationBell from "./NotificationBell";
-import { User } from "lucide-react";
+import { User, Search } from "lucide-react";
 import { useT } from "./LangProvider";
 
 const HIDE_LOGIN_PATHS = ["/login", "/signup", "/reset-password", "/update-password"];
@@ -45,6 +45,12 @@ export default function TopBar() {
         <div className="flex items-center gap-1 shrink-0">
           {user ? (
             <>
+              <Link
+                href="/search"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]"
+              >
+                <Search className="h-5 w-5" />
+              </Link>
               <NotificationBell className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]" />
 
               <Link

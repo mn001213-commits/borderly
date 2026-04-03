@@ -1,6 +1,14 @@
 import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 
+export type ProfileSearchResult = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  residence_country: string | null;
+  origin_country: string | null;
+};
+
 export async function followUser(myId: string, targetId: string) {
   const result = await supabase.from("follows").insert({
     follower_id: myId,
@@ -79,5 +87,25 @@ export async function getFollowing(userId: string) {
     .select("following_id")
     .eq("follower_id", userId);
 
+  return data ?? [];
+}
+
+export async function searchUsersToFollow(query: string, myId: string): Promise<ProfileSearchResult[]> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, residence_country, origin_country")
+    .ilike("display_name", `%${query}%`)
+    .neq("id", myId)
+    .limit(20);
+  return data ?? [];
+}
+
+export async function getSuggestedUsers(myId: string, excludeIds: string[]): Promise<ProfileSearchResult[]> {
+  const allExclude = [myId, ...excludeIds];
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, residence_country, origin_country")
+    .not("id", "in", `(${allExclude.join(",")})`)
+    .limit(15);
   return data ?? [];
 }
