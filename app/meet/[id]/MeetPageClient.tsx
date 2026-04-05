@@ -342,7 +342,7 @@ export default function MeetDetailPage() {
     try {
       const { data, error } = await supabase
         .from("meet_comments")
-        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body })
+        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body, is_hidden: false })
         .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden")
         .single();
       if (error) throw error;
