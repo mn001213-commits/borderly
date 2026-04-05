@@ -191,7 +191,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "meet.replies": { en: "replies", ko: "개 답글", ja: "件の返信" },
 
   // NGO page
-  "ngo.title": { en: "Support Organizations", ko: "지원 기관", ja: "サポート団体" },
+  "ngo.title": { en: "Support Organizations", ko: "지원 기관", ja: "協力団体" },
   "ngo.desc": { en: "Find trusted Supporters that provide help with jobs, housing, daily life, and more.", ko: "취업, 주거, 일상생활 등을 지원하는 협력 단체를 찾아보세요.", ja: "就職、住居、日常生活などを支援する協力団体を探しましょう。" },
   "ngo.searchPosts": { en: "Search Supporter posts...", ko: "협력 단체 게시글 검색...", ja: "協力団体投稿を検索..." },
   "ngo.applications": { en: "Applications", ko: "지원현황", ja: "応募状況" },
