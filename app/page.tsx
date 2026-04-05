@@ -27,6 +27,7 @@ import {
   PartyPopper,
   Rocket,
   Plus,
+  ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { swrCache } from "@/lib/swrCache";
@@ -53,6 +54,8 @@ type PostRow = {
   category: string;
   like_count: number | null;
   comment_count: number | null;
+  image_url: string | null;
+  image_urls: string[] | null;
 };
 
 type MeetRow = {
@@ -236,7 +239,7 @@ export default function BrowsePage() {
         if (tab === "posts") {
           let query = supabase
             .from("posts")
-            .select("id, created_at, title, content, author_name, category")
+            .select("id, created_at, title, content, author_name, category, image_url, image_urls")
             .eq("is_hidden", false)
             .limit(50);
 
@@ -569,6 +572,14 @@ export default function BrowsePage() {
                           >
                             {catBadge(p.category)}
                           </span>
+                          {(p.image_url || (p.image_urls && p.image_urls.length > 0)) && (
+                            <span
+                              className="shrink-0 inline-flex items-center justify-center rounded-full border p-1"
+                              style={{ borderColor: "var(--border-focus)", color: "var(--text-muted)" }}
+                            >
+                              <ImageIcon className="h-3 w-3" />
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
                           {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
