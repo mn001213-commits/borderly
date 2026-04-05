@@ -1046,7 +1046,7 @@ export default function PostDetailPage() {
 
         <div className="mt-4">
         <section className="b-card p-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold leading-7 sm:text-xl" style={{ color: "var(--deep-navy)" }}>{post.title}</h1>
 
@@ -1083,7 +1083,7 @@ export default function PostDetailPage() {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={toggleLike}
