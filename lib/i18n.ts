@@ -838,6 +838,10 @@ const translations: Record<string, Record<Locale, string>> = {
   "onboarding.googleWelcomeDesc": { en: "You don't have a Borderly account yet. Complete your profile to finish signing up.", ko: "아직 Borderly 계정이 없습니다. 프로필을 완성해 가입을 마무리해 주세요.", ja: "まだBorderlyアカウントがありません。プロフィールを完成させて登録を完了してください。" },
   "onboarding.googleWelcomeNote": { en: "It only takes a minute.", ko: "1분이면 완료돼요.", ja: "1分で完了します。" },
   "onboarding.getStarted": { en: "Get Started", ko: "시작하기", ja: "始める" },
+  "onboarding.whoAreYou": { en: "Who are you?", ko: "어떤 분이세요?", ja: "あなたはどんな方ですか？" },
+  "onboarding.whoAreYouDesc": { en: "Select the option that best describes you.", ko: "본인에게 해당하는 항목을 선택하세요.", ja: "あなたに最も当てはまるものを選択してください。" },
+  "onboarding.ngoInfoTitle": { en: "Organization Information", ko: "단체 정보", ja: "団体情報" },
+  "onboarding.ngoInfoDesc": { en: "Tell us about your organization to complete registration.", ko: "단체 정보를 입력하여 등록을 완료하세요.", ja: "団体情報を入力して登録を完了してください。" },
   "onboarding.loginWithOtherAccount": { en: "Use a different account", ko: "다른 계정으로 로그인", ja: "別のアカウントでログイン" },
 
   // Onboarding Purpose (separate page)
