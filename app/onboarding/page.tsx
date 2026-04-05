@@ -8,7 +8,7 @@ import { getAllLanguages, langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 import { useAuth } from "@/app/components/AuthProvider";
 import { setLocale, type Locale } from "@/lib/i18n";
-import { Users, Globe, Building2, FileText } from "lucide-react";
+import { Users, Globe, Building2, FileText, ArrowLeft } from "lucide-react";
 
 const PURPOSE_KEYS = [
   "social",
@@ -441,6 +441,20 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center text-[var(--deep-navy)]">
         <div className="mx-auto w-full max-w-md px-4">
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.replace("/login");
+            }}
+            className="flex items-center gap-1.5 text-sm font-medium mb-4 hover:opacity-70 transition"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("common.back")}
+          </button>
+
           <div className="b-card p-6 b-animate-in">
             {/* Google verified badge */}
             <div className="flex items-center gap-3 mb-6">
@@ -483,17 +497,6 @@ export default function OnboardingPage() {
               style={{ background: "var(--primary)" }}
             >
               {t("onboarding.getStarted")}
-            </button>
-
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.replace("/login");
-              }}
-              className="w-full mt-3 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition py-2"
-            >
-              {t("onboarding.loginWithOtherAccount")}
             </button>
           </div>
         </div>
