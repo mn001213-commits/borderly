@@ -209,14 +209,6 @@ export default function NgoPortalPage() {
               <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>{profile.ngo_org_name}</p>
             )}
           </div>
-          <Link
-            href="/ngo/new"
-            className="inline-flex h-9 items-center gap-1.5 rounded-2xl px-4 text-sm font-semibold text-white no-underline transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
-          >
-            <Plus className="h-4 w-4" />
-            {t("ngoPortal.newPost")}
-          </Link>
         </div>
 
         {/* Stats cards */}
