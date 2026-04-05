@@ -25,6 +25,7 @@ import {
   Sun,
   Briefcase,
   MoreHorizontal,
+  ImageIcon,
 } from "lucide-react";
 import SortDropdown from "@/app/components/SortDropdown";
 
@@ -467,7 +468,7 @@ export default function HomePage() {
 
                 <div className="grid gap-3">
                   {trendingTop3.map((p, idx) => (
-                    <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit">
+                    <Link key={p.id} href={`/posts/${p.id}`} className="no-underline text-inherit block min-w-0">
                       <div
                         className="flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:shadow-sm"
                         style={{ background: "var(--light-blue)" }}
@@ -565,12 +566,22 @@ export default function HomePage() {
                   </div>
 
                   {/* Title */}
-                  <h2
-                    className="line-clamp-2 text-lg font-semibold leading-snug"
-                    style={{ color: "var(--deep-navy)" }}
-                  >
-                    {p.title}
-                  </h2>
+                  <div className="flex items-start gap-2">
+                    <h2
+                      className="line-clamp-2 flex-1 text-lg font-semibold leading-snug"
+                      style={{ color: "var(--deep-navy)" }}
+                    >
+                      {p.title}
+                    </h2>
+                    {(p.image_url || (p.image_urls && p.image_urls.length > 0)) && (
+                      <span
+                        className="mt-0.5 shrink-0 inline-flex items-center justify-center rounded-full border p-1"
+                        style={{ borderColor: "var(--border-focus)", color: "var(--text-muted)" }}
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </div>
 
                   {/* Category tag */}
                   <div className="mt-2.5">
