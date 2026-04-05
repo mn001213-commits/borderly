@@ -126,7 +126,7 @@ export function useChat(conversationId?: string) {
 
       const convType = convInfo?.type ?? "direct";
 
-      if (convType === "group") {
+      if (convType === "group" || convType === "ngo") {
         setIsGroup(true);
         setGroupName(convInfo?.name ?? null);
 
