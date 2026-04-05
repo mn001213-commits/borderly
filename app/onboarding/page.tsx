@@ -790,7 +790,7 @@ export default function OnboardingPage() {
 
           {/* Navigation buttons */}
           <div className="mt-8 flex gap-3">
-            {step > 1 && (
+            {(step > 1 || (isGoogleUser && step === 1)) && (
               <button
                 type="button"
                 onClick={() => {
