@@ -106,7 +106,7 @@ function LoginForm() {
         onClick={async () => {
           await supabase.auth.signInWithOAuth({
             provider: "google",
-            options: { redirectTo: window.location.origin },
+            options: { redirectTo: `${window.location.origin}/onboarding` },
           });
         }}
         className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
