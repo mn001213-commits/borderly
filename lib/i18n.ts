@@ -834,6 +834,11 @@ const translations: Record<string, Record<Locale, string>> = {
   "onboarding.displayNamePlaceholder": { en: "Enter your name...", ko: "이름을 입력하세요...", ja: "名前を入力してください..." },
   "onboarding.otherDescriptionLabel": { en: "Please describe (optional)", ko: "설명해 주세요 (선택사항)", ja: "説明してください（任意）" },
   "onboarding.otherPlaceholder": { en: "Tell us more about why you're here...", ko: "Borderly를 사용하는 이유를 알려주세요...", ja: "Borderlyを使う理由を教えてください..." },
+  "onboarding.googleWelcomeTitle": { en: "Google account verified!", ko: "Google 계정 인증 완료!", ja: "Googleアカウント認証完了！" },
+  "onboarding.googleWelcomeDesc": { en: "You don't have a Borderly account yet. Complete your profile to finish signing up.", ko: "아직 Borderly 계정이 없습니다. 프로필을 완성해 가입을 마무리해 주세요.", ja: "まだBorderlyアカウントがありません。プロフィールを完成させて登録を完了してください。" },
+  "onboarding.googleWelcomeNote": { en: "It only takes a minute.", ko: "1분이면 완료돼요.", ja: "1分で完了します。" },
+  "onboarding.getStarted": { en: "Get Started", ko: "시작하기", ja: "始める" },
+  "onboarding.loginWithOtherAccount": { en: "Use a different account", ko: "다른 계정으로 로그인", ja: "別のアカウントでログイン" },
 
   // Onboarding Purpose (separate page)
   "onboardingPurpose.title": { en: "Select your purpose", ko: "사용 목적을 선택하세요", ja: "利用目的を選択してください" },
