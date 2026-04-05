@@ -103,10 +103,11 @@ export default function BottomNav() {
       }}
     >
       <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
-        {items.map(({ href, icon: Icon, label, badge }) => {
+        {items.map(({ href, icon: Icon, label, badge }, index) => {
           const on = isActive(href);
           return (
             <Link
+              id={`bottom-nav-${index}`}
               key={href}
               href={href}
               aria-label={label}

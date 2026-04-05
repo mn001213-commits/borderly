@@ -12,6 +12,7 @@ const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG),
 import { langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 import { isVideoUrl, formatRelative } from "@/lib/format";
+import MissionChecklist from "@/app/components/MissionChecklist";
 
 type Post = {
   id: string;
@@ -235,6 +236,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-4 space-y-4">
+          <MissionChecklist compact />
           <section className="b-card b-animate-in">
             {loading ? (
               <div className="p-5 space-y-4">

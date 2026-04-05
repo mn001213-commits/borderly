@@ -19,6 +19,7 @@ import {
   Lock,
   Users,
   Info,
+  MapIcon,
 } from "lucide-react";
 import { useT } from "@/app/components/LangProvider";
 
@@ -111,6 +112,12 @@ export default function SettingsPage() {
     localStorage.setItem("borderly-privacy", JSON.stringify(updated));
     if (key === "dmPolicy") setDmPolicy(value as "everyone" | "followers");
     if (key === "profilePublic") setProfilePublic(value as boolean);
+  };
+
+  const restartGuideTour = async () => {
+    await supabase.auth.updateUser({ data: { guide_tour_completed: false } }).catch(() => {});
+    localStorage.setItem("borderly_guide_pending", "true");
+    window.location.href = "/browse";
   };
 
   const handleLogout = async () => {
@@ -281,6 +288,16 @@ export default function SettingsPage() {
       <div className="b-card b-animate-in p-5 mb-4" style={{ animationDelay: "0.2s" }}>
         <div className="text-sm font-semibold mb-4" style={{ color: "var(--deep-navy)" }}>{t("settings.account")}</div>
         <div className="space-y-3">
+          <button
+            type="button"
+            onClick={restartGuideTour}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+          >
+            <MapIcon className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            {t("settings.restartTour")}
+          </button>
+
           <Link
             href="/profile/blocked"
             className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition no-underline"

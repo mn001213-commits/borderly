@@ -350,6 +350,10 @@ export default function SignupPage() {
     }
 
     setBusy(false);
+    // Queue guide tour for new non-NGO users (persists in localStorage across email verification)
+    if (userType !== "ngo") {
+      try { window.localStorage.setItem("borderly_guide_pending", "true"); } catch { /* ignore */ }
+    }
     // NGO users go to pending page, regular users go to email verification page
     const redirectUrl = userType === "ngo"
       ? "/onboarding/ngo/pending"

@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getCountryList, countryName } from "@/lib/countries";
-import { ArrowLeft, Save, CheckCircle, Camera, User } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle, Camera, User, Trash2 } from "lucide-react";
 import { getAllLanguages, langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
+import { useAuth } from "@/app/components/AuthProvider";
 
 function LanguageSelect({
   selected,
@@ -169,9 +170,14 @@ function CountrySelect({
   );
 }
 
+function invalidateProfileCache(uid: string) {
+  try { sessionStorage.removeItem(`profile-data-${uid}`); } catch { /* ignore */ }
+}
+
 export default function ProfileEditPage() {
   const router = useRouter();
   const { t } = useT();
+  const { refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -188,6 +194,32 @@ export default function ProfileEditPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState("");
+
+  // Track initial values to detect unsaved changes (avatar excluded — saved immediately)
+  const initialValues = useRef({ displayName: "", bio: "", residenceCountry: "JP", originCountry: "KR", languages: [] as string[] });
+  const isDirty =
+    displayName !== initialValues.current.displayName ||
+    bio !== initialValues.current.bio ||
+    residenceCountry !== initialValues.current.residenceCountry ||
+    originCountry !== initialValues.current.originCountry ||
+    JSON.stringify(languages) !== JSON.stringify(initialValues.current.languages);
+
+  // Warn on browser refresh / tab close
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  const handleBack = () => {
+    if (isDirty && !confirm(t("settings.unsavedChanges"))) return;
+    router.back();
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -208,12 +240,18 @@ export default function ProfileEditPage() {
         .maybeSingle();
 
       if (prof) {
-        setDisplayName(prof.display_name ?? "");
-        setResidenceCountry(prof.residence_country ?? "JP");
-        setOriginCountry(prof.origin_country ?? "KR");
-        setLanguages(prof.languages ?? []);
+        const dn = prof.display_name ?? "";
+        const rc = prof.residence_country ?? "JP";
+        const oc = prof.origin_country ?? "KR";
+        const langs = prof.languages ?? [];
+        const b = prof.bio ?? "";
+        setDisplayName(dn);
+        setResidenceCountry(rc);
+        setOriginCountry(oc);
+        setLanguages(langs);
         setAvatarUrl(prof.avatar_url ?? null);
-        setBio(prof.bio ?? "");
+        setBio(b);
+        initialValues.current = { displayName: dn, bio: b, residenceCountry: rc, originCountry: oc, languages: langs };
       }
 
       setLoading(false);
@@ -263,10 +301,33 @@ export default function ProfileEditPage() {
       }
 
       setAvatarUrl(publicUrl);
+      invalidateProfileCache(uid);
+      refreshProfile();
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!confirm(t("settings.removeAvatarConfirm"))) return;
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", uid);
+
+    if (error) {
+      setErrorMsg(error.message);
+      return;
+    }
+
+    setAvatarUrl(null);
+    invalidateProfileCache(uid);
+    refreshProfile();
   };
 
   const handleSave = async () => {
@@ -298,6 +359,9 @@ export default function ProfileEditPage() {
       return;
     }
 
+    invalidateProfileCache(uid);
+    refreshProfile();
+    initialValues.current = { displayName: displayName.trim() || "Unnamed User", bio: bio.trim(), residenceCountry, originCountry, languages };
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -306,7 +370,7 @@ export default function ProfileEditPage() {
     return (
       <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-4">
         <div className="flex items-center gap-3 py-3 mb-4">
-          <button onClick={() => router.back()} className="flex h-10 w-10 items-center justify-center rounded-full transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
+          <button onClick={handleBack} className="flex h-10 w-10 items-center justify-center rounded-full transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
             <ArrowLeft className="h-5 w-5" style={{ color: "var(--deep-navy)" }} />
           </button>
           <h1 className="text-lg font-semibold" style={{ color: "var(--deep-navy)" }}>{t("settings.title")}</h1>
@@ -323,7 +387,7 @@ export default function ProfileEditPage() {
     <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-4">
       {/* Header with back button */}
       <div className="flex items-center gap-3 py-3 mb-4">
-        <button onClick={() => router.back()} className="flex h-10 w-10 items-center justify-center rounded-full transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
+        <button onClick={handleBack} className="flex h-10 w-10 items-center justify-center rounded-full transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
           <ArrowLeft className="h-5 w-5" style={{ color: "var(--deep-navy)" }} />
         </button>
         <h1 className="text-lg font-semibold" style={{ color: "var(--deep-navy)" }}>{t("settings.title")}</h1>
@@ -370,16 +434,29 @@ export default function ProfileEditPage() {
               onChange={handleAvatarChange}
               className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition disabled:opacity-50"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
-            >
-              <Camera className="h-4 w-4" />
-              {uploadingAvatar ? t("settings.uploading") : t("settings.changeAvatar")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition disabled:opacity-50"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+              >
+                <Camera className="h-4 w-4" />
+                {uploadingAvatar ? t("settings.uploading") : t("settings.changeAvatar")}
+              </button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition hover:bg-red-50 hover:text-red-600"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t("settings.removeAvatar")}
+                </button>
+              )}
+            </div>
           </div>
 
           <div>

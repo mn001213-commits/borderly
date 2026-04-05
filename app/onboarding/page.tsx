@@ -9,6 +9,7 @@ import { useT } from "@/app/components/LangProvider";
 import { useAuth } from "@/app/components/AuthProvider";
 import { setLocale, type Locale } from "@/lib/i18n";
 import { Users, Globe, Building2, FileText, ArrowLeft } from "lucide-react";
+import OnboardingSuccess from "@/app/components/OnboardingSuccess";
 
 const PURPOSE_KEYS = [
   "social",
@@ -195,6 +196,7 @@ export default function OnboardingPage() {
   const [needsDisplayName, setNeedsDisplayName] = useState(false);
   // Step 0 = welcome card (for new Google users), step 1+ = actual onboarding
   const [step, setStep] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Step 1: UI Language
   const [uiLanguage, setUiLanguage] = useState<Locale>("en");
@@ -264,6 +266,8 @@ export default function OnboardingPage() {
       // If profile is complete, redirect to home
       if (profile?.use_purpose && profile?.languages?.length > 0 && profile?.residence_country && profile?.origin_country && profile?.display_name) {
         completeOnboarding();
+        // Trigger guide tour for first-time users (e.g. email signup who bypassed onboarding form)
+        try { window.localStorage.setItem("borderly_guide_pending", "true"); } catch { /* ignore */ }
         router.replace("/");
         return;
       }
@@ -425,6 +429,13 @@ export default function OnboardingPage() {
     }
 
     completeOnboarding();
+    // Trigger the guide tour for the new user
+    try { window.localStorage.setItem("borderly_guide_pending", "true"); } catch { /* ignore */ }
+    setShowSuccess(true);
+  };
+
+  const handleSuccessContinue = () => {
+    setShowSuccess(false);
     router.replace("/");
   };
 
@@ -506,17 +517,20 @@ export default function OnboardingPage() {
 
   // UI Language selection component
   const renderUILanguageStep = () => {
-    const uiLanguages: { value: Locale; label: string; nativeLabel: string }[] = [
-      { value: "en", label: "English", nativeLabel: "English" },
-      { value: "ko", label: "Korean", nativeLabel: "한국어" },
-      { value: "ja", label: "Japanese", nativeLabel: "日本語" },
+    const uiLanguages: { value: Locale; label: string; nativeLabel: string; flag: string }[] = [
+      { value: "en", label: "English", nativeLabel: "English", flag: "🇺🇸" },
+      { value: "ko", label: "Korean", nativeLabel: "한국어", flag: "🇰🇷" },
+      { value: "ja", label: "Japanese", nativeLabel: "日本語", flag: "🇯🇵" },
     ];
 
     return (
       <div>
         <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.selectUILanguage")}</h1>
-        <p className="text-sm text-[var(--text-secondary)] mb-6">
+        <p className="text-sm text-[var(--text-secondary)] mb-2">
           {t("onboarding.uiLanguageDesc")}
+        </p>
+        <p className="text-xs mb-6" style={{ color: "var(--text-muted)" }}>
+          {t("onboarding.uiLanguageContext")}
         </p>
         <div className="space-y-3">
           {uiLanguages.map((lang) => (
@@ -531,7 +545,10 @@ export default function OnboardingPage() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-base">{lang.nativeLabel}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{lang.flag}</span>
+                  <span className="text-base">{lang.nativeLabel}</span>
+                </div>
                 <span className="text-xs opacity-70">{lang.label}</span>
               </div>
             </button>
@@ -566,8 +583,14 @@ export default function OnboardingPage() {
           </button>
         ))}
       </div>
+      {/* Context text based on selected type */}
+      <div className="mt-3 rounded-xl px-4 py-3 text-xs" style={{ background: "var(--light-blue)", color: "var(--text-secondary)" }}>
+        {userType === "foreigner" && t("onboarding.userTypeContext.foreigner")}
+        {userType === "local" && t("onboarding.userTypeContext.local")}
+        {userType === "ngo" && t("onboarding.userTypeContext.ngo")}
+      </div>
       {userType === "ngo" && (
-        <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
+        <div className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
           {t("signup.ngoNotice")}
         </div>
       )}
@@ -670,7 +693,8 @@ export default function OnboardingPage() {
           return (
             <div>
               <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.welcome")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">{t("onboarding.selectLanguagesDesc")}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-1">{t("onboarding.selectLanguagesDesc")}</p>
+              <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>{t("onboarding.languagesContext")}</p>
               <LanguageSelect selected={languages} onChange={setLanguages} labelText={t("onboarding.selectLanguagesLabel")} searchPlaceholder={t("onboarding.searchLanguages")} noResultsText={t("onboarding.noResults")} />
             </div>
           );
@@ -678,7 +702,8 @@ export default function OnboardingPage() {
           return (
             <div>
               <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whereAreYou")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">{t("onboarding.countryDesc")}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-1">{t("onboarding.countryDesc")}</p>
+              <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>{t("onboarding.countryContext")}</p>
               <div className="space-y-4">
                 <CountrySelect value={residenceCountry} onChange={setResidenceCountry} label={t("onboarding.residenceCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
                 <CountrySelect value={originCountry} onChange={setOriginCountry} label={t("onboarding.originCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
@@ -696,7 +721,8 @@ export default function OnboardingPage() {
           return (
             <div>
               <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.welcome")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">{t("onboarding.selectLanguagesDesc")}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-1">{t("onboarding.selectLanguagesDesc")}</p>
+              <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>{t("onboarding.languagesContext")}</p>
               <LanguageSelect selected={languages} onChange={setLanguages} labelText={t("onboarding.selectLanguagesLabel")} searchPlaceholder={t("onboarding.searchLanguages")} noResultsText={t("onboarding.noResults")} />
             </div>
           );
@@ -704,7 +730,8 @@ export default function OnboardingPage() {
           return (
             <div>
               <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whereAreYou")}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">{t("onboarding.countryDesc")}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-1">{t("onboarding.countryDesc")}</p>
+              <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>{t("onboarding.countryContext")}</p>
               <div className="space-y-4">
                 <CountrySelect value={residenceCountry} onChange={setResidenceCountry} label={t("onboarding.residenceCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
                 <CountrySelect value={originCountry} onChange={setOriginCountry} label={t("onboarding.originCountry")} searchPlaceholder={t("onboarding.searchCountry")} noResultsText={t("onboarding.noResults")} />
@@ -720,8 +747,11 @@ export default function OnboardingPage() {
   const renderPurposeStep = () => (
     <div>
       <h1 className="text-2xl font-bold mb-1 text-[var(--deep-navy)]">{t("onboarding.whatBringsYou")}</h1>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">
+      <p className="text-sm text-[var(--text-secondary)] mb-1">
         {t("onboarding.purposeDesc")}
+      </p>
+      <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>
+        {t("onboarding.purposeContext")}
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -764,6 +794,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen text-[var(--deep-navy)]">
+      {/* Onboarding success celebration overlay */}
+      {showSuccess && <OnboardingSuccess onContinue={handleSuccessContinue} />}
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-12">
         {/* Progress bar */}
         <div className="mb-8 b-animate-in">

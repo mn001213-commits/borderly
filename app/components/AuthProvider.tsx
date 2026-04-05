@@ -9,6 +9,7 @@ type AuthUser = {
   avatarUrl: string | null;
   role: string | null;
   ngoVerified: boolean;
+  guideTourCompleted: boolean;
 } | null;
 
 const AuthContext = createContext<{
@@ -16,7 +17,9 @@ const AuthContext = createContext<{
   loading: boolean;
   needsOnboarding: boolean;
   completeOnboarding: () => void;
-}>({ user: null, loading: true, needsOnboarding: false, completeOnboarding: () => {} });
+  completeGuideTour: () => void;
+  refreshProfile: () => void;
+}>({ user: null, loading: true, needsOnboarding: false, completeOnboarding: () => {}, completeGuideTour: () => {}, refreshProfile: () => {} });
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -26,9 +29,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   function completeOnboarding() {
     setNeedsOnboarding(false);
+  }
+
+  function completeGuideTour() {
+    setUser((prev) => prev ? { ...prev, guideTourCompleted: true } : prev);
+    // Persist to Supabase user metadata so it's account-bound across devices
+    supabase.auth.updateUser({ data: { guide_tour_completed: true } }).catch(() => {});
+  }
+
+  function refreshProfile() {
+    setRefreshTick((n) => n + 1);
   }
 
   useEffect(() => {
@@ -67,12 +81,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: prof?.avatar_url ?? null,
           role: prof?.role ?? null,
           ngoVerified: prof?.ngo_verified === true,
+          guideTourCompleted: authUser.user_metadata?.guide_tour_completed === true,
         });
         setLoading(false);
       }
     }
 
     load();
+
+    // Listen for manual profile refresh trigger from other pages
+    const onRefresh = () => load();
+    window.addEventListener("borderly-profile-updated", onRefresh);
 
     const { data: sub } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -98,12 +117,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       alive = false;
+      window.removeEventListener("borderly-profile-updated", onRefresh);
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshTick]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, needsOnboarding, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, loading, needsOnboarding, completeOnboarding, completeGuideTour, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

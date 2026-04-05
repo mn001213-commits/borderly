@@ -602,8 +602,12 @@ const translations: Record<string, Record<Locale, string>> = {
   "settings.deleteAllData": { en: "All your posts, comments, messages, meets, and profile data will be permanently deleted.", ko: "모든 게시글, 댓글, 메시지, 모임, 프로필 데이터가 영구적으로 삭제됩니다.", ja: "すべての投稿、コメント、メッセージ、ミート、プロフィールデータが永久に削除されます。" },
   "settings.typeDelete": { en: "Type DELETE to confirm", ko: "확인을 위해 DELETE를 입력하세요", ja: "確認のためDELETEと入力してください" },
   "settings.changeAvatar": { en: "Change Avatar", ko: "아바타 변경", ja: "アバターを変更" },
+  "settings.removeAvatar": { en: "Remove", ko: "제거", ja: "削除" },
+  "settings.removeAvatarConfirm": { en: "Remove your profile photo?", ko: "프로필 사진을 제거할까요?", ja: "プロフィール写真を削除しますか？" },
+  "settings.unsavedChanges": { en: "You have unsaved changes. Leave anyway?", ko: "저장하지 않은 변경사항이 있어요. 나가시겠어요?", ja: "保存されていない変更があります。このまま離れますか？" },
   "settings.uploading": { en: "Uploading...", ko: "업로드 중...", ja: "アップロード中..." },
   "settings.noResults": { en: "No results", ko: "결과 없음", ja: "結果なし" },
+  "settings.restartTour": { en: "Restart App Tour", ko: "앱 가이드 다시 보기", ja: "アプリツアーをやり直す" },
 
   // Sidebar
   "sidebar.connectedNow": { en: "Friends", ko: "친구 목록", ja: "フレンド" },
@@ -973,6 +977,70 @@ const translations: Record<string, Record<Locale, string>> = {
   "adminDash.days": { en: "days", ko: "일간", ja: "日間" },
   "adminDash.max": { en: "Max", ko: "최대", ja: "最大" },
   "adminDash.dailyAvg": { en: "Daily avg", ko: "일평균", ja: "日平均" },
+
+  // Welcome Hero (비로그인 사용자용)
+  "hero.tagline": { en: "Connect Across Borders", ko: "국경을 넘어, 사람을 연결합니다", ja: "国境を超えて、人と繋がる" },
+  "hero.subtitle": { en: "A community where foreigners, refugees, and locals come together", ko: "외국인, 난민, 현지인 모두가 함께하는 커뮤니티 플랫폼", ja: "外国人・難民・地元の人が集まるコミュニティ" },
+  "hero.cta": { en: "Get Started", ko: "시작하기", ja: "始める" },
+  "hero.browse": { en: "Browse", ko: "둘러보기", ja: "見る" },
+  "hero.badge": { en: "Sign up in 30 seconds · 3 languages supported", ko: "30초만에 가입 · 3개 언어 지원", ja: "30秒で登録 · 3言語サポート" },
+  "hero.dismiss": { en: "Already a member? Log in", ko: "이미 회원이세요? 로그인", ja: "すでにメンバーですか？ログイン" },
+  "hero.feature.posts.title": { en: "Community Feed", ko: "커뮤니티 피드", ja: "コミュニティ" },
+  "hero.feature.posts.desc": { en: "Info, questions, daily life, and job posts", ko: "정보, 질문, 일상, 구인 카테고리별 게시글", ja: "情報・質問・日常・求人カテゴリの投稿" },
+  "hero.feature.meet.title": { en: "Offline Meets", ko: "오프라인 모임", ja: "オフラインミート" },
+  "hero.feature.meet.desc": { en: "Hangout, Study, Language, Meal, Sports events", ko: "행아웃, 스터디, 언어교환, 식사, 스포츠 모임", ja: "ハングアウト・勉強・言語交換・食事・スポーツ" },
+  "hero.feature.ngo.title": { en: "Support Organizations", ko: "지원 단체 찾기", ja: "支援団体を探す" },
+  "hero.feature.ngo.desc": { en: "Jobs, Housing, Legal, Education, Health support", ko: "취업, 주거, 법률, 교육, 건강 분야별 지원", ja: "就職・住居・法律・教育・健康分野の支援" },
+  "hero.feature.chat.title": { en: "Real-time Chat", ko: "실시간 채팅", ja: "リアルタイムチャット" },
+  "hero.feature.chat.desc": { en: "DM, group chat with built-in translation", ko: "DM, 그룹 채팅, 인앱 번역 지원", ja: "DM・グループチャット・翻訳機能" },
+
+  // Onboarding Success (완료 축하 화면)
+  "onboardingSuccess.title": { en: "You're all set! 🎉", ko: "프로필 설정이 완료됐어요! 🎉", ja: "設定完了！🎉" },
+  "onboardingSuccess.subtitle": { en: "Welcome to Borderly!", ko: "Borderly에 오신 것을 환영합니다!", ja: "Borderlyへようこそ！" },
+  "onboardingSuccess.missionLabel": { en: "What to do next", ko: "이제 이것들을 해보세요", ja: "次にやること" },
+  "onboardingSuccess.mission1": { en: "Write your first post", ko: "첫 번째 게시글 작성하기", ja: "最初の投稿を書く" },
+  "onboardingSuccess.mission2": { en: "Join a meetup", ko: "모임 참여하기", ja: "ミートアップに参加" },
+  "onboardingSuccess.mission3": { en: "Set a profile photo", ko: "프로필 사진 설정하기", ja: "プロフィール写真を設定" },
+  "onboardingSuccess.cta": { en: "Explore Community →", ko: "커뮤니티 둘러보기 →", ja: "コミュニティを探索 →" },
+
+  // Guide Tour
+  "guideTour.skip": { en: "Skip tour", ko: "건너뛰기", ja: "スキップ" },
+  "guideTour.next": { en: "Next", ko: "다음", ja: "次へ" },
+  "guideTour.finish": { en: "Get started!", ko: "시작하기!", ja: "始める！" },
+  "guideTour.stepOf": { en: "of", ko: "/", ja: "/" },
+  "guideTour.step1.title": { en: "Community Feed", ko: "커뮤니티 피드", ja: "コミュニティ" },
+  "guideTour.step1.desc": { en: "Browse posts from the community. Filter by category and tap + to create your own!", ko: "커뮤니티 피드에서 정보, 질문, 일상을 나눠보세요. 카테고리 pill로 필터링! + 버튼으로 새 글 작성!", ja: "コミュニティの投稿を閲覧。カテゴリでフィルタリングして＋で新規投稿！" },
+  "guideTour.step2.title": { en: "Meet People", ko: "모임 참여", ja: "ミートに参加" },
+  "guideTour.step2.desc": { en: "Join offline meetups! Hangout, Study, Language, Meal, Sports — find your match.", ko: "오프라인 모임에 참여해보세요! Hangout, Study, Language, Meal, Sports 중 관심있는 모임을 선택하세요.", ja: "オフラインミートに参加！ハングアウト・勉強・言語交換・食事・スポーツから選択。" },
+  "guideTour.step3.title": { en: "Find Support", ko: "지원 단체 찾기", ja: "支援を探す" },
+  "guideTour.step3.desc": { en: "Need help? Find support organizations for Jobs, Housing, Legal, Education, and Health.", ko: "도움이 필요하신가요? Jobs, Housing, Legal, Education, Health 분야별 지원 단체를 찾아보세요.", ja: "支援が必要ですか？就職・住居・法律・教育・健康の支援団体を探しましょう。" },
+  "guideTour.step4.title": { en: "Your Profile", ko: "나의 프로필", ja: "マイプロフィール" },
+  "guideTour.step4.desc": { en: "Customize your profile, share your QR code, follow others, and start chatting!", ko: "프로필을 꾸미고, QR 공유, 다른 사용자를 팔로우하고, 채팅을 시작해보세요!", ja: "プロフィールをカスタマイズ、QR共有、フォロー、チャットを始めましょう！" },
+  "guideTour.step4.descDesktop": { en: "Customize your profile, see your friends online in the sidebar, and start chatting!", ko: "프로필을 꾸미고, 친구 목록을 확인하고, 온라인 친구와 바로 채팅을 시작해보세요!", ja: "プロフィールをカスタマイズ、サイドバーでオンラインの友達を確認してチャット！" },
+
+  // Mission Checklist
+  "mission.title": { en: "Getting Started 🚀", ko: "Borderly 시작하기 🚀", ja: "スタートガイド 🚀" },
+  "mission.subtitle": { en: "Complete missions to get the most out of Borderly", ko: "미션을 완료하고 Borderly를 제대로 즐겨보세요", ja: "ミッションを完了してBorderlyを楽しもう" },
+  "mission.viewAll": { en: "View all", ko: "전체 보기", ja: "すべて見る" },
+  "mission.viewLess": { en: "View less", ko: "접기", ja: "折りたたむ" },
+  "mission.dismiss": { en: "Dismiss", ko: "닫기", ja: "閉じる" },
+  "mission.completed": { en: "All done! You're a Borderly pro 🎉", ko: "모든 미션 완료! Borderly 고수! 🎉", ja: "すべて完了！Borderlyマスター！🎉" },
+  "mission.1.label": { en: "Complete your profile", ko: "프로필 설정 완료", ja: "プロフィール設定完了" },
+  "mission.2.label": { en: "Read your first post", ko: "첫 번째 게시글 읽기", ja: "最初の投稿を読む" },
+  "mission.3.label": { en: "Set a profile photo", ko: "프로필 사진 설정하기", ja: "プロフィール写真を設定" },
+  "mission.4.label": { en: "Write your first post", ko: "첫 번째 게시글 작성하기", ja: "最初の投稿を書く" },
+  "mission.5.label": { en: "Join a meetup", ko: "모임 1개 참여하기", ja: "ミートアップに1つ参加" },
+  "mission.6.label": { en: "Follow someone", ko: "다른 사용자 1명 팔로우하기", ja: "誰かをフォローする" },
+  "mission.7.label": { en: "Leave your first comment", ko: "첫 번째 댓글 남기기", ja: "最初のコメントを残す" },
+
+  // Onboarding context text (각 스텝 설명)
+  "onboarding.uiLanguageContext": { en: "All menus and guidance will be shown in the selected language. You can change this anytime in Settings.", ko: "앱의 모든 메뉴와 안내가 선택한 언어로 표시됩니다. 설정에서 언제든 변경할 수 있어요.", ja: "アプリのすべてのメニューと案内が選択した言語で表示されます。設定でいつでも変更できます。" },
+  "onboarding.userTypeContext.foreigner": { en: "As a foreigner or immigrant, join communities and find support.", ko: "외국인/이주민으로서 커뮤니티에 참여하고 지원을 받을 수 있습니다.", ja: "外国人・移民として、コミュニティに参加し支援を受けられます。" },
+  "onboarding.userTypeContext.local": { en: "As a local, meet international friends and offer help.", ko: "현지인으로서 외국인 친구를 만들고 도움을 줄 수 있습니다.", ja: "地元の人として、海外の友達を作り支援できます。" },
+  "onboarding.userTypeContext.ngo": { en: "As an organization, promote your services and support the community.", ko: "단체/기관으로서 서비스를 알리고 커뮤니티를 지원할 수 있습니다.", ja: "団体として、サービスを宣伝しコミュニティを支援できます。" },
+  "onboarding.languagesContext": { en: "Other users can see what languages you speak. This is also used for meet matching.", ko: "다른 사용자가 당신과 소통할 수 있는 언어를 알 수 있어요. 모임 매칭에도 활용됩니다.", ja: "他のユーザーがあなたと話せる言語を確認できます。ミートのマッチングにも使われます。" },
+  "onboarding.countryContext": { en: "Used to help you find people from the same country and access local information.", ko: "같은 나라 출신 사용자를 찾거나, 현지 정보를 공유할 때 활용됩니다.", ja: "同じ国の出身者を見つけたり、地域情報を共有するのに活用されます。" },
+  "onboarding.purposeContext": { en: "We'll recommend content and meetups that match your interests.", ko: "관심사에 맞는 콘텐츠와 모임을 추천해 드립니다.", ja: "あなたの興味に合ったコンテンツとミートをおすすめします。" },
 };
 
 export function getLocale(): Locale {
