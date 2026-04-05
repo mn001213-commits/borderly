@@ -13,13 +13,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
   const { data: meet } = await supabase
-    .from("meets")
+    .from("meet_posts")
     .select("title, description, image_url")
     .eq("id", id)
     .maybeSingle();
 
   if (!meet) {
-    return { title: "Meet not found | Borderly" };
+    return { title: "Meet | Borderly" };
   }
 
   const description = meet.description?.slice(0, 160) ?? "";
