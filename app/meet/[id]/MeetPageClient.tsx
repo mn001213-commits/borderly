@@ -296,7 +296,7 @@ export default function MeetDetailPage() {
       .from("meet_comments")
       .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden, profiles:user_id(display_name)")
       .eq("meet_id", meetId)
-      .eq("is_hidden", false)
+      .or("is_hidden.eq.false,is_hidden.is.null")
       .order("created_at", { ascending: true });
     setMeetComments((cmts ?? []).map((c: any) => ({
       ...c,
