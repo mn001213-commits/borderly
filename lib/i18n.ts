@@ -622,7 +622,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "sidebar.iceBreaking": { en: "Meet", ko: "만남", ja: "ミート" },
   "sidebar.ngoDirectory": { en: "Supporters Directory", ko: "협력 단체 디렉토리", ja: "協力団体一覧" },
   "sidebar.partnerAccounts": { en: "Partner Accounts", ko: "협력 단체 계정", ja: "協力団体アカウント" },
-  "sidebar.ngoPortal": { en: "Application Management", ko: "신청 승인 관리", ja: "応募承認管理" },
+  "sidebar.ngoPortal": { en: "NGO Portal", ko: "협력단체 포털", ja: "協力団体ポータル" },
   "sidebar.exploreAll": { en: "Explore All", ko: "전체 탐색", ja: "すべて探す" },
   "sidebar.chats": { en: "Chats", ko: "채팅", ja: "チャット" },
   "sidebar.createPost": { en: "Create Post", ko: "게시글 작성", ja: "投稿を作成" },
