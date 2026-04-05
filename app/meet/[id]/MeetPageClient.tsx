@@ -291,18 +291,17 @@ export default function MeetDetailPage() {
 
     setParticipants(merged);
 
-    // Load comments (join profiles for author name)
-    const { data: cmts } = await supabase
+    // Load comments (read author_name directly from column)
+    const { data: cmts, error: cmtErr } = await supabase
       .from("meet_comments")
-      .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden, profiles:user_id(display_name)")
+      .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden, author_name")
       .eq("meet_id", meetId)
       .or("is_hidden.eq.false,is_hidden.is.null")
       .order("created_at", { ascending: true });
-    setMeetComments((cmts ?? []).map((c: any) => ({
-      ...c,
-      author_name: c.profiles?.display_name ?? null,
-      profiles: undefined,
-    })) as MeetCommentRow[]);
+    if (cmtErr) {
+      if (process.env.NODE_ENV === "development") console.error("meet comments load error:", cmtErr);
+    }
+    setMeetComments((cmts ?? []) as MeetCommentRow[]);
 
     setLoading(false);
   }, [meetId]);
@@ -342,8 +341,8 @@ export default function MeetDetailPage() {
     try {
       const { data, error } = await supabase
         .from("meet_comments")
-        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body, is_hidden: false })
-        .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden")
+        .insert({ meet_id: meetId, user_id: user.id, parent_id: parentId, content: body, is_hidden: false, author_name: author })
+        .select("id, meet_id, user_id, parent_id, content, created_at, is_hidden, author_name")
         .single();
       if (error) throw error;
       setMeetComments((prev) => prev.map((c) => (c.id === tempId ? { ...data, author_name: author } : c)));
