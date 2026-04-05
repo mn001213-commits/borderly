@@ -708,6 +708,37 @@ export default function MeetDetailPage() {
 
           <h1 className="mt-2 text-xl font-bold">{meet.title}</h1>
 
+          {/* Host profile */}
+          {hostProfile && (
+            <Link
+              href={`/u/${meet.host_id}`}
+              className="mt-2.5 flex items-center gap-2.5 no-underline group w-fit"
+            >
+              {hostProfile.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={hostProfile.avatar_url}
+                  alt={hostProfile.display_name ?? "Host"}
+                  className="h-8 w-8 rounded-full object-cover shrink-0"
+                  style={{ border: "1.5px solid var(--border-soft)" }}
+                />
+              ) : (
+                <div
+                  className="h-8 w-8 rounded-full shrink-0 flex items-center justify-center text-[12px] font-bold text-white"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {(hostProfile.display_name ?? "?")[0]?.toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Host</div>
+                <div className="text-sm font-semibold group-hover:underline" style={{ color: "var(--deep-navy)" }}>
+                  {hostProfile.display_name ?? t("common.unknown")}
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* Approval banner + shortcut */}
           {approvedJustNow && (
             <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm flex items-center justify-between gap-3">
@@ -785,36 +816,6 @@ export default function MeetDetailPage() {
             </div>
           )}
 
-          {/* Host profile */}
-          {hostProfile && (
-            <Link
-              href={`/u/${meet.host_id}`}
-              className="mt-4 flex items-center gap-2.5 no-underline group w-fit"
-            >
-              {hostProfile.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={hostProfile.avatar_url}
-                  alt={hostProfile.display_name ?? "Host"}
-                  className="h-8 w-8 rounded-full object-cover shrink-0"
-                  style={{ border: "1.5px solid var(--border-soft)" }}
-                />
-              ) : (
-                <div
-                  className="h-8 w-8 rounded-full shrink-0 flex items-center justify-center text-[12px] font-bold text-white"
-                  style={{ background: "var(--primary)" }}
-                >
-                  {(hostProfile.display_name ?? "?")[0]?.toUpperCase()}
-                </div>
-              )}
-              <div>
-                <div className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Host</div>
-                <div className="text-sm font-semibold group-hover:underline" style={{ color: "var(--deep-navy)" }}>
-                  {hostProfile.display_name ?? t("common.unknown")}
-                </div>
-              </div>
-            </Link>
-          )}
 
           {/* Participant list */}
           <div className="b-card mt-6 p-4">
