@@ -13,7 +13,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
     intro:
       "Borderly(이하 \"회사\")는 이용자의 개인정보를 중요하게 생각하며, 「개인정보 보호법」 및 관련 법령을 준수합니다. 본 개인정보처리방침은 회사가 제공하는 Borderly 서비스(이하 \"서비스\") 이용과 관련하여 이용자의 개인정보가 어떻게 수집·이용·보호되는지 안내합니다.",
     effectiveDate: "시행일: 2026년 4월 6일",
-    contact: "문의: privacy@borderly.app",
+    contact: "문의: mn001213@gmail.com",
     sections: [
       {
         title: "제1조 (개인정보의 수집 및 이용 목적)",
@@ -122,7 +122,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
     intro:
       "Borderly（以下「当社」）は、ユーザーの個人情報を重要視し、個人情報保護法およびその他の関連法令を遵守します。本プライバシーポリシーは、当社が提供するBorderlyサービス（以下「サービス」）の利用に関して、ユーザーの個人情報がどのように収集・利用・保護されるかをご説明します。",
     effectiveDate: "施行日：2026年4月6日",
-    contact: "お問い合わせ：privacy@borderly.app",
+    contact: "お問い合わせ：mn001213@gmail.com",
     sections: [
       {
         title: "第1条（個人情報の収集および利用目的）",
@@ -231,7 +231,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
     intro:
       "Borderly (\"the Company\") values the privacy of its users and complies with applicable personal data protection laws. This Privacy Policy explains how personal information is collected, used, and protected in connection with the Borderly service (\"the Service\").",
     effectiveDate: "Effective date: April 6, 2026",
-    contact: "Contact: privacy@borderly.app",
+    contact: "Contact: mn001213@gmail.com",
     sections: [
       {
         title: "Article 1 — Purpose of Collection and Use of Personal Information",
