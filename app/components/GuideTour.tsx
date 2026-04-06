@@ -17,6 +17,8 @@ type TourStep = {
   anchorDesktop: "right-top" | "right-center";
   // Which nav item index to highlight (0-4 for mobile, -1 for none)
   mobileNavIndex: number;
+  // DOM id of the sidebar/topbar element to point at on desktop (null = no target)
+  desktopNavId: string | null;
 };
 
 const TOUR_STEPS: TourStep[] = [
@@ -28,6 +30,7 @@ const TOUR_STEPS: TourStep[] = [
     href: "/browse",
     anchorDesktop: "right-top",
     mobileNavIndex: 1,
+    desktopNavId: "sidebar-nav-browse",
   },
   {
     titleKey: "guideTour.step2.title",
@@ -37,6 +40,7 @@ const TOUR_STEPS: TourStep[] = [
     href: "/meet",
     anchorDesktop: "right-top",
     mobileNavIndex: 2,
+    desktopNavId: "sidebar-nav-meet",
   },
   {
     titleKey: "guideTour.step3.title",
@@ -46,6 +50,7 @@ const TOUR_STEPS: TourStep[] = [
     href: "/ngo",
     anchorDesktop: "right-top",
     mobileNavIndex: 4,
+    desktopNavId: "sidebar-nav-ngo",
   },
   {
     titleKey: "guideTour.step4.title",
@@ -55,6 +60,7 @@ const TOUR_STEPS: TourStep[] = [
     href: "/profile",
     anchorDesktop: "right-top",
     mobileNavIndex: -1, // profile is in top bar on mobile
+    desktopNavId: "topbar-nav-profile",
   },
 ];
 
@@ -73,6 +79,8 @@ export default function GuideTour() {
   // Exact position of the highlighted nav item (measured from DOM)
   const [navRect, setNavRect] = useState<{ left: number; width: number } | null>(null);
   const [viewportW, setViewportW] = useState(0);
+  // Desktop: vertical position of the sidebar/topbar nav item
+  const [desktopNavRect, setDesktopNavRect] = useState<{ top: number; height: number; viewportH: number } | null>(null);
 
   useEffect(() => {
     // Wait for user to load; only check once
@@ -133,6 +141,26 @@ export default function GuideTour() {
     };
   }, [active, currentStep, isDesktop]);
 
+  // Measure desktop sidebar/topbar nav item position
+  useEffect(() => {
+    if (!active || !isDesktop) return;
+
+    const navId = TOUR_STEPS[currentStep]?.desktopNavId;
+    if (!navId) { setDesktopNavRect(null); return; }
+
+    const measure = () => {
+      const el = document.getElementById(navId);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        setDesktopNavRect({ top: r.top, height: r.height, viewportH: window.innerHeight });
+      }
+    };
+
+    const timer = setTimeout(measure, 50);
+    window.addEventListener("resize", measure);
+    return () => { clearTimeout(timer); window.removeEventListener("resize", measure); };
+  }, [active, currentStep, isDesktop]);
+
   const handleComplete = useCallback(() => {
     completeGuideTour(); // Saves to Supabase user_metadata (account-bound)
     setVisible(false);
@@ -150,6 +178,25 @@ export default function GuideTour() {
       router.push(TOUR_STEPS[currentStep].href);
     }
   }, [currentStep, router, handleComplete]);
+
+  // Desktop tooltip positioning:
+  // - TopBar profile (step 4): tooltip BELOW the icon, arrow at top (top: 20px)
+  // - Sidebar items (steps 1-3): tooltip ABOVE the nav item, arrow at bottom (bottom: 20px)
+  const isTopBarStep = TOUR_STEPS[currentStep]?.desktopNavId === "topbar-nav-profile";
+  let desktopBottom: string | undefined;
+  let desktopTop: string | undefined;
+  if (desktopNavRect) {
+    const navCenterY = desktopNavRect.top + desktopNavRect.height / 2;
+    if (isTopBarStep) {
+      // Arrow at top: 20px → arrow center from top = 24px → tooltip top = navCenterY - 24
+      const rawTop = navCenterY - 24;
+      desktopTop = `${Math.max(70, rawTop)}px`;
+    } else {
+      // Arrow at bottom: 20px → arrow center from bottom = 24px
+      const fromViewportBottom = desktopNavRect.viewportH - navCenterY - 24;
+      desktopBottom = `${Math.max(16, fromViewportBottom)}px`;
+    }
+  }
 
   if (!active) return null;
 
@@ -305,7 +352,8 @@ export default function GuideTour() {
         <div
           className="fixed z-[9999] hidden xl:block"
           style={{
-            top: "80px",
+            top: desktopTop ?? (desktopBottom ? "auto" : "80px"),
+            bottom: desktopBottom ?? "auto",
             right: "360px", // just left of the 340px sidebar
             width: "300px",
             transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
@@ -393,7 +441,7 @@ export default function GuideTour() {
             <div
               style={{
                 position: "absolute",
-                top: "30px",
+                ...(isTopBarStep ? { top: "20px" } : { bottom: "20px" }),
                 right: "-8px",
                 width: 0,
                 height: 0,

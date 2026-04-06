@@ -276,14 +276,15 @@ export default function OnlineSidebar() {
         </div>
         <div className="space-y-1">
           {[
-            { href: "/", icon: Home, label: t("sidebar.exploreAll") },
-            { href: "/browse", icon: FileText, label: t("sidebar.communityFeed") },
-            { href: "/meet", icon: CalendarHeart, label: t("sidebar.iceBreaking") },
-            { href: "/chats", icon: MessageCircle, label: t("sidebar.chats") },
-            { href: "/ngo", icon: ShieldCheck, label: t("sidebar.ngoDirectory") },
+            { href: "/", icon: Home, label: t("sidebar.exploreAll"), id: undefined },
+            { href: "/browse", icon: FileText, label: t("sidebar.communityFeed"), id: "sidebar-nav-browse" },
+            { href: "/meet", icon: CalendarHeart, label: t("sidebar.iceBreaking"), id: "sidebar-nav-meet" },
+            { href: "/chats", icon: MessageCircle, label: t("sidebar.chats"), id: undefined },
+            { href: "/ngo", icon: ShieldCheck, label: t("sidebar.ngoDirectory"), id: "sidebar-nav-ngo" },
           ].map((item) => (
             <Link
               key={item.href}
+              id={item.id}
               href={item.href}
               className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] font-medium no-underline b-list-item"
               style={{ color: pathname === item.href ? "var(--primary)" : "var(--text-secondary)" }}

@@ -994,14 +994,25 @@ const translations: Record<string, Record<Locale, string>> = {
   "hero.feature.chat.title": { en: "Real-time Chat", ko: "실시간 채팅", ja: "リアルタイムチャット" },
   "hero.feature.chat.desc": { en: "DM, group chat with built-in translation", ko: "DM, 그룹 채팅, 인앱 번역 지원", ja: "DM・グループチャット・翻訳機能" },
 
-  // Onboarding Success (완료 축하 화면)
-  "onboardingSuccess.title": { en: "You're all set! 🎉", ko: "프로필 설정이 완료됐어요! 🎉", ja: "設定完了！🎉" },
-  "onboardingSuccess.subtitle": { en: "Welcome to Borderly!", ko: "Borderly에 오신 것을 환영합니다!", ja: "Borderlyへようこそ！" },
-  "onboardingSuccess.missionLabel": { en: "What to do next", ko: "이제 이것들을 해보세요", ja: "次にやること" },
-  "onboardingSuccess.mission1": { en: "Write your first post", ko: "첫 번째 게시글 작성하기", ja: "最初の投稿を書く" },
-  "onboardingSuccess.mission2": { en: "Join a meetup", ko: "모임 참여하기", ja: "ミートアップに参加" },
-  "onboardingSuccess.mission3": { en: "Set a profile photo", ko: "프로필 사진 설정하기", ja: "プロフィール写真を設定" },
-  "onboardingSuccess.cta": { en: "Explore Community →", ko: "커뮤니티 둘러보기 →", ja: "コミュニティを探索 →" },
+  // Onboarding Tour (슬라이드 투어)
+  "onboardingTour.welcomeTitle": { en: "Welcome!", ko: "Welcome!", ja: "Welcome!" },
+  "onboardingTour.slide1": {
+    en: "Borderly is the place where everyone meets across borders.",
+    ko: "Borderly는 모두가 만나는 경계의 장소입니다.",
+    ja: "Borderlyは皆が出会う境目となれる場所です。",
+  },
+  "onboardingTour.slide2": {
+    en: "Defamatory remarks, racial slurs, and behaviors that make others uncomfortable are not allowed.",
+    ko: "비방·명예훼손·인종차별적 발언 등 타인을 불쾌하게 하는 행동은 금지됩니다.",
+    ja: "誹謗中傷や人種差別的な発言など、見る人が不快になる言動はNGです。",
+  },
+  "onboardingTour.slide3": {
+    en: "Share meaningful information, have fun, and connect with people who help each other!",
+    ko: "의미 있는 정보를 나누고, 즐기면서 서로 돕는 동료들과 연결되세요!",
+    ja: "有意義な情報を共有し合い、楽しみながら助け合う仲間とつながりましょう！",
+  },
+  "onboardingTour.next": { en: "next", ko: "다음", ja: "next" },
+  "onboardingTour.finish": { en: "Enjoy your Borderly life", ko: "Enjoy your Borderly life", ja: "Enjoy your Borderly life" },
 
   // Guide Tour
   "guideTour.skip": { en: "Skip tour", ko: "건너뛰기", ja: "スキップ" },
@@ -1009,11 +1020,11 @@ const translations: Record<string, Record<Locale, string>> = {
   "guideTour.finish": { en: "Get started!", ko: "시작하기!", ja: "始める！" },
   "guideTour.stepOf": { en: "of", ko: "/", ja: "/" },
   "guideTour.step1.title": { en: "Community Feed", ko: "커뮤니티 피드", ja: "コミュニティ" },
-  "guideTour.step1.desc": { en: "Browse posts from the community. Filter by category and tap + to create your own!", ko: "커뮤니티 피드에서 정보, 질문, 일상을 나눠보세요. 카테고리 pill로 필터링! + 버튼으로 새 글 작성!", ja: "コミュニティの投稿を閲覧。カテゴリでフィルタリングして＋で新規投稿！" },
+  "guideTour.step1.desc": { en: "Browse posts from the community. Filter by category and tap + to create your own!", ko: "커뮤니티 피드에서 이웃과 정보, 질문, 일상을 나눠보세요. 카테고리별로 필터링하고 + 버튼으로 새 글을 작성해보세요!", ja: "コミュニティの投稿を閲覧。カテゴリでフィルタリングして＋で新規投稿！" },
   "guideTour.step2.title": { en: "Meet People", ko: "모임 참여", ja: "ミートに参加" },
-  "guideTour.step2.desc": { en: "Join offline meetups! Hangout, Study, Language, Meal, Sports — find your match.", ko: "오프라인 모임에 참여해보세요! Hangout, Study, Language, Meal, Sports 중 관심있는 모임을 선택하세요.", ja: "オフラインミートに参加！ハングアウト・勉強・言語交換・食事・スポーツから選択。" },
+  "guideTour.step2.desc": { en: "Join offline meetups! Hangout, Study, Language, Meal, Sports — find your match.", ko: "오프라인 모임에 참여해보세요! 친목, 스터디, 언어교환, 식사, 스포츠 등 다양한 모임이 기다리고 있어요.", ja: "オフラインミートに参加！ハングアウト・勉強・言語交換・食事・スポーツから選択。" },
   "guideTour.step3.title": { en: "Find Support", ko: "지원 단체 찾기", ja: "支援を探す" },
-  "guideTour.step3.desc": { en: "Need help? Find support organizations for Jobs, Housing, Legal, Education, and Health.", ko: "도움이 필요하신가요? Jobs, Housing, Legal, Education, Health 분야별 지원 단체를 찾아보세요.", ja: "支援が必要ですか？就職・住居・法律・教育・健康の支援団体を探しましょう。" },
+  "guideTour.step3.desc": { en: "Need help? Find support organizations for Jobs, Housing, Legal, Education, and Health.", ko: "도움이 필요하신가요? 취업, 주거, 법률, 교육, 건강 분야별 지원 단체를 찾아보세요.", ja: "支援が必要ですか？就職・住居・法律・教育・健康の支援団体を探しましょう。" },
   "guideTour.step4.title": { en: "Your Profile", ko: "나의 프로필", ja: "マイプロフィール" },
   "guideTour.step4.desc": { en: "Customize your profile, share your QR code, follow others, and start chatting!", ko: "프로필을 꾸미고, QR 공유, 다른 사용자를 팔로우하고, 채팅을 시작해보세요!", ja: "プロフィールをカスタマイズ、QR共有、フォロー、チャットを始めましょう！" },
   "guideTour.step4.descDesktop": { en: "Customize your profile, see your friends online in the sidebar, and start chatting!", ko: "프로필을 꾸미고, 친구 목록을 확인하고, 온라인 친구와 바로 채팅을 시작해보세요!", ja: "プロフィールをカスタマイズ、サイドバーでオンラインの友達を確認してチャット！" },

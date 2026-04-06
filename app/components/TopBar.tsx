@@ -54,6 +54,7 @@ export default function TopBar() {
               <NotificationBell className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]" />
 
               <Link
+                id="topbar-nav-profile"
                 href="/profile"
                 className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors no-underline text-inherit hover:bg-[var(--bg-elevated)]"
               >
