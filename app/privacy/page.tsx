@@ -111,26 +111,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
 이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다. 웹 브라우저의 옵션을 설정함으로써 모든 쿠키를 허용하거나, 쿠키가 저장될 때마다 확인을 거치거나, 아니면 모든 쿠키의 저장을 거부할 수도 있습니다. 단, 쿠키 저장을 거부할 경우 일부 서비스 이용에 어려움이 있을 수 있습니다.`,
       },
       {
-        title: "제10조 (개인정보 보호책임자)",
-        content: `회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만 처리 및 피해 구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.
-
-■ 개인정보 보호책임자
-• 이름: Borderly 운영팀
-• 이메일: privacy@borderly.app
-
-이용자는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만 처리, 피해 구제 등에 관한 사항을 개인정보 보호책임자에게 문의하실 수 있습니다.`,
-      },
-      {
-        title: "제11조 (권익 침해 구제 방법)",
-        content: `이용자는 개인정보 침해로 인한 구제를 받기 위하여 개인정보분쟁조정위원회, 한국인터넷진흥원 개인정보침해신고센터 등에 분쟁 해결이나 상담 등을 신청할 수 있습니다.
-
-• 개인정보분쟁조정위원회: www.kopico.go.kr / (국번없이) 1833-6972
-• 개인정보침해신고센터: privacy.kisa.or.kr / (국번없이) 118
-• 대검찰청 사이버범죄수사단: www.spo.go.kr / 02-3480-3573
-• 경찰청 사이버안전국: cyberbureau.police.go.kr / (국번없이) 182`,
-      },
-      {
-        title: "제12조 (개인정보 처리방침의 변경)",
+        title: "제10조 (개인정보 처리방침의 변경)",
         content: "이 개인정보 처리방침은 2026년 4월 6일부터 적용됩니다.",
       },
     ],
@@ -239,26 +220,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
 ユーザーはクッキーの設定について選択権を持っています。ウェブブラウザのオプション設定により、すべてのクッキーを許可するか、クッキーが保存されるたびに確認するか、またはすべてのクッキーの保存を拒否することができます。ただし、クッキーの保存を拒否した場合、一部のサービス利用に支障が生じる場合があります。`,
       },
       {
-        title: "第10条（個人情報保護責任者）",
-        content: `当社は、個人情報処理に関する業務を統括して責任を持ち、個人情報処理に関連するユーザーの苦情処理および被害救済のために、以下のとおり個人情報保護責任者を指定しています。
-
-■ 個人情報保護責任者
-• 名前：Borderly 運営チーム
-• メール：privacy@borderly.app
-
-ユーザーは、当社のサービスを利用する中で発生したすべての個人情報保護に関するお問い合わせ、苦情処理、被害救済等について個人情報保護責任者にお問い合わせいただけます。`,
-      },
-      {
-        title: "第11条（権利侵害の救済方法）",
-        content: `ユーザーは、個人情報侵害による救済を受けるために、個人情報紛争調整委員会、韓国インターネット振興院 個人情報侵害申告センター等に紛争解決や相談を申請することができます。
-
-• 個人情報紛争調整委員会：www.kopico.go.kr / 1833-6972
-• 個人情報侵害申告センター：privacy.kisa.or.kr / 118
-• 大検察庁サイバー犯罪捜査団：www.spo.go.kr / 02-3480-3573
-• 警察庁サイバー安全局：cyberbureau.police.go.kr / 182`,
-      },
-      {
-        title: "第12条（プライバシーポリシーの変更）",
+        title: "第10条（プライバシーポリシーの変更）",
         content: "本プライバシーポリシーは2026年4月6日より適用されます。",
       },
     ],
@@ -367,26 +329,7 @@ Maintaining login sessions, remembering service preferences (language, theme, et
 Users have the right to choose whether to accept cookies. Browser settings can be configured to allow all cookies, prompt before each cookie is saved, or block all cookies. Please note that blocking cookies may affect the availability of some Service features.`,
       },
       {
-        title: "Article 10 — Privacy Officer",
-        content: `The Company designates a Privacy Officer to oversee all matters related to personal information processing and to handle user complaints and remedies.
-
-■ Privacy Officer
-• Name: Borderly Operations Team
-• Email: privacy@borderly.app
-
-Users may contact the Privacy Officer with any inquiries, complaints, or requests for remedy related to personal information that arise while using the Service.`,
-      },
-      {
-        title: "Article 11 — Remedies for Rights Infringement",
-        content: `Users who have suffered infringement of their personal information rights may apply to the following organizations for dispute resolution or consultation.
-
-• Personal Information Dispute Mediation Committee: www.kopico.go.kr / 1833-6972
-• KISA Personal Information Infringement Report Center: privacy.kisa.or.kr / 118
-• Supreme Prosecutors' Office Cyber Crime Investigation Unit: www.spo.go.kr / 02-3480-3573
-• National Police Agency Cyber Safety Bureau: cyberbureau.police.go.kr / 182`,
-      },
-      {
-        title: "Article 12 — Changes to This Privacy Policy",
+        title: "Article 10 — Changes to This Privacy Policy",
         content: "This Privacy Policy is effective as of April 6, 2026.",
       },
     ],
