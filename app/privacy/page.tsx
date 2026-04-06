@@ -11,13 +11,13 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
   ko: {
     pageTitle: "개인정보처리방침",
     intro:
-      "Borderly(이하 \"회사\")는 이용자의 개인정보를 중요하게 생각하며, 「개인정보 보호법」 및 관련 법령을 준수합니다. 본 개인정보처리방침은 회사가 제공하는 Borderly 서비스(이하 \"서비스\") 이용과 관련하여 이용자의 개인정보가 어떻게 수집·이용·보호되는지 안내합니다.",
+      "Borderly의 본 서비스 운영자는 이용자의 개인정보를 중요하게 생각하며, 「개인정보 보호법」 및 관련 법령을 준수합니다. 본 개인정보처리방침은 본 서비스 운영자가 제공하는 Borderly 서비스(이하 \"서비스\") 이용과 관련하여 이용자의 개인정보가 어떻게 수집·이용·보호되는지 안내합니다.",
     effectiveDate: "시행일: 2026년 4월 6일",
     contact: "문의: mn001213@gmail.com",
     sections: [
       {
         title: "제1조 (개인정보의 수집 및 이용 목적)",
-        content: `회사는 다음의 목적을 위하여 개인정보를 수집 및 이용합니다. 수집된 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경될 경우에는 사전에 이용자의 동의를 구할 것입니다.
+        content: `본 서비스 운영자는 다음의 목적을 위하여 개인정보를 수집 및 이용합니다. 수집된 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경될 경우에는 사전에 이용자의 동의를 구할 것입니다.
 
 ① 회원 가입 및 관리: 회원 가입 의사 확인, 본인 식별·인증, 회원자격 유지·관리, 서비스 부정 이용 방지
 ② 서비스 제공: 콘텐츠 제공, 커뮤니티 기능 제공, 실시간 메시지 서비스, 맞춤형 서비스 제공
@@ -26,7 +26,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "제2조 (수집하는 개인정보의 항목)",
-        content: `회사는 서비스 이용을 위해 다음과 같은 개인정보를 수집합니다.
+        content: `본 서비스 운영자는 서비스 이용을 위해 다음과 같은 개인정보를 수집합니다.
 
 ■ 필수 수집 항목
 • 이메일 주소 (회원 식별 및 로그인용)
@@ -45,9 +45,9 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "제3조 (개인정보의 보유 및 이용 기간)",
-        content: `회사는 이용자의 개인정보를 원칙적으로 개인정보 수집 및 이용 목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.
+        content: `본 서비스 운영자는 이용자의 개인정보를 원칙적으로 개인정보 수집 및 이용 목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.
 
-■ 회사 내부 방침에 의한 보유
+■ 본 서비스 운영자 내부 방침에 의한 보유
 • 부정 이용 방지 기록: 1년
 
 ■ 관련 법령에 의한 보유
@@ -57,21 +57,21 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "제4조 (개인정보의 제3자 제공)",
-        content: `회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.
+        content: `본 서비스 운영자는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.
 
 ① 이용자가 사전에 동의한 경우
 ② 법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우`,
       },
       {
         title: "제5조 (개인정보 처리의 위탁)",
-        content: `회사는 원활한 개인정보 업무 처리를 위하여 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다.
+        content: `본 서비스 운영자는 원활한 개인정보 업무 처리를 위하여 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다.
 
 ■ Supabase Inc.
 • 위탁 업무: 데이터베이스 운영 및 인증 서비스
 • 위탁 지역: 미국 (AWS 인프라 기반)
 • 보유 기간: 회원 탈퇴 시까지
 
-회사는 위탁 계약 시 개인정보보호법 제26조에 따라 위탁업무 수행 목적 외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한, 수탁자에 대한 관리·감독, 손해배상 등 책임에 관한 사항을 계약서 등 문서에 명시하고, 수탁자가 개인정보를 안전하게 처리하는지를 감독합니다.`,
+본 서비스 운영자는 위탁 계약 시 개인정보보호법 제26조에 따라 위탁업무 수행 목적 외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한, 수탁자에 대한 관리·감독, 손해배상 등 책임에 관한 사항을 계약서 등 문서에 명시하고, 수탁자가 개인정보를 안전하게 처리하는지를 감독합니다.`,
       },
       {
         title: "제6조 (이용자 및 법정 대리인의 권리와 행사 방법)",
@@ -79,11 +79,11 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
 
 이용자 혹은 만 14세 미만 아동의 개인정보 조회·수정을 위해서는 '프로필 편집'을, 가입 해지(동의 철회)를 위해서는 '회원 탈퇴'를 클릭하여 본인 확인 절차를 거친 후 직접 열람, 정정 또는 탈퇴가 가능합니다.
 
-회사는 이용자 혹은 법정 대리인의 요청에 의해 해지 또는 삭제된 개인정보는 "제3조"에 명시된 바에 따라 처리하고 그 외의 용도로 열람 또는 이용할 수 없도록 처리하고 있습니다.`,
+본 서비스 운영자는 이용자 혹은 법정 대리인의 요청에 의해 해지 또는 삭제된 개인정보는 "제3조"에 명시된 바에 따라 처리하고 그 외의 용도로 열람 또는 이용할 수 없도록 처리하고 있습니다.`,
       },
       {
         title: "제7조 (개인정보의 파기)",
-        content: `회사는 개인정보 보유 기간의 경과, 처리 목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.
+        content: `본 서비스 운영자는 개인정보 보유 기간의 경과, 처리 목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.
 
 ■ 파기 절차
 이용자가 입력한 정보는 목적 달성 후 별도의 DB에 옮겨져 내부 방침 및 기타 관련 법령에 따라 일정 기간 저장된 후 혹은 즉시 파기됩니다.
@@ -93,7 +93,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "제8조 (개인정보의 안전성 확보 조치)",
-        content: `회사는 개인정보보호법 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적·관리적 및 물리적 조치를 하고 있습니다.
+        content: `본 서비스 운영자는 개인정보보호법 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적·관리적 및 물리적 조치를 하고 있습니다.
 
 ① 비밀번호의 암호화: 이용자의 비밀번호는 암호화되어 저장 및 관리되고 있어, 본인만이 알 수 있으며 개인정보의 확인 및 변경도 비밀번호를 알고 있는 본인만이 가능합니다.
 ② 해킹 등에 대비한 기술적 대책: 해킹이나 컴퓨터 바이러스 등에 의한 개인정보 유출 및 훼손을 막기 위하여 보안프로그램을 설치하고 주기적인 갱신·점검을 실시합니다.
@@ -102,7 +102,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "제9조 (쿠키의 사용)",
-        content: `회사는 이용자에게 개별적인 맞춤화된 서비스를 제공하기 위해 이용 정보를 저장하고 수시로 불러오는 '쿠키(cookie)'를 사용합니다.
+        content: `본 서비스 운영자는 이용자에게 개별적인 맞춤화된 서비스를 제공하기 위해 이용 정보를 저장하고 수시로 불러오는 '쿠키(cookie)'를 사용합니다.
 
 ■ 쿠키의 사용 목적
 로그인 세션 유지, 서비스 이용 환경 기억 (언어, 테마 등)
@@ -120,13 +120,13 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
   ja: {
     pageTitle: "プライバシーポリシー",
     intro:
-      "Borderly（以下「当社」）は、ユーザーの個人情報を重要視し、個人情報保護法およびその他の関連法令を遵守します。本プライバシーポリシーは、当社が提供するBorderlyサービス（以下「サービス」）の利用に関して、ユーザーの個人情報がどのように収集・利用・保護されるかをご説明します。",
+      "Borderlyの本サービス運営者は、ユーザーの個人情報を重要視し、個人情報保護法およびその他の関連法令を遵守します。本プライバシーポリシーは、本サービス運営者が提供するBorderlyサービス（以下「サービス」）の利用に関して、ユーザーの個人情報がどのように収集・利用・保護されるかをご説明します。",
     effectiveDate: "施行日：2026年4月6日",
     contact: "お問い合わせ：mn001213@gmail.com",
     sections: [
       {
         title: "第1条（個人情報の収集および利用目的）",
-        content: `当社は、以下の目的のために個人情報を収集・利用します。収集された個人情報は、以下の目的以外には利用されず、利用目的が変更される場合は事前にユーザーの同意を求めます。
+        content: `本サービス運営者は、以下の目的のために個人情報を収集・利用します。収集された個人情報は、以下の目的以外には利用されず、利用目的が変更される場合は事前にユーザーの同意を求めます。
 
 ① 会員登録および管理：会員登録の意思確認、本人識別・認証、会員資格の維持・管理、不正利用の防止
 ② サービスの提供：コンテンツの提供、コミュニティ機能の提供、リアルタイムメッセージサービス、カスタマイズされたサービスの提供
@@ -135,7 +135,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "第2条（収集する個人情報の項目）",
-        content: `当社は、サービスの利用のために以下の個人情報を収集します。
+        content: `本サービス運営者は、サービスの利用のために以下の個人情報を収集します。
 
 ■ 必須収集項目
 • メールアドレス（会員識別およびログイン用）
@@ -154,9 +154,9 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "第3条（個人情報の保有および利用期間）",
-        content: `当社は、個人情報の収集・利用目的が達成された後は、当該情報を遅滞なく廃棄します。ただし、以下の情報については、下記の理由により指定した期間保存します。
+        content: `本サービス運営者は、個人情報の収集・利用目的が達成された後は、当該情報を遅滞なく廃棄します。ただし、以下の情報については、下記の理由により指定した期間保存します。
 
-■ 当社内部方針による保有
+■ 本サービス運営者内部方針による保有
 • 不正利用防止の記録：1年
 
 ■ 関連法令による保有
@@ -166,21 +166,21 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "第4条（個人情報の第三者提供）",
-        content: `当社は、ユーザーの個人情報を原則として外部に提供しません。ただし、以下の場合は例外とします。
+        content: `本サービス運営者は、ユーザーの個人情報を原則として外部に提供しません。ただし、以下の場合は例外とします。
 
 ① ユーザーが事前に同意した場合
 ② 法令の規定に基づく場合、または捜査目的で法令に定められた手続きと方法に従って捜査機関の要求がある場合`,
       },
       {
         title: "第5条（個人情報処理の委託）",
-        content: `当社は、円滑な個人情報業務処理のために、以下のとおり個人情報処理業務を委託しています。
+        content: `本サービス運営者は、円滑な個人情報業務処理のために、以下のとおり個人情報処理業務を委託しています。
 
 ■ Supabase Inc.
 • 委託業務：データベース運営および認証サービス
 • 委託地域：米国（AWSインフラ基盤）
 • 保有期間：退会時まで
 
-当社は、委託契約の際に個人情報の目的外処理の禁止、技術的・管理的保護措置、再委託の制限、受託者への管理・監督、損害賠償等の責任に関する事項を契約書等の書類に明記し、受託者が個人情報を安全に処理するかを監督します。`,
+本サービス運営者は、委託契約の際に個人情報の目的外処理の禁止、技術的・管理的保護措置、再委託の制限、受託者への管理・監督、損害賠償等の責任に関する事項を契約書等の書類に明記し、受託者が個人情報を安全に処理するかを監督します。`,
       },
       {
         title: "第6条（ユーザーおよび法定代理人の権利と行使方法）",
@@ -188,11 +188,11 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
 
 個人情報の照会・修正は「プロフィール編集」から、退会（同意の撤回）は「アカウント削除」から、本人確認後に直接行うことができます。
 
-当社は、ユーザーまたは法定代理人の要請により解除または削除された個人情報は「第3条」に定めるとおり処理し、それ以外の目的で閲覧または利用できないよう処理します。`,
+本サービス運営者は、ユーザーまたは法定代理人の要請により解除または削除された個人情報は「第3条」に定めるとおり処理し、それ以外の目的で閲覧または利用できないよう処理します。`,
       },
       {
         title: "第7条（個人情報の廃棄）",
-        content: `当社は、個人情報の保有期間の経過、処理目的の達成等により個人情報が不要になった場合は、遅滞なく当該個人情報を廃棄します。
+        content: `本サービス運営者は、個人情報の保有期間の経過、処理目的の達成等により個人情報が不要になった場合は、遅滞なく当該個人情報を廃棄します。
 
 ■ 廃棄手続き
 ユーザーが入力した情報は、目的達成後に別のDBに移され、内部方針およびその他関連法令に従い一定期間保存された後、または即時廃棄されます。
@@ -202,7 +202,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "第8条（個人情報の安全性確保措置）",
-        content: `当社は、個人情報保護法第29条に従い、安全性確保に必要な以下の技術的・管理的および物理的措置を講じています。
+        content: `本サービス運営者は、個人情報保護法第29条に従い、安全性確保に必要な以下の技術的・管理的および物理的措置を講じています。
 
 ① パスワードの暗号化：ユーザーのパスワードは暗号化されて保存・管理されており、本人のみが知ることができます。
 ② ハッキング等への技術的対策：ハッキングやコンピューターウイルス等による個人情報の漏洩・毀損を防ぐため、セキュリティプログラムを設置し、定期的に更新・点検を実施しています。
@@ -211,7 +211,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "第9条（クッキーの使用）",
-        content: `当社は、ユーザーに個別にカスタマイズされたサービスを提供するために、利用情報を保存し随時呼び出す「クッキー（cookie）」を使用します。
+        content: `本サービス運営者は、ユーザーに個別にカスタマイズされたサービスを提供するために、利用情報を保存し随時呼び出す「クッキー（cookie）」を使用します。
 
 ■ クッキーの使用目的
 ログインセッションの維持、サービス利用環境の記憶（言語、テーマ等）
@@ -229,13 +229,13 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
   en: {
     pageTitle: "Privacy Policy",
     intro:
-      "Borderly (\"the Company\") values the privacy of its users and complies with applicable personal data protection laws. This Privacy Policy explains how personal information is collected, used, and protected in connection with the Borderly service (\"the Service\").",
+      "Borderly's service operator values the privacy of its users and complies with applicable personal data protection laws. This Privacy Policy explains how personal information is collected, used, and protected in connection with the Borderly service (\"the Service\").",
     effectiveDate: "Effective date: April 6, 2026",
     contact: "Contact: mn001213@gmail.com",
     sections: [
       {
         title: "Article 1 — Purpose of Collection and Use of Personal Information",
-        content: `The Company collects and uses personal information for the following purposes. Collected information will not be used beyond these purposes; if the purpose changes, prior consent will be obtained from users.
+        content: `The Service Operator collects and uses personal information for the following purposes. Collected information will not be used beyond these purposes; if the purpose changes, prior consent will be obtained from users.
 
 ① Member registration and management: Confirming intent to register, identity verification, maintaining membership, preventing fraudulent use
 ② Service provision: Content delivery, community features, real-time messaging, personalized services
@@ -244,7 +244,7 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "Article 2 — Categories of Personal Information Collected",
-        content: `The Company collects the following personal information to provide the Service.
+        content: `The Service Operator collects the following personal information to provide the Service.
 
 ■ Required information
 • Email address (for account identification and login)
@@ -275,21 +275,21 @@ const content: Record<Locale, { pageTitle: string; intro: string; effectiveDate:
       },
       {
         title: "Article 4 — Provision of Personal Information to Third Parties",
-        content: `The Company does not, in principle, provide users' personal information to third parties. Exceptions apply in the following cases:
+        content: `The Service Operator does not, in principle, provide users' personal information to third parties. Exceptions apply in the following cases:
 
 ① When the user has given prior consent
 ② When required by law, or when requested by investigative authorities following legally prescribed procedures for investigative purposes`,
       },
       {
         title: "Article 5 — Outsourcing of Personal Information Processing",
-        content: `The Company outsources personal information processing as follows to ensure smooth operations.
+        content: `The Service Operator outsources personal information processing as follows to ensure smooth operations.
 
 ■ Supabase Inc.
 • Outsourced task: Database operation and authentication services
 • Location: United States (AWS infrastructure)
 • Retention period: Until account deletion
 
-When entering into outsourcing contracts, the Company specifies in writing the prohibition of processing personal information beyond the purpose, technical and managerial safeguards, restrictions on re-outsourcing, supervision of the processor, and liability for damages, and supervises the processor to ensure safe handling.`,
+When entering into outsourcing contracts, the Service Operator specifies in writing the prohibition of processing personal information beyond the purpose, technical and managerial safeguards, restrictions on re-outsourcing, supervision of the processor, and liability for damages, and supervises the processor to ensure safe handling.`,
       },
       {
         title: "Article 6 — Rights of Users and Legal Representatives and How to Exercise Them",
@@ -311,7 +311,7 @@ Personal information stored in electronic form is deleted using technical method
       },
       {
         title: "Article 8 — Measures to Ensure the Security of Personal Information",
-        content: `Pursuant to Article 29 of the Personal Information Protection Act, the Company implements the following technical, managerial, and physical measures to ensure security.
+        content: `Pursuant to Article 29 of the Personal Information Protection Act, the Service Operator implements the following technical, managerial, and physical measures to ensure security.
 
 ① Password encryption: Passwords are encrypted and cannot be viewed by anyone other than the user.
 ② Technical countermeasures against hacking: Security programs are installed and regularly updated to prevent leakage or damage of personal information due to hacking or viruses.
@@ -320,7 +320,7 @@ Personal information stored in electronic form is deleted using technical method
       },
       {
         title: "Article 9 — Use of Cookies",
-        content: `The Company uses cookies to store and retrieve usage information in order to provide personalized services.
+        content: `The Service Operator uses cookies to store and retrieve usage information in order to provide personalized services.
 
 ■ Purpose of cookies
 Maintaining login sessions, remembering service preferences (language, theme, etc.)
