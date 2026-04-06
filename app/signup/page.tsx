@@ -608,6 +608,14 @@ export default function SignupPage() {
               {busy ? t("signup.creating") : t("signup.createAccount")}
             </button>
 
+            <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+              {t("signup.privacyAgreePre")}{" "}
+              <Link href="/privacy" className="underline" style={{ color: "var(--primary)" }}>
+                {t("signup.privacyLink")}
+              </Link>
+              {t("signup.privacyAgreePost")}
+            </p>
+
             <div className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>
               {t("auth.hasAccount")}{" "}
               <Link href="/login" className="font-medium hover:underline" style={{ color: "var(--deep-navy)" }}>

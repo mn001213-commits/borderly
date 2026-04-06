@@ -76,6 +76,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "signup.accountCreated": { en: "Account created! Redirecting...", ko: "계정이 생성되었습니다! 이동 중...", ja: "アカウントが作成されました！リダイレクト中..." },
   "signup.pwRequirements": { en: "Must be 8+ characters with at least one uppercase letter, one lowercase letter, and one number", ko: "8자 이상, 대문자·소문자·숫자를 각각 1개 이상 포함해야 합니다", ja: "8文字以上で、大文字・小文字・数字をそれぞれ1つ以上含む必要があります" },
   "signup.pwStrong": { en: "Strong password", ko: "안전한 비밀번호입니다", ja: "安全なパスワードです" },
+  "signup.privacyAgreePre": { en: "By signing up, you agree to our", ko: "가입 시", ja: "登録することで、当社の" },
+  "signup.privacyLink": { en: "Privacy Policy", ko: "개인정보처리방침", ja: "プライバシーポリシー" },
+  "signup.privacyAgreePost": { en: ".", ko: "에 동의하는 것으로 간주합니다.", ja: "に同意したものとみなされます。" },
 
   // Verify Email
   "verifyEmail.title": { en: "Check your email", ko: "이메일을 확인해 주세요", ja: "メールを確認してください" },
@@ -593,6 +596,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "settings.appInfo": { en: "App Info", ko: "앱 정보", ja: "アプリ情報" },
   "settings.version": { en: "Version", ko: "버전", ja: "バージョン" },
   "settings.appName": { en: "App Name", ko: "앱 이름", ja: "アプリ名" },
+  "settings.privacyPolicy": { en: "Privacy Policy", ko: "개인정보처리방침", ja: "プライバシーポリシー" },
   "settings.loggingOut": { en: "Logging out...", ko: "로그아웃 중...", ja: "ログアウト中..." },
   "settings.dangerZone": { en: "Danger Zone", ko: "위험 구역", ja: "危険ゾーン" },
   "settings.deleteAccount": { en: "Delete Account", ko: "계정 삭제", ja: "アカウント削除" },
