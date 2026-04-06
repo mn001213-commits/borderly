@@ -9,19 +9,6 @@ import { useT } from "@/app/components/LangProvider";
 
 const BUCKET = "post-images";
 
-const CATEGORY_LABELS: Record<NgoCategory, string> = {
-  general: "General",
-  environment: "Environment",
-  education: "Education",
-  health: "Health",
-  human_rights: "Human Rights",
-  community: "Community",
-  animal_welfare: "Animal Welfare",
-  disaster_relief: "Disaster Relief",
-  refugee_support: "Refugee Support",
-  arts_culture: "Arts & Culture",
-  social_gathering: "Social Gathering",
-};
 
 async function compressImage(file: File): Promise<{ blob: Blob; ext: string }> {
   const dataUrl = await new Promise<string>((res, rej) => {
@@ -190,15 +177,6 @@ export default function NgoNewPage() {
 
         {/* Details */}
         <div className="b-card b-animate-in p-4 space-y-4 mb-4" style={{ animationDelay: "0.1s" }}>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Category *</div>
-            <select value={category} onChange={(e) => setCategory(e.target.value as NgoCategory)} className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}>
-              {(Object.keys(CATEGORY_LABELS) as NgoCategory[]).map((key) => (
-                <option key={key} value={key}>{CATEGORY_LABELS[key]}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ borderTop: "1px solid var(--border-soft)" }} />
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("createNgo.activityPurpose")}</div>
             <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("createNgo.activityPurposePlaceholder")} className="w-full min-h-[80px] resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-[var(--text-muted)]" style={{ color: "var(--deep-navy)" }} />
