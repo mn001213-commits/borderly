@@ -17,7 +17,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setErrorMsg(null);
 
-    const trimmed = email.trim();
+    const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
       setErrorMsg(t("resetPw.enterEmail"));
       return;
@@ -25,6 +25,41 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
 
+    // 1단계: 이메일 존재 여부 및 인증 방법 확인
+    try {
+      const res = await fetch("/api/check-reset-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      if (!res.ok) {
+        setErrorMsg(t("resetPw.serverError"));
+        setLoading(false);
+        return;
+      }
+
+      const result = await res.json();
+
+      if (!result.exists) {
+        setErrorMsg(t("resetPw.emailNotFound"));
+        setLoading(false);
+        return;
+      }
+
+      if (result.isOAuthOnly && result.provider === "google") {
+        setErrorMsg(t("resetPw.googleAccountError"));
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // API server error — block rather than silently proceed
+      setErrorMsg(t("resetPw.serverError"));
+      setLoading(false);
+      return;
+    }
+
+    // 2단계: 재설정 이메일 발송
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
       redirectTo: `${window.location.origin}/update-password`,
     });

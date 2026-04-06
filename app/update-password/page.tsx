@@ -16,19 +16,24 @@ export default function UpdatePasswordPage() {
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    // Supabase will auto-detect the recovery token from the URL hash
-    supabase.auth.onAuthStateChange((event) => {
+    // PASSWORD_RECOVERY 이벤트가 발생할 때만 폼을 활성화
+    // Supabase SDK가 URL hash의 토큰을 자동으로 파싱해 이 이벤트를 발행함
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setReady(true);
       }
     });
 
-    // Also check if user is already authenticated (token already processed)
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+    // 5초 안에 PASSWORD_RECOVERY 이벤트가 없으면 링크 만료/무효로 처리
+    const timer = setTimeout(() => setTimedOut(true), 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -57,10 +62,31 @@ export default function UpdatePasswordPage() {
     }
 
     setDone(true);
-    setTimeout(() => router.push("/"), 2000);
+    setTimeout(() => router.push("/login"), 2000);
   };
 
   if (!ready) {
+    if (timedOut) {
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--light-blue)" }}>
+          <div className="b-card b-animate-in mx-4 w-full max-w-md p-6 text-center">
+            <div className="text-base font-semibold mb-2" style={{ color: "var(--deep-navy)" }}>
+              {t("updatePw.linkExpired")}
+            </div>
+            <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
+              {t("updatePw.linkExpiredDesc")}
+            </p>
+            <Link
+              href="/reset-password"
+              className="inline-flex h-10 items-center rounded-xl px-4 text-sm font-medium text-white transition hover:opacity-90"
+              style={{ background: "var(--primary)" }}
+            >
+              {t("updatePw.requestNewLink")}
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--light-blue)" }}>
         <div className="text-sm" style={{ color: "var(--text-muted)" }}>{t("updatePw.verifying")}</div>

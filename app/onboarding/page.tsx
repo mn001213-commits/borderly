@@ -246,10 +246,8 @@ export default function OnboardingPage() {
       if (provider === "google") {
         setIsGoogleUser(true);
         setGoogleEmail(data.user?.email ?? null);
-      } else {
-        // Non-Google users skip welcome card
-        setStep(1);
       }
+      // Both Google and email users start at step 0 (welcome card)
 
       // Initialize UI language from localStorage
       const storedLocale = localStorage.getItem("borderly-locale");
@@ -447,8 +445,8 @@ export default function OnboardingPage() {
     );
   }
 
-  // Welcome card for new Google users (step 0)
-  if (step === 0 && isGoogleUser) {
+  // Welcome card for all new users (step 0)
+  if (step === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center text-[var(--deep-navy)]">
         <div className="mx-auto w-full max-w-md px-4">
@@ -467,33 +465,51 @@ export default function OnboardingPage() {
           </button>
 
           <div className="b-card p-6 b-animate-in">
-            {/* Google verified badge */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--light-blue)] shrink-0">
-                <svg className="h-6 w-6" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l3.56-2.77z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h1 className="text-base font-semibold">{t("onboarding.googleWelcomeTitle")}</h1>
-                  <svg className="h-4 w-4 text-[var(--accent)] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clipRule="evenodd" />
+            {isGoogleUser ? (
+              /* Google verified badge */
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--light-blue)] shrink-0">
+                  <svg className="h-6 w-6" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l3.56-2.77z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
                 </div>
-                {googleEmail && (
-                  <p className="text-xs text-[var(--text-muted)] truncate">{googleEmail}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <h1 className="text-base font-semibold">{t("onboarding.googleWelcomeTitle")}</h1>
+                    <svg className="h-4 w-4 text-[var(--accent)] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  {googleEmail && (
+                    <p className="text-xs text-[var(--text-muted)] truncate">{googleEmail}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Email user welcome header */
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--light-blue)] shrink-0">
+                  <img src="/borderly-logo2.png" alt="Borderly" className="h-7 w-7" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <h1 className="text-base font-semibold">{t("onboarding.emailWelcomeTitle")}</h1>
+                    <svg className="h-4 w-4 text-[var(--accent)] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)]">{t("onboarding.emailWelcomeTagline")}</p>
+                </div>
+              </div>
+            )}
 
             {/* Message */}
             <div className="rounded-xl bg-[var(--light-blue)] px-4 py-4 mb-6">
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                {t("onboarding.googleWelcomeDesc")}
+                {isGoogleUser ? t("onboarding.googleWelcomeDesc") : t("onboarding.emailWelcomeDesc")}
               </p>
               <p className="text-xs text-[var(--text-muted)] mt-1.5">
                 {t("onboarding.googleWelcomeNote")}

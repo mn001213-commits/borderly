@@ -71,6 +71,7 @@ export default function OnboardingSuccess({ onContinue }: Props) {
           </h1>
           <p
             className="text-base font-medium text-black leading-relaxed"
+            style={{ wordBreak: "keep-all", overflowWrap: "break-word", whiteSpace: "pre-line" }}
             key={step}
           >
             {t(SLIDE_KEYS[step])}

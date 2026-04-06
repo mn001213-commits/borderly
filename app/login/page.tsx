@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { LogIn } from "lucide-react";
@@ -13,7 +13,6 @@ const LOCKOUT_MS = 60_000 * 3; // 3 minutes
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { t } = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,12 +22,14 @@ function LoginForm() {
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
 
-  // Check for registration success message
+  // Check for registration success message using window.location to avoid
+  // useSearchParams() which requires Suspense and causes hydration mismatch
   useEffect(() => {
-    if (searchParams.get("registered") === "true") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("registered") === "true") {
       setSuccessMsg(t("login.registrationSuccess"));
     }
-  }, [searchParams, t]);
+  }, [t]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,27 +201,6 @@ function LoginForm() {
   );
 }
 
-function LoginFormFallback() {
-  return (
-    <div className="b-card p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--light-blue)]">
-          <LogIn className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
-        </div>
-        <div>
-          <div className="h-6 w-24 rounded bg-[var(--border-soft)] animate-pulse" />
-          <div className="h-3 w-32 mt-1 rounded bg-[var(--border-soft)] animate-pulse" />
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div className="h-12 rounded-xl bg-[var(--border-soft)] animate-pulse" />
-        <div className="h-12 rounded-xl bg-[var(--border-soft)] animate-pulse" />
-        <div className="h-12 rounded-xl bg-[var(--border-soft)] animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
 export default function LoginPage() {
   return (
     <div className="flex h-screen items-center justify-center overflow-hidden" style={{ background: "var(--light-blue)", color: "var(--deep-navy)" }}>
@@ -229,9 +209,7 @@ export default function LoginPage() {
           <LangSwitcher />
         </div>
 
-        <Suspense fallback={<LoginFormFallback />}>
-          <LoginForm />
-        </Suspense>
+        <LoginForm />
       </div>
     </div>
   );

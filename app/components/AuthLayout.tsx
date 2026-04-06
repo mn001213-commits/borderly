@@ -10,8 +10,8 @@ import NotificationToast from "./NotificationToast";
 import GuideTour from "./GuideTour";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/update-password", "/onboarding"];
-// Pages viewable without login (don't redirect, but also don't show full chrome)
-const GUEST_VIEWABLE_PATHS = ["/"];
+// All non-public pages require login
+const GUEST_VIEWABLE_PATHS: string[] = [];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, needsOnboarding } = useAuth();

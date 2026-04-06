@@ -36,8 +36,6 @@ import { CAT_COLORS } from "@/lib/constants";
 import { sortByEngagement } from "@/lib/sortingUtils";
 import { useT } from "@/app/components/LangProvider";
 import SortDropdown from "@/app/components/SortDropdown";
-import WelcomeHero from "@/app/components/WelcomeHero";
-import { useAuth } from "@/app/components/AuthProvider";
 
 type SearchTab = "posts" | "meets";
 type SortMode = "latest" | "popular" | "newest" | "soonest";
@@ -110,7 +108,6 @@ const MEET_TYPE_LABELS: Record<string, string> = {
 
 export default function BrowsePage() {
   const { t } = useT();
-  const { user } = useAuth();
   const [tab, setTab] = useState<SearchTab>("posts");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [activeMeetType, setActiveMeetType] = useState<string>("all");
@@ -363,8 +360,6 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen" style={{ color: "var(--deep-navy)" }}>
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Welcome Hero — non-logged-in users only */}
-        {!user && <WelcomeHero />}
         <div className="sticky top-2 z-20">
           <div
             className="b-card-glass p-3"

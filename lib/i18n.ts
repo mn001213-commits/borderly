@@ -100,6 +100,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "resetPw.clickLink": { en: "Click the link in the email to set a new password.", ko: "이메일의 링크를 클릭하여 새 비밀번호를 설정하세요.", ja: "メール内のリンクをクリックして新しいパスワードを設定してください。" },
   "resetPw.sending": { en: "Sending...", ko: "전송 중...", ja: "送信中..." },
   "resetPw.sendLink": { en: "Send Reset Link", ko: "재설정 링크 보내기", ja: "リセットリンクを送信" },
+  "resetPw.emailNotFound": { en: "No account found with this email address.", ko: "해당 이메일로 가입된 계정을 찾을 수 없습니다.", ja: "このメールアドレスのアカウントが見つかりません。" },
+  "resetPw.googleAccountError": { en: "This account was created with Google. Please sign in with Google instead.", ko: "Google로 가입한 계정입니다. 비밀번호 찾기 대신 Google 로그인을 이용해 주세요.", ja: "このアカウントはGoogleで作成されました。代わりにGoogleでサインインしてください。" },
 
   // Update Password
   "updatePw.title": { en: "Set New Password", ko: "새 비밀번호 설정", ja: "新しいパスワードを設定" },
@@ -111,9 +113,13 @@ const translations: Record<string, Record<Locale, string>> = {
   "updatePw.minLength": { en: "Password must be at least 6 characters.", ko: "비밀번호는 6자 이상이어야 합니다.", ja: "パスワードは6文字以上である必要があります。" },
   "updatePw.mismatch": { en: "Passwords do not match.", ko: "비밀번호가 일치하지 않습니다.", ja: "パスワードが一致しません。" },
   "updatePw.updated": { en: "Password updated!", ko: "비밀번호가 변경되었습니다!", ja: "パスワードが更新されました！" },
-  "updatePw.redirecting": { en: "Redirecting you to the home page...", ko: "홈 페이지로 이동 중...", ja: "ホームページにリダイレクト中..." },
+  "updatePw.redirecting": { en: "Redirecting to login...", ko: "로그인 페이지로 이동 중...", ja: "ログインページに移動中..." },
   "updatePw.updating": { en: "Updating...", ko: "업데이트 중...", ja: "更新中..." },
   "updatePw.updatePassword": { en: "Update Password", ko: "비밀번호 변경", ja: "パスワードを更新" },
+  "updatePw.linkExpired": { en: "Link expired or invalid", ko: "링크가 만료되었거나 유효하지 않습니다", ja: "リンクが無効または期限切れです" },
+  "updatePw.linkExpiredDesc": { en: "This reset link has expired or is invalid. Please request a new one.", ko: "재설정 링크가 만료되었거나 유효하지 않습니다. 새 링크를 요청해 주세요.", ja: "リセットリンクが無効または期限切れです。新しいリンクをリクエストしてください。" },
+  "updatePw.requestNewLink": { en: "Request new link", ko: "새 링크 요청하기", ja: "新しいリンクをリクエスト" },
+  "resetPw.serverError": { en: "Something went wrong. Please try again.", ko: "오류가 발생했습니다. 다시 시도해 주세요.", ja: "エラーが発生しました。もう一度お試しください。" },
 
   // Profile
   "profile.title": { en: "Profile", ko: "프로필", ja: "プロフィール" },
@@ -845,6 +851,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "onboarding.googleWelcomeTitle": { en: "Google account verified!", ko: "Google 계정 인증 완료!", ja: "Googleアカウント認証完了！" },
   "onboarding.googleWelcomeDesc": { en: "You don't have a Borderly account yet. Complete your profile to finish signing up.", ko: "아직 Borderly 계정이 없습니다. 프로필을 완성해 가입을 마무리해 주세요.", ja: "まだBorderlyアカウントがありません。プロフィールを完成させて登録を完了してください。" },
   "onboarding.googleWelcomeNote": { en: "It only takes a minute.", ko: "1분이면 완료돼요.", ja: "1分で完了します。" },
+  "onboarding.emailWelcomeTitle": { en: "Email verified!", ko: "이메일 인증 완료!", ja: "メール認証完了！" },
+  "onboarding.emailWelcomeTagline": { en: "Welcome to Borderly", ko: "Borderly에 오신 것을 환영해요", ja: "Borderlyへようこそ" },
+  "onboarding.emailWelcomeDesc": { en: "Your account is ready. Let's set up your profile to help you connect with the right people.", ko: "계정이 준비되었습니다. 프로필을 완성하면 알맞은 사람들과 더 잘 연결될 수 있어요.", ja: "アカウントの準備ができました。プロフィールを設定して、あなたに合った人とつながりましょう。" },
   "onboarding.getStarted": { en: "Get Started", ko: "시작하기", ja: "始める" },
   "onboarding.whoAreYou": { en: "Who are you?", ko: "어떤 분이세요?", ja: "あなたはどんな方ですか？" },
   "onboarding.whoAreYouDesc": { en: "Select the option that best describes you.", ko: "본인에게 해당하는 항목을 선택하세요.", ja: "あなたに最も当てはまるものを選択してください。" },
@@ -1001,22 +1010,22 @@ const translations: Record<string, Record<Locale, string>> = {
   // Onboarding Tour (슬라이드 투어)
   "onboardingTour.welcomeTitle": { en: "Welcome!", ko: "Welcome!", ja: "Welcome!" },
   "onboardingTour.slide1": {
-    en: "Borderly is the place where everyone meets across borders.",
-    ko: "Borderly는 모두가 만나는 경계의 장소입니다.",
-    ja: "Borderlyは皆が出会う境目となれる場所です。",
+    en: "Share meaningful information, have fun, and connect with people who help each other!",
+    ko: "유의미한 정보를 공유하고, 즐기면서 서로 돕는 동료들과 연결되세요!",
+    ja: "有意義な情報を共有し合い、楽しみながら助け合う仲間とつながりましょう！",
   },
   "onboardingTour.slide2": {
     en: "Defamatory remarks, racial slurs, and behaviors that make others uncomfortable are not allowed.",
     ko: "비방·명예훼손·인종차별적 발언 등 타인을 불쾌하게 하는 행동은 금지됩니다.",
-    ja: "誹謗中傷や人種差別的な発言など、見る人が不快になる言動はNGです。",
+    ja: "誹謗中傷・人種差別的な発言など、他の人が不快になる言動は禁止されています。",
   },
   "onboardingTour.slide3": {
-    en: "Share meaningful information, have fun, and connect with people who help each other!",
-    ko: "의미 있는 정보를 나누고, 즐기면서 서로 돕는 동료들과 연결되세요!",
-    ja: "有意義な情報を共有し合い、楽しみながら助け合う仲間とつながりましょう！",
+    en: "Borderly is the border where everyone meets — a community built on connection and trust.",
+    ko: "Borderly는 모두가 만나는 경계의 장소 — 연결과 신뢰로 만들어진 커뮤니티입니다.",
+    ja: "Borderlyは、みんなが出会う場所 — つながりと信頼で築かれた\nコミュニティです。",
   },
-  "onboardingTour.next": { en: "next", ko: "다음", ja: "next" },
-  "onboardingTour.finish": { en: "Enjoy your Borderly life", ko: "Enjoy your Borderly life", ja: "Enjoy your Borderly life" },
+  "onboardingTour.next": { en: "Next", ko: "다음", ja: "次へ" },
+  "onboardingTour.finish": { en: "Enjoy your Borderly life!", ko: "Borderly 라이프를 즐기세요!", ja: "Borderlyライフを楽しもう！" },
 
   // Guide Tour
   "guideTour.skip": { en: "Skip tour", ko: "건너뛰기", ja: "スキップ" },
