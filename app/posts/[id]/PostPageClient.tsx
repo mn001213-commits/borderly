@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/lib/notificationService";
 import { createReport } from "@/lib/reportService";
 import ReportModal from "@/app/components/ReportModal";
+import LikersModal from "@/app/components/LikersModal";
 import { useT } from "@/app/components/LangProvider";
 
 import {
@@ -93,6 +94,7 @@ export default function PostDetailPage() {
   const [reportingPost, setReportingPost] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [likersModalOpen, setLikersModalOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(null);
 
   const [myId, setMyId] = useState<string | null>(null);
@@ -1095,7 +1097,19 @@ export default function PostDetailPage() {
                 }
               >
                 <Heart className={cx("h-4 w-4", likedByMe && "fill-white")} />
-                <span>{liking ? t("post.updating") : likeCount}</span>
+                {liking ? (
+                  <span>{t("post.updating")}</span>
+                ) : (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (likeCount > 0) setLikersModalOpen(true);
+                    }}
+                    className={likeCount > 0 ? "cursor-pointer underline-offset-2 hover:underline" : ""}
+                  >
+                    {likeCount}
+                  </span>
+                )}
               </button>
 
               <button
@@ -1289,6 +1303,13 @@ export default function PostDetailPage() {
         open={reportModalOpen}
         onClose={() => { setReportModalOpen(false); setReportTarget(null); }}
         onSubmit={handleReportSubmit}
+        t={t}
+      />
+
+      <LikersModal
+        open={likersModalOpen}
+        onClose={() => setLikersModalOpen(false)}
+        postId={postId!}
         t={t}
       />
     </div>
