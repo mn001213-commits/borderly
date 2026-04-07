@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.keystore
+*.jks
 
 # debug
 npm-debug.log*
@@ -42,3 +46,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.idea/
+.vscode/settings.json
+.vscode/*.code-workspace
+
+# OS
+Thumbs.db
+desktop.ini
+nul
+
+# Supabase
+supabase/.temp/
+
+# Research / planning docs (local only)
+*research.md
+*plan.md
+*Research.md
+*Plan.md
+
+# Claude Code
+.claude/

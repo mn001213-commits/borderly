@@ -358,14 +358,6 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <div className="b-animate-in flex items-center gap-4 pt-8 pb-4" style={{ animationDelay: "0.3s" }}>
-        <Link
-          href="/privacy"
-          className="text-xs no-underline transition hover:underline"
-          style={{ color: "var(--text-muted)" }}
-        >
-          {t("settings.privacyPolicy")}
-        </Link>
-        <span className="text-xs" style={{ color: "var(--border-soft)" }}>·</span>
         <button
           onClick={openDeleteModal}
           disabled={deleting}

@@ -19,6 +19,8 @@ import {
   Reply,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ShieldAlert,
   FileText,
   Bookmark,
@@ -112,6 +114,16 @@ export default function PostDetailPage() {
 
   const myIdRef = useRef<string | null>(null);
   const replyInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = useCallback((direction: "left" | "right") => {
+    if (!carouselRef.current) return;
+    const scrollAmount = carouselRef.current.clientWidth;
+    carouselRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth"
+    });
+  }, []);
 
   useEffect(() => {
     myIdRef.current = myId;
@@ -1196,53 +1208,75 @@ export default function PostDetailPage() {
             if (mediaUrls.length === 1) {
               const url = mediaUrls[0];
               return (
-                <div className="mt-4">
-                  {isVideoUrl(url) ? (
-                    <video src={url} controls preload="metadata" className="w-full rounded-xl" style={{ maxHeight: 520 }} />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={t("post.postImage")} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full rounded-xl" />
-                  )}
+                <div className="mt-4 flex justify-center">
+                  <div className="w-full sm:max-w-md">
+                    {isVideoUrl(url) ? (
+                      <video src={url} controls preload="metadata" className="w-full rounded-xl" style={{ maxHeight: 520 }} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt={t("post.postImage")} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full rounded-xl" />
+                    )}
+                  </div>
                 </div>
               );
             }
 
             return (
-              <div className="mt-4">
-                <div
-                  className="flex snap-x snap-mandatory overflow-x-auto rounded-xl scrollbar-hide"
-                  style={{ scrollBehavior: "smooth" }}
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    const idx = Math.round(el.scrollLeft / el.clientWidth);
-                    const dots = el.parentElement?.querySelector("[data-dots]");
-                    if (dots) dots.setAttribute("data-active", String(idx));
-                    // Force re-render dots
-                    const allDots = dots?.querySelectorAll("span");
-                    allDots?.forEach((d, i) => {
-                      d.style.opacity = i === idx ? "1" : "0.4";
-                    });
-                  }}
-                >
-                  {mediaUrls.map((url, i) => (
-                    <div key={i} className="w-full shrink-0 snap-center">
-                      {isVideoUrl(url) ? (
-                        <video src={url} controls preload="metadata" className="w-full" style={{ maxHeight: 520 }} />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={url} alt={`${t("post.postImage")} ${i + 1}`} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full object-cover" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div data-dots className="mt-2 flex justify-center gap-1.5">
-                  {mediaUrls.map((_, i) => (
-                    <span
-                      key={i}
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ background: "var(--deep-navy)", opacity: i === 0 ? 1 : 0.4, transition: "opacity 0.2s" }}
-                    />
-                  ))}
+              <div className="mt-4 flex justify-center">
+                <div className="relative group w-full sm:max-w-md">
+                  <div
+                    ref={carouselRef}
+                    className="flex snap-x snap-mandatory overflow-x-auto rounded-xl scrollbar-hide"
+                    style={{ scrollBehavior: "smooth" }}
+                    onScroll={(e) => {
+                      const el = e.currentTarget;
+                      const idx = Math.round(el.scrollLeft / el.clientWidth);
+                      const dots = el.parentElement?.querySelector("[data-dots]");
+                      if (dots) dots.setAttribute("data-active", String(idx));
+                      // Force re-render dots
+                      const allDots = dots?.querySelectorAll("span");
+                      allDots?.forEach((d, i) => {
+                        d.style.opacity = i === idx ? "1" : "0.4";
+                      });
+                    }}
+                  >
+                    {mediaUrls.map((url, i) => (
+                      <div key={i} className="w-full shrink-0 snap-center">
+                        {isVideoUrl(url) ? (
+                          <video src={url} controls preload="metadata" className="w-full" style={{ maxHeight: 520 }} />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt={`${t("post.postImage")} ${i + 1}`} onError={(e) => { e.currentTarget.style.display = "none"; }} className="w-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Nav Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => scrollCarousel("left")}
+                    className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollCarousel("right")}
+                    className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+
+                  <div data-dots className="mt-3 flex justify-center gap-1.5">
+                    {mediaUrls.map((_, i) => (
+                      <span
+                        key={i}
+                        className="inline-block h-2 w-2 rounded-full"
+                        style={{ background: "var(--deep-navy)", opacity: i === 0 ? 1 : 0.4, transition: "opacity 0.2s" }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             );
