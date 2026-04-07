@@ -50,6 +50,7 @@ type PostRow = {
   created_at: string;
   title: string;
   content: string;
+  user_id: string | null;
   author_name: string | null;
   category: string;
   like_count: number | null;
@@ -117,6 +118,7 @@ export default function BrowsePage() {
 
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [meets, setMeets] = useState<MeetRow[]>([]);
+  const [profiles, setProfiles] = useState<Map<string, { display_name: string | null }>>(new Map());
 
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
 
@@ -239,7 +241,7 @@ export default function BrowsePage() {
         if (tab === "posts") {
           let query = supabase
             .from("posts")
-            .select("id, created_at, title, content, author_name, category, image_url, image_urls")
+            .select("id, created_at, title, content, user_id, author_name, category, image_url, image_urls")
             .eq("is_hidden", false)
             .limit(50);
 
@@ -251,16 +253,27 @@ export default function BrowsePage() {
           if (error) throw error;
           const rawPosts = data ?? [];
           const postIds = rawPosts.map((p: any) => p.id);
+          const userIds = [...new Set(rawPosts.map((p: any) => p.user_id).filter(Boolean))] as string[];
 
           // Fetch actual engagement counts
           let likeCounts = new Map<string, number>();
           let commentCounts = new Map<string, number>();
 
           if (postIds.length > 0) {
-            const [likesRes, commentsRes] = await Promise.all([
+            const [likesRes, commentsRes, profilesRes] = await Promise.all([
               supabase.from("post_likes").select("post_id").in("post_id", postIds),
               supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+              userIds.length > 0
+                ? supabase.from("profiles").select("id, display_name").in("id", userIds)
+                : Promise.resolve({ data: [] }),
             ]);
+            if (profilesRes.data && profilesRes.data.length > 0) {
+              setProfiles((prev) => {
+                const next = new Map(prev);
+                for (const p of profilesRes.data!) next.set(p.id, { display_name: p.display_name });
+                return next;
+              });
+            }
 
             if (likesRes.data) {
               for (const row of likesRes.data) {
@@ -581,7 +594,7 @@ export default function BrowsePage() {
                           )}
                         </div>
                         <div className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-                          {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
+                          {(p.user_id ? profiles.get(p.user_id)?.display_name : null) ?? p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
                         </div>
                         <div className="mt-2 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                           {p.content}

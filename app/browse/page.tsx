@@ -481,7 +481,7 @@ export default function HomePage() {
                             {p.title}
                           </div>
                           <div className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
-                            {p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
+                            {(p.user_id ? profiles.get(p.user_id)?.display_name : null) ?? p.author_name ?? t("home.anonymous")} · {formatRelative(p.created_at)}
                           </div>
                         </div>
                         <div className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
