@@ -44,21 +44,33 @@ export async function POST(req: NextRequest) {
 
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data, error } = await supabaseAdmin.auth.admin.getUserByEmail(
-    email.trim().toLowerCase()
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Fetch all users and find by email (Supabase JS v2 has no getUserByEmail)
+  const { data: listData, error } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+
+  if (error) {
+    return NextResponse.json({ exists: false });
+  }
+
+  const matchedUser = listData.users.find(
+    (u) => u.email?.toLowerCase() === normalizedEmail
   );
 
-  if (error || !data?.user) {
+  if (!matchedUser) {
     return NextResponse.json({ exists: false });
   }
 
   // Primary check: app_metadata.providers (more reliable than identities)
-  const providers: string[] = data.user.app_metadata?.providers ?? [];
+  const providers: string[] = matchedUser.app_metadata?.providers ?? [];
   const hasEmailInProviders = providers.includes("email");
   const hasGoogleInProviders = providers.includes("google");
 
   // Fallback check: identities array
-  const identities = data.user.identities ?? [];
+  const identities = matchedUser.identities ?? [];
   const hasEmailInIdentities = identities.some((i) => i.provider === "email");
   const hasGoogleInIdentities = identities.some((i) => i.provider === "google");
 
