@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --ice-blue: #A8D8EA;
+  --deep-blue: #2E4057;
+  --white: #FFFFFF;
+  --light-blue: #E8F4F8;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 프로그레스 바 shimmer 애니메이션 */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

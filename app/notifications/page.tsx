@@ -243,7 +243,7 @@ export default function NotificationsPage() {
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
-                className="b-card b-animate-in rounded-2xl p-4 text-left transition"
+                className="b-card b-animate-in rounded-2xl p-4 text-left transition cursor-pointer"
                 style={{
                   animationDelay: `${idx * 0.04}s`,
                   background: n.is_read ? "var(--bg-card)" : "var(--light-blue)",

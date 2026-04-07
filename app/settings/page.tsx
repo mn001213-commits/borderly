@@ -291,7 +291,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={restartGuideTour}
-            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition"
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition cursor-pointer"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
           >
             <MapIcon className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
