@@ -622,6 +622,31 @@ export default function MeetPage() {
                       {m.title}
                     </h2>
 
+                    {/* Author name */}
+                    <div
+                      className="mt-2 flex items-center gap-1.5 w-fit cursor-pointer group"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/u/${m.host_id}`); }}
+                    >
+                      {m.host_avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={m.host_avatar_url}
+                          alt={m.host_display_name ?? "Host"}
+                          className="h-5 w-5 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <div
+                          className="h-5 w-5 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
+                          style={{ background: "var(--primary)" }}
+                        >
+                          {(m.host_display_name ?? "?")[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-xs font-medium group-hover:underline" style={{ color: "var(--text-muted)" }}>
+                        {m.host_display_name ?? t("common.unknown")}
+                      </span>
+                    </div>
+
                     {/* Details */}
                     <div className="mt-4 space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
                       <div className="flex items-center gap-2">
@@ -667,31 +692,6 @@ export default function MeetPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Host profile — between quota bars and description */}
-                    <div
-                      className="mt-3 flex items-center gap-2 no-underline group w-fit cursor-pointer"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/u/${m.host_id}`); }}
-                    >
-                      {m.host_avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={m.host_avatar_url}
-                          alt={m.host_display_name ?? "Host"}
-                          className="h-7 w-7 rounded-full object-cover shrink-0 ring-1 ring-[var(--border-subtle)]"
-                        />
-                      ) : (
-                        <div
-                          className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                          style={{ background: "var(--primary)" }}
-                        >
-                          {(m.host_display_name ?? "?")[0]?.toUpperCase()}
-                        </div>
-                      )}
-                      <span className="text-xs font-semibold group-hover:underline" style={{ color: "var(--text-secondary)" }}>
-                        {m.host_display_name ?? t("common.unknown")}
-                      </span>
-                    </div>
 
                     {/* Description */}
                     <p

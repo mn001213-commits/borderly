@@ -27,6 +27,7 @@ type MeetRow = {
   description: string;
   city: string | null;
   place_hint: string | null;
+  online_url: string | null;
   start_at: string | null;
   max_people: number | null;
   max_foreigners: number | null;
@@ -185,6 +186,18 @@ export default function MeetDetailPage() {
       return;
     }
     const meetData = m as MeetRow;
+
+    // Supplement fields that may not be in the view (place_hint, online_url)
+    const { data: mp } = await supabase
+      .from("meet_posts")
+      .select("place_hint,online_url")
+      .eq("id", meetId)
+      .maybeSingle();
+    if (mp) {
+      if (meetData.place_hint == null && mp.place_hint) meetData.place_hint = mp.place_hint;
+      meetData.online_url = mp.online_url ?? null;
+    }
+
     setMeet(meetData);
 
     // Fetch host profile
@@ -793,7 +806,7 @@ export default function MeetDetailPage() {
                 myStatus === "pending" ? "border-yellow-200 bg-yellow-50 text-yellow-700" :
                 "border-red-200 bg-red-50 text-red-700"
               )}>
-                {t("meetDetail.myStatus")}: {myStatus}
+                {t("meetDetail.myStatus")}: {t(`meetDetail.status${myStatus.charAt(0).toUpperCase()}${myStatus.slice(1)}`)}
               </span>
             )}
           </div>
@@ -803,6 +816,20 @@ export default function MeetDetailPage() {
           <div className="mt-4 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
             <div>{t("meetDetail.time")}: {meet.start_at ? new Date(meet.start_at).toLocaleString() : t("meetDetail.tbd")}</div>
             <div>{t("meetDetail.place")}: {meet.place_hint || meet.city || t("meetDetail.tbd")}</div>
+            {meet.online_url && (isHost || myStatus === "approved") && (
+              <div className="flex items-center gap-1.5">
+                <span>{t("meetDetail.onlineUrl")}:</span>
+                <a
+                  href={meet.online_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate max-w-xs font-medium hover:underline"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {meet.online_url}
+                </a>
+              </div>
+            )}
             <div>{capText}</div>
           </div>
 
