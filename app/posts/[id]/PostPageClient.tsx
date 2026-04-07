@@ -256,7 +256,22 @@ export default function PostDetailPage() {
       return;
     }
 
-    setComments((cs ?? []) as CommentRow[]);
+    const rawComments = cs ?? [];
+    const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
+    if (commentUserIds.length > 0) {
+      const { data: commentProfiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", commentUserIds);
+      const profileMap = new Map(commentProfiles?.map((p) => [p.id, p.display_name]) ?? []);
+      const enrichedComments = rawComments.map((c) => ({
+        ...c,
+        author_name: profileMap.get(c.user_id) ?? c.author_name,
+      }));
+      setComments(enrichedComments as CommentRow[]);
+    } else {
+      setComments([]);
+    }
   }, []);
 
   useEffect(() => {
