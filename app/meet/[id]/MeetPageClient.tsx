@@ -188,14 +188,14 @@ export default function MeetDetailPage() {
     const meetData = m as MeetRow;
 
     // Supplement fields that may not be in the view (place_hint, online_url)
-    const { data: mp } = await supabase
+    const { data: meetPostData } = await supabase
       .from("meet_posts")
       .select("place_hint,online_url")
       .eq("id", meetId)
       .maybeSingle();
-    if (mp) {
-      if (meetData.place_hint == null && mp.place_hint) meetData.place_hint = mp.place_hint;
-      meetData.online_url = mp.online_url ?? null;
+    if (meetPostData) {
+      if (meetData.place_hint == null && meetPostData.place_hint) meetData.place_hint = meetPostData.place_hint;
+      meetData.online_url = meetPostData.online_url ?? null;
     }
 
     setMeet(meetData);
