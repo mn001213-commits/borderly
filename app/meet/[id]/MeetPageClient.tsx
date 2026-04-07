@@ -301,7 +301,23 @@ export default function MeetDetailPage() {
     if (cmtErr) {
       if (process.env.NODE_ENV === "development") console.error("meet comments load error:", cmtErr);
     }
-    setMeetComments((cmts ?? []) as MeetCommentRow[]);
+
+    // Fetch current display_name for each commenter and filter out users without a nickname
+    const rawComments = cmts ?? [];
+    const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
+    if (commentUserIds.length > 0) {
+      const { data: commentProfiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", commentUserIds);
+      const profileMap = new Map(commentProfiles?.map((p) => [p.id, p.display_name]) ?? []);
+      const enrichedComments = rawComments
+        .filter((c) => profileMap.get(c.user_id))
+        .map((c) => ({ ...c, author_name: profileMap.get(c.user_id) ?? c.author_name }));
+      setMeetComments(enrichedComments as MeetCommentRow[]);
+    } else {
+      setMeetComments([]);
+    }
 
     setLoading(false);
   }, [meetId]);
@@ -323,11 +339,15 @@ export default function MeetDetailPage() {
 
     const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
     const author = (prof?.display_name as string | null) ?? null;
+    if (!author) {
+      setCommentSaving(false);
+      return;
+    }
 
     const optimistic: MeetCommentRow = {
       id: tempId, meet_id: meetId, user_id: user.id, parent_id: parentId,
       content: body, created_at: new Date().toISOString(),
-      author_name: author ?? t("post.anonymous"), is_hidden: false,
+      author_name: author, is_hidden: false,
     };
     setMeetComments((prev) => [...prev, optimistic]);
 
