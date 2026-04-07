@@ -1013,9 +1013,9 @@ const translations: Record<string, Record<Locale, string>> = {
   // Onboarding Tour (슬라이드 투어)
   "onboardingTour.welcomeTitle": { en: "Welcome!", ko: "Welcome!", ja: "Welcome!" },
   "onboardingTour.slide1": {
-    en: "Share meaningful information, have fun, and connect with people who help each other!",
-    ko: "유의미한 정보를 공유하고, 즐기면서 서로 돕는 동료들과 연결되세요!",
-    ja: "有意義な情報を共有し合い、楽しみながら助け合う仲間とつながりましょう！",
+    en: "Borderly is the border where everyone meets — a community built on connection and trust.",
+    ko: "Borderly는 모두가 만나는 경계의 장소 — 연결과 신뢰로 만들어진 커뮤니티입니다.",
+    ja: "Borderlyは、みんなが出会う場所 — つながりと信頼で築かれた\nコミュニティです。",
   },
   "onboardingTour.slide2": {
     en: "Defamatory remarks, racial slurs, and behaviors that make others uncomfortable are not allowed.",
@@ -1023,9 +1023,9 @@ const translations: Record<string, Record<Locale, string>> = {
     ja: "誹謗中傷・人種差別的な発言など、他の人が不快になる言動は禁止されています。",
   },
   "onboardingTour.slide3": {
-    en: "Borderly is the border where everyone meets — a community built on connection and trust.",
-    ko: "Borderly는 모두가 만나는 경계의 장소 — 연결과 신뢰로 만들어진 커뮤니티입니다.",
-    ja: "Borderlyは、みんなが出会う場所 — つながりと信頼で築かれた\nコミュニティです。",
+    en: "Share meaningful information, have fun, and connect with people who help each other!",
+    ko: "유의미한 정보를 공유하고, 즐기면서 서로 돕는 동료들과 연결되세요!",
+    ja: "有意義な情報を共有し合い、楽しみながら助け合う仲間とつながりましょう！",
   },
   "onboardingTour.next": { en: "Next", ko: "다음", ja: "次へ" },
   "onboardingTour.finish": { en: "Enjoy your Borderly life!", ko: "Borderly 라이프를 즐기세요!", ja: "Borderlyライフを楽しもう！" },
