@@ -60,6 +60,10 @@ nul
 # Supabase
 supabase/.temp/
 
+# Android signing
+android/app/*.keystore
+android/app/*.jks
+
 # Research / planning docs (local only)
 *research.md
 *plan.md
