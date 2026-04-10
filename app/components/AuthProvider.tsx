@@ -61,16 +61,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url, residence_country, origin_country, languages, use_purpose, role, ngo_verified")
+        .select("display_name, avatar_url, residence_country, origin_country, languages, use_purpose, role, ngo_verified, user_type, ngo_activity_countries")
         .eq("id", authUser.id)
         .maybeSingle();
 
       if (alive) {
         // Check if profile is complete
+        const isNgo = prof?.user_type === "ngo";
+        const hasCountry = isNgo
+          ? (prof.ngo_activity_countries && Array.isArray(prof.ngo_activity_countries) && prof.ngo_activity_countries.length > 0)
+          : (prof?.residence_country && prof?.origin_country);
         const profileComplete = prof &&
           prof.display_name &&
-          prof.residence_country &&
-          prof.origin_country &&
+          hasCountry &&
           prof.languages && Array.isArray(prof.languages) && prof.languages.length > 0 &&
           prof.use_purpose;
 

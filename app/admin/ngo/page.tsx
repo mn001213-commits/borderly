@@ -18,6 +18,10 @@ type NgoProfile = {
   ngo_org_url: string | null;
   ngo_purpose: string | null;
   ngo_status: string | null;
+  ngo_rep_name: string | null;
+  ngo_rep_email: string | null;
+  ngo_rep_phone: string | null;
+  ngo_activity_countries: string[] | null;
   created_at: string;
 };
 
@@ -252,6 +256,18 @@ export default function AdminNgoPage() {
                     )}
                     {n.ngo_purpose && (
                       <div className="mt-1 text-xs line-clamp-2" style={{ color: "var(--text-muted)" }}>{n.ngo_purpose}</div>
+                    )}
+                    {(n.ngo_rep_name || n.ngo_rep_email || n.ngo_rep_phone) && (
+                      <div className="mt-1.5 pt-1.5 border-t text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        {n.ngo_rep_name && <div><span className="font-medium">Rep:</span> {n.ngo_rep_name}</div>}
+                        {n.ngo_rep_email && <div><span className="font-medium">Email:</span> {n.ngo_rep_email}</div>}
+                        {n.ngo_rep_phone && <div><span className="font-medium">Phone:</span> {n.ngo_rep_phone}</div>}
+                      </div>
+                    )}
+                    {n.ngo_activity_countries && n.ngo_activity_countries.length > 0 && (
+                      <div className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                        <span className="font-medium">Countries:</span> {n.ngo_activity_countries.join(", ")}
+                      </div>
                     )}
                     <div className="text-[11px] mt-1 font-semibold" style={{ color: statusColor(n) }}>
                       {statusLabel(n)}

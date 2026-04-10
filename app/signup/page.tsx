@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getCountryList, countryName } from "@/lib/countries";
-import { ArrowLeft, UserPlus, Users, Globe, Building2 } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Globe, Building2, User, Mail, Phone } from "lucide-react";
 import { getAllLanguages, langLabel } from "@/lib/languages";
 import { useT } from "@/app/components/LangProvider";
 import LangSwitcher from "@/app/components/LangSwitcher";
@@ -182,6 +182,101 @@ function LanguageSelect({
   );
 }
 
+function CountryMultiSelect({
+  selected,
+  onChange,
+  label,
+}: {
+  selected: string[];
+  onChange: (codes: string[]) => void;
+  label: string;
+}) {
+  const { t } = useT();
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const allCountries = useMemo(() => getCountryList("en"), []);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return allCountries;
+    return allCountries.filter((c) => c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term));
+  }, [q, allCountries]);
+
+  const toggle = (code: string) => {
+    if (selected.includes(code)) {
+      onChange(selected.filter((c) => c !== code));
+    } else {
+      onChange([...selected, code]);
+    }
+  };
+
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>{label}</label>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {selected.map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => toggle(code)}
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-white transition"
+              style={{ background: "var(--primary)", border: "1px solid var(--primary)" }}
+            >
+              {countryName(code, "en")} ×
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={t("onboarding.searchCountry") || "Search countries..."}
+          className="w-full rounded-xl px-4 py-3 text-sm outline-none focus:border-[var(--text-muted)]"
+          style={{ background: "var(--light-blue)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+        />
+
+        {open && (
+          <div
+            className="absolute z-50 top-full left-0 right-0 mt-1.5 max-h-48 overflow-auto rounded-xl shadow-lg"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}
+          >
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-sm" style={{ color: "var(--text-muted)" }}>{t("settings.noResults") || "No results"}</div>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => toggle(c.code)}
+                  className="w-full text-left px-4 py-2.5 text-sm flex items-center justify-between"
+                  style={{
+                    background: selected.includes(c.code) ? "var(--light-blue)" : undefined,
+                    fontWeight: selected.includes(c.code) ? 500 : undefined,
+                    color: selected.includes(c.code) ? "var(--primary)" : undefined,
+                  }}
+                  onMouseEnter={(e) => { if (!selected.includes(c.code)) e.currentTarget.style.background = "var(--light-blue)"; }}
+                  onMouseLeave={(e) => { if (!selected.includes(c.code)) e.currentTarget.style.background = ""; }}
+                >
+                  {c.name} <span className="text-xs" style={{ color: "var(--text-muted)" }}>{c.code}</span>
+                  {selected.includes(c.code) && <span className="ml-2" style={{ color: "var(--primary)" }}>✓</span>}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const { t } = useT();
@@ -200,6 +295,10 @@ export default function SignupPage() {
   const [orgPurpose, setOrgPurpose] = useState("");
   const [orgUrl, setOrgUrl] = useState("");
   const [ngoPurpose, setNgoPurpose] = useState("");
+  const [repName, setRepName] = useState("");
+  const [repEmail, setRepEmail] = useState("");
+  const [repPhone, setRepPhone] = useState("");
+  const [activityCountries, setActivityCountries] = useState<string[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -218,6 +317,10 @@ export default function SignupPage() {
     setOrgPurpose("");
     setOrgUrl("");
     setNgoPurpose("");
+    setRepName("");
+    setRepEmail("");
+    setRepPhone("");
+    setActivityCountries([]);
     setErrorMsg(null);
     setOkMsg(null);
   }, []);
@@ -228,7 +331,7 @@ export default function SignupPage() {
   const pwStrong = pw.length >= 8 && pwHasUpper && pwHasLower && pwHasNumber;
 
   const canSubmit = useMemo(() => {
-    const baseValid =
+    const commonValid =
       email.trim().length > 3 &&
       pw.length >= 8 &&
       pwHasUpper &&
@@ -236,18 +339,22 @@ export default function SignupPage() {
       pwHasNumber &&
       displayName.trim().length >= 1 &&
       displayName.trim().length <= 30 &&
-      residenceCountry.trim().length === 2 &&
-      originCountry.trim().length === 2 &&
       languages.length >= 1;
 
     if (userType === "ngo") {
-      return baseValid &&
+      return commonValid &&
+        activityCountries.length >= 1 &&
         orgName.trim().length >= 2 &&
         orgPurpose.trim().length >= 5 &&
-        ngoPurpose.trim().length >= 10;
+        ngoPurpose.trim().length >= 10 &&
+        repName.trim().length >= 2 &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(repEmail.trim()) &&
+        repPhone.trim().length >= 5;
     }
-    return baseValid;
-  }, [email, pw, pwHasUpper, pwHasLower, pwHasNumber, displayName, residenceCountry, originCountry, languages, userType, orgName, orgPurpose, ngoPurpose]);
+    return commonValid &&
+      residenceCountry.trim().length === 2 &&
+      originCountry.trim().length === 2;
+  }, [email, pw, pwHasUpper, pwHasLower, pwHasNumber, displayName, residenceCountry, originCountry, languages, userType, orgName, orgPurpose, ngoPurpose, activityCountries, repName, repEmail, repPhone]);
 
   const onSignup = async () => {
     if (!canSubmit) return;
@@ -287,8 +394,8 @@ export default function SignupPage() {
     const profileData: Record<string, unknown> = {
       id: uid,
       display_name: displayName.trim(),
-      residence_country: residenceCountry || null,
-      origin_country: originCountry || null,
+      residence_country: userType === "ngo" ? null : (residenceCountry || null),
+      origin_country: userType === "ngo" ? null : (originCountry || null),
       languages,
       user_type: userType,
       ngo_verified: false,
@@ -301,6 +408,10 @@ export default function SignupPage() {
       profileData.ngo_org_url = orgUrl.trim() || null;
       profileData.ngo_purpose = ngoPurpose.trim();
       profileData.ngo_status = "pending";
+      profileData.ngo_rep_name = repName.trim();
+      profileData.ngo_rep_email = repEmail.trim();
+      profileData.ngo_rep_phone = repPhone.trim();
+      profileData.ngo_activity_countries = activityCountries;
     }
 
     // Try client-side upsert first (works when session exists)
@@ -341,6 +452,10 @@ export default function SignupPage() {
               org_purpose: orgPurpose.trim(),
               org_url: orgUrl.trim(),
               purpose: ngoPurpose.trim(),
+              rep_name: repName.trim(),
+              rep_email: repEmail.trim(),
+              rep_phone: repPhone.trim(),
+              activity_countries: activityCountries,
             }),
           });
         }
@@ -590,11 +705,72 @@ export default function SignupPage() {
                     {t("ngoOnboarding.purposeMin") || "Minimum 10 characters"}
                   </p>
                 </div>
+
+                <div className="pt-2 border-t" style={{ borderColor: "var(--border-soft)" }}>
+                  <div className="flex items-center gap-2 text-sm font-semibold mb-3" style={{ color: "var(--deep-navy)" }}>
+                    <User className="h-4 w-4" />
+                    {t("ngoOnboarding.repName") || "Representative"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.repName") || "Representative Name"} *
+                  </label>
+                  <input
+                    value={repName}
+                    onChange={(e) => setRepName(e.target.value)}
+                    placeholder={t("ngoOnboarding.repNamePlaceholder") || "e.g. Kim Minjun"}
+                    disabled={busy}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.repEmail") || "Representative Email"} *
+                  </label>
+                  <input
+                    type="email"
+                    value={repEmail}
+                    onChange={(e) => setRepEmail(e.target.value)}
+                    placeholder={t("ngoOnboarding.repEmailPlaceholder") || "email@organization.org"}
+                    disabled={busy}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                    {t("ngoOnboarding.repPhone") || "Contact Number"} *
+                  </label>
+                  <input
+                    type="tel"
+                    value={repPhone}
+                    onChange={(e) => setRepPhone(e.target.value)}
+                    placeholder={t("ngoOnboarding.repPhonePlaceholder") || "e.g. 010-1234-5678"}
+                    disabled={busy}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-70"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--deep-navy)" }}
+                  />
+                </div>
               </div>
             )}
 
-            <CountrySelect value={residenceCountry} onChange={setResidenceCountry} lang="en" label={t("profile.residenceCountry")} />
-            <CountrySelect value={originCountry} onChange={setOriginCountry} lang="en" label={t("profile.originCountry")} />
+            {userType === "ngo" ? (
+              <CountryMultiSelect
+                selected={activityCountries}
+                onChange={setActivityCountries}
+                label={t("ngoOnboarding.activityCountries") || "Activity Countries"}
+              />
+            ) : (
+              <>
+                <CountrySelect value={residenceCountry} onChange={setResidenceCountry} lang="en" label={t("profile.residenceCountry")} />
+                <CountrySelect value={originCountry} onChange={setOriginCountry} lang="en" label={t("profile.originCountry")} />
+              </>
+            )}
 
             <LanguageSelect selected={languages} onChange={setLanguages} />
 

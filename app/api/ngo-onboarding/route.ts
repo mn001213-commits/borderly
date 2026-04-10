@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { org_name, org_purpose, org_url, purpose } = await req.json();
+    const { org_name, org_purpose, org_url, purpose, rep_name, rep_email, rep_phone, activity_countries } = await req.json();
 
     if (!org_name || org_name.trim().length < 2) {
       return NextResponse.json({ error: "Organization name is required (min 2 chars)" }, { status: 400 });
@@ -23,6 +23,15 @@ export async function POST(req: NextRequest) {
     }
     if (!purpose || purpose.trim().length < 10) {
       return NextResponse.json({ error: "Activity purpose is required (min 10 chars)" }, { status: 400 });
+    }
+    if (!rep_name || rep_name.trim().length < 2) {
+      return NextResponse.json({ error: "Representative name is required (min 2 chars)" }, { status: 400 });
+    }
+    if (!rep_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rep_email.trim())) {
+      return NextResponse.json({ error: "Valid representative email is required" }, { status: 400 });
+    }
+    if (!rep_phone || rep_phone.trim().length < 5) {
+      return NextResponse.json({ error: "Representative phone is required (min 5 chars)" }, { status: 400 });
     }
 
     const { error: updateErr } = await supabaseAdmin
@@ -34,6 +43,10 @@ export async function POST(req: NextRequest) {
         ngo_org_purpose: org_purpose.trim(),
         ngo_org_url: org_url?.trim() || null,
         ngo_purpose: purpose.trim(),
+        ngo_rep_name: rep_name.trim(),
+        ngo_rep_email: rep_email.trim(),
+        ngo_rep_phone: rep_phone.trim(),
+        ngo_activity_countries: Array.isArray(activity_countries) ? activity_countries : [],
         ngo_status: "pending",
       })
       .eq("id", user.id);
